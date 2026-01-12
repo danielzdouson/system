@@ -1,0 +1,323 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\CashflowTransaction;
+use App\Models\FiscalYear;
+use App\Services\CashPositionService;
+use App\Services\CashflowStatementService;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
+
+class CashflowController extends Controller
+{
+    /**
+     * Show the form for creating a new cashflow transaction.
+     */
+    public function create(): View
+    {
+        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        return view('admin.cashflow.create', compact('fiscalYears'));
+    }
+
+    /**
+     * Store a newly created cashflow transaction.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'transaction_date' => 'required|date',
+            'transaction_type' => 'required|in:INFLOW,OUTFLOW',
+            'category' => 'required|in:OPERATING,INVESTING,FINANCING',
+            'subcategory' => 'required|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'amount' => 'required|numeric|min:0',
+            'payment_method' => 'nullable|string|max:50',
+            'reference_type' => 'nullable|in:DEPOSIT,LOAN_DISBURSEMENT,LOAN_REPAYMENT,WELFARE_PAYMENT,FINE_PAYMENT,EXPENSE,OTHER',
+            'reference_number' => 'nullable|string|max:100',
+            'fiscal_year_id' => 'nullable|exists:fiscal_years,id',
+            'member_id' => 'nullable|exists:members,id',
+            'notes' => 'nullable|string|max:1000'
+        ]);
+
+        CashflowTransaction::create([
+            'transaction_date' => $request->transaction_date,
+            'transaction_type' => $request->transaction_type,
+            'category' => $request->category,
+            'subcategory' => $request->subcategory,
+            'description' => $request->description,
+            'amount' => $request->amount,
+            'payment_method' => $request->payment_method,
+            'reference_type' => $request->reference_type,
+            'reference_number' => $request->reference_number,
+            'fiscal_year_id' => $request->fiscal_year_id,
+            'member_id' => $request->member_id,
+            'created_by' => auth()->id(),
+            'notes' => $request->notes,
+            'status' => CashflowTransaction::STATUS_PENDING
+        ]);
+
+        return redirect()->route('admin.cashflow.index')
+            ->with('success', 'Cashflow transaction created successfully.');
+    }
+
+    /**
+     * Show the form for editing the specified cashflow transaction.
+     */
+    public function edit(CashflowTransaction $transaction): View
+    {
+        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        return view('admin.cashflow.edit', compact('transaction', 'fiscalYears'));
+    }
+
+    /**
+     * Update the specified cashflow transaction.
+     */
+    public function update(Request $request, CashflowTransaction $transaction): RedirectResponse
+    {
+        $request->validate([
+            'transaction_date' => 'required|date',
+            'transaction_type' => 'required|in:INFLOW,OUTFLOW',
+            'category' => 'required|in:OPERATING,INVESTING,FINANCING',
+            'subcategory' => 'required|string|max:100',
+            'description' => 'nullable|string|max:255',
+            'amount' => 'required|numeric|min:0',
+            'payment_method' => 'nullable|string|max:50',
+            'reference_type' => 'nullable|in:DEPOSIT,LOAN_DISBURSEMENT,LOAN_REPAYMENT,WELFARE_PAYMENT,FINE_PAYMENT,EXPENSE,OTHER',
+            'reference_number' => 'nullable|string|max:100',
+            'fiscal_year_id' => 'nullable|exists:fiscal_years,id',
+            'member_id' => 'nullable|exists:members,id',
+            'notes' => 'nullable|string|max:1000'
+        ]);
+
+        $transaction->update($request->all());
+
+        return redirect()->route('admin.cashflow.index')
+            ->with('success', 'Cashflow transaction updated successfully.');
+    }
+
+    /**
+     * Remove the specified cashflow transaction.
+     */
+    public function destroy(CashflowTransaction $transaction): RedirectResponse
+    {
+        $transaction->delete();
+
+        return redirect()->route('admin.cashflow.index')
+            ->with('success', 'Cashflow transaction deleted successfully.');
+    }
+
+    /**
+     * Display cashflow dashboard
+     */
+    public function dashboard(): View
+    {
+        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        $currentBalance = CashPositionService::getCurrentBalance();
+        $cashPositionTrend = CashPositionService::getCashPositionTrend(30);
+        
+        return view('admin.cashflow.dashboard', compact(
+            'activeFiscalYear',
+            'currentBalance',
+            'cashPositionTrend'
+        ));
+    }
+
+    /**
+     * Display cashflow transactions list
+     */
+    public function index(Request $request): View
+    {
+        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        
+        $query = CashflowTransaction::with(['member', 'creator', 'fiscalYear'])
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc');
+
+        // Apply filters
+        if ($request->filled('fiscal_year_id')) {
+            $query->where('fiscal_year_id', $request->fiscal_year_id);
+        }
+
+        if ($request->filled('transaction_type')) {
+            $query->where('transaction_type', $request->transaction_type);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('transaction_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('transaction_date', '<=', $request->date_to);
+        }
+
+        $transactions = $query->paginate(50);
+        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+
+        return view('admin.cashflow.index', compact(
+            'transactions',
+            'activeFiscalYear',
+            'fiscalYears'
+        ));
+    }
+
+    /**
+     * Display monthly cashflow statement
+     */
+    public function monthlyStatement(Request $request): View
+    {
+        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        
+        $statement = null;
+        if ($request->filled('fiscal_year_id') && $request->filled('month')) {
+            $statementService = new CashflowStatementService();
+            $statement = $statementService->generateMonthlyStatement(
+                $request->fiscal_year_id,
+                $request->month
+            );
+        }
+
+        return view('admin.cashflow.monthly-statement', compact(
+            'statement',
+            'activeFiscalYear',
+            'fiscalYears'
+        ));
+    }
+
+    /**
+     * Display fiscal year cashflow statement
+     */
+    public function fiscalYearStatement(Request $request): View
+    {
+        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        
+        $statement = null;
+        if ($request->filled('fiscal_year_id')) {
+            $statementService = new CashflowStatementService();
+            $statement = $statementService->generateFiscalYearStatement(
+                $request->fiscal_year_id
+            );
+        }
+
+        return view('admin.cashflow.fiscal-year-statement', compact(
+            'statement',
+            'activeFiscalYear',
+            'fiscalYears'
+        ));
+    }
+
+    /**
+     * Show cashflow transaction details
+     */
+    public function show(CashflowTransaction $transaction): View
+    {
+        $transaction->load(['member', 'creator', 'approver', 'fiscalYear']);
+        
+        return view('admin.cashflow.show', compact('transaction'));
+    }
+
+    /**
+     * Approve pending cashflow transaction
+     */
+    public function approve(CashflowTransaction $transaction): RedirectResponse
+    {
+        if ($transaction->status !== CashflowTransaction::STATUS_PENDING) {
+            return redirect()->back()
+                ->with('error', 'Transaction cannot be approved. Current status: ' . $transaction->status);
+        }
+
+        $transaction->approve(auth()->user());
+
+        return redirect()->back()
+            ->with('success', 'Cashflow transaction approved successfully.');
+    }
+
+    /**
+     * Reconcile cashflow transaction
+     */
+    public function reconcile(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'transaction_ids' => 'required|array',
+            'transaction_ids.*' => 'exists:cashflow_transactions,id'
+        ]);
+
+        $transactions = CashflowTransaction::whereIn('id', $request->transaction_ids)->get();
+        
+        foreach ($transactions as $transaction) {
+            $transaction->reconcile();
+        }
+
+        return redirect()->back()
+            ->with('success', count($transactions) . ' transactions reconciled successfully.');
+    }
+
+    /**
+     * Export monthly cashflow statement to PDF
+     */
+    public function exportMonthlyStatement(Request $request)
+    {
+        $request->validate([
+            'fiscal_year_id' => 'required|exists:fiscal_years,id',
+            'month' => 'required|integer|min:1|max:12'
+        ]);
+
+        $statementService = new CashflowStatementService();
+        $statement = $statementService->generateMonthlyStatement(
+            $request->fiscal_year_id,
+            $request->month
+        );
+
+        // For now, return as array - PDF export can be added later
+        return redirect()->back()
+            ->with('success', 'Monthly statement generated successfully.')
+            ->with('statement_data', $statement);
+    }
+
+    /**
+     * Export fiscal year cashflow statement to PDF
+     */
+    public function exportFiscalYearStatement(Request $request)
+    {
+        $request->validate([
+            'fiscal_year_id' => 'required|exists:fiscal_years,id'
+        ]);
+
+        $statementService = new CashflowStatementService();
+        $statement = $statementService->generateFiscalYearStatement(
+            $request->fiscal_year_id
+        );
+
+        // For now, return as array - PDF export can be added later
+        return redirect()->back()
+            ->with('success', 'Fiscal year statement generated successfully.')
+            ->with('statement_data', $statement);
+    }
+
+    /**
+     * Get real-time cash position
+     */
+    public function getCashPosition(): \Illuminate\Http\JsonResponse
+    {
+        $balance = CashPositionService::getCurrentBalance();
+        $trend = CashPositionService::getCashPositionTrend(7); // Last 7 days
+        
+        return response()->json([
+            'current_balance' => $balance,
+            'trend' => $trend,
+            'formatted_balance' => number_format($balance, 2)
+        ]);
+    }
+}
