@@ -98,7 +98,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::delete('cashflow/{transaction}', [App\Http\Controllers\Admin\CashflowController::class, 'destroy'])->name('cashflow.destroy');
     Route::post('cashflow/{transaction}/approve', [App\Http\Controllers\Admin\CashflowController::class, 'approve'])->name('cashflow.approve');
     Route::post('cashflow/reconcile', [App\Http\Controllers\Admin\CashflowController::class, 'reconcile'])->name('cashflow.reconcile');
+    Route::post('cashflow/bulk-approve', [App\Http\Controllers\Admin\CashflowController::class, 'bulkApprove'])->name('cashflow.bulk-approve');
+    Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
     Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
+    Route::get('cashflow/export-monthly-pdf', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatementPDF'])->name('cashflow.export.monthly.pdf');
     Route::get('cashflow/export-fiscal-year', [App\Http\Controllers\Admin\CashflowController::class, 'exportFiscalYearStatement'])->name('cashflow.export.fiscal-year');
     Route::get('cashflow/position', [App\Http\Controllers\Admin\CashflowController::class, 'getCashPosition'])->name('cashflow.position');
     

@@ -10,6 +10,10 @@ use App\Services\CashflowStatementService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\CashflowStatementExport;
+use App\Exports\CashflowTransactionExport;
+use PDF;
 
 class CashflowController extends Controller
 {
@@ -205,10 +209,18 @@ class CashflowController extends Controller
         
         $statement = null;
         if ($request->filled('fiscal_year_id')) {
-            $statementService = new CashflowStatementService();
-            $statement = $statementService->generateFiscalYearStatement(
-                $request->fiscal_year_id
-            );
+            try {
+                $statementService = new CashflowStatementService();
+                $statement = $statementService->generateFiscalYearStatement(
+                    $request->fiscal_year_id
+                );
+            } catch (\Exception $e) {
+                \Log::error('Fiscal year statement generation error: ' . $e->getMessage());
+                $statement = [
+                    'fiscal_year' => 'Error',
+                    'error' => $e->getMessage()
+                ];
+            }
         }
 
         return view('admin.cashflow.fiscal-year-statement', compact(
@@ -216,6 +228,32 @@ class CashflowController extends Controller
             'activeFiscalYear',
             'fiscalYears'
         ));
+    }
+
+    /**
+     * Bulk approve pending transactions
+     */
+    public function bulkApprove(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'transaction_ids' => 'required|array',
+            'transaction_ids.*' => 'exists:cashflow_transactions,id'
+        ]);
+
+        $transactionIds = $request->transaction_ids;
+        
+        CashflowTransaction::whereIn('id', $transactionIds)
+            ->where('status', 'PENDING')
+            ->update([
+                'status' => 'CLEARED',
+                'approved_by' => auth()->id(),
+                'approved_at' => now()
+            ]);
+
+        $count = count($transactionIds);
+        
+        return redirect()->back()
+            ->with('success', "{$count} pending transaction(s) approved successfully.");
     }
 
     /**
@@ -265,6 +303,47 @@ class CashflowController extends Controller
     }
 
     /**
+     * Export cashflow transactions to Excel
+     */
+    public function export(Request $request)
+    {
+        $query = CashflowTransaction::with(['member', 'creator', 'fiscalYear'])
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc');
+
+        // Apply filters
+        if ($request->filled('fiscal_year_id')) {
+            $query->where('fiscal_year_id', $request->fiscal_year_id);
+        }
+
+        if ($request->filled('transaction_type')) {
+            $query->where('transaction_type', $request->transaction_type);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('transaction_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->where('transaction_date', '<=', $request->date_to);
+        }
+
+        $transactions = $query->get();
+
+        $filename = 'cashflow_transactions_' . now()->format('Y_m_d') . '.xlsx';
+        
+        return Excel::download(new CashflowTransactionExport($transactions), $filename);
+    }
+
+    /**
      * Export monthly cashflow statement to PDF
      */
     public function exportMonthlyStatement(Request $request)
@@ -280,10 +359,32 @@ class CashflowController extends Controller
             $request->month
         );
 
-        // For now, return as array - PDF export can be added later
-        return redirect()->back()
-            ->with('success', 'Monthly statement generated successfully.')
-            ->with('statement_data', $statement);
+        $filename = 'cashflow_statement_' . $statement['period'] . '.xlsx';
+        
+        return Excel::download(new CashflowStatementExport($statement), $filename);
+    }
+
+    /**
+     * Export monthly cashflow statement to PDF
+     */
+    public function exportMonthlyStatementPDF(Request $request)
+    {
+        $request->validate([
+            'fiscal_year_id' => 'required|exists:fiscal_years,id',
+            'month' => 'required|integer|min:1|max:12'
+        ]);
+
+        $statementService = new CashflowStatementService();
+        $statement = $statementService->generateMonthlyStatement(
+            $request->fiscal_year_id,
+            $request->month
+        );
+
+        $pdf = \Barryvdh\DomPDF\Facade::loadView('admin.cashflow.pdf.monthly-statement', compact('statement'));
+        
+        $filename = 'cashflow_statement_' . $statement['period'] . '.pdf';
+        
+        return $pdf->download($filename);
     }
 
     /**

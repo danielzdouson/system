@@ -1,6 +1,72 @@
+@php
+use Carbon\Carbon;
+@endphp
+
 @extends('layouts.admin')
 
 @section('title', 'Monthly Cashflow Statement')
+
+@push('styles')
+<style>
+.dropdown {
+    position: relative;
+}
+
+.dropdown-toggle {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown-toggle:hover {
+    background: linear-gradient(135deg, #0ea571 0%, #26d0ce 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.15);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #e3e6f6;
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 200px;
+    padding: 0.5rem 0;
+    margin-top: 0.25rem;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+</style>
+@endpush
 
 @section('content')
 <div class="content-wrapper">
@@ -80,10 +146,27 @@
                                 <div class="col-md-2">
                                     <label class="form-label">&nbsp;</label>
                                     @if($statement)
-                                        <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id'), 'month' => request('month')]) }}" class="action-btn success">
-                                            <i class="fas fa-download me-2"></i>
-                                            Export PDF
-                                        </a>
+                                        <div class="dropdown">
+                                            <button class="action-btn success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-download me-2"></i>
+                                                Export
+                                                <i class="fas fa-chevron-down ms-2"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id'), 'month' => request('month')]) }}" class="dropdown-item">
+                                                        <i class="fas fa-file-excel me-2"></i>
+                                                        Export to Excel
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="{{ route('admin.cashflow.export.monthly.pdf', ['fiscal_year_id' => request('fiscal_year_id'), 'month' => request('month')]) }}" class="dropdown-item">
+                                                        <i class="fas fa-file-pdf me-2"></i>
+                                                        Export to PDF
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     @endif
                                 </div>
                             </form>

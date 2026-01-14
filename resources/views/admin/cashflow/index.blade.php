@@ -102,17 +102,42 @@
                             </h5>
                             <div class="action-buttons">
                                 <a href="{{ route('admin.cashflow.monthly-statement') }}" class="action-btn primary">
-                                    <i class="fas fa-file-invoice me-2"></i>
-                                    Monthly Statement
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    <span>Monthly Statement</span>
                                 </a>
                                 <a href="{{ route('admin.cashflow.fiscal-year-statement') }}" class="action-btn success">
-                                    <i class="fas fa-file-alt me-2"></i>
-                                    Fiscal Year Statement
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    <span>Fiscal Year Statement</span>
                                 </a>
                                 <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Add Transaction
+                                    <i class="fas fa-plus-circle me-2"></i>
+                                    <span>Add Transaction</span>
                                 </a>
+                                <button type="button" class="action-btn warning" onclick="bulkApprovePending()">
+                                    <i class="fas fa-check-double me-2"></i>
+                                    <span>Bulk Approve Pending</span>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="action-btn secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-download me-2"></i>
+                                        <span>Export</span>
+                                        <i class="fas fa-chevron-down ms-2"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a href="{{ route('admin.cashflow.export', request()->query()) }}" class="dropdown-item">
+                                                <i class="fas fa-file-excel me-2"></i>
+                                                Export Current View to Excel
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
+                                                <i class="fas fa-file-excel me-2"></i>
+                                                Export Current Month to Excel
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -156,8 +181,8 @@
                                                             {{ $transaction->transaction_date->format('M d, Y') }}
                                                         </span>
                                                     </td>
-                                                    <td>{{ $transaction->type_badge }}</td>
-                                                    <td>{{ $transaction->category_badge }}</td>
+                                                    <td>{!! $transaction->type_badge !!}</td>
+                                                    <td>{!! $transaction->category_badge !!}</td>
                                                     <td>
                                                         <div>
                                                             <strong>{{ $transaction->description }}</strong>
@@ -172,17 +197,47 @@
                                                         </span>
                                                     </td>
                                                     <td>{{ $transaction->payment_method }}</td>
-                                                    <td>{{ $transaction->status_badge }}</td>
+                                                    <td>{!! $transaction->status_badge !!}</td>
                                                     <td>
-                                                        <div class="action-buttons-inline">
-                                                            @if($transaction->status == 'PENDING' && auth()->user()->can('approve-cashflow'))
-                                                                <a href="{{ route('admin.cashflow.approve', $transaction->id) }}" class="btn-action success">
-                                                                    <i class="fas fa-check"></i>
-                                                                </a>
-                                                            @endif
-                                                            <a href="{{ route('admin.cashflow.show', $transaction->id) }}" class="btn-action primary">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                                <i class="fas fa-ellipsis-h"></i>
+                                                                Actions
+                                                            </button>
+                                                            <ul class="dropdown-menu">
+                                                                @if($transaction->status == 'PENDING' && auth()->user()->can('approve-cashflow'))
+                                                                    <li>
+                                                                        <a href="{{ route('admin.cashflow.approve', $transaction->id) }}" class="dropdown-item approve-action">
+                                                                            <i class="fas fa-check-circle me-2"></i>
+                                                                            Approve Transaction
+                                                                        </a>
+                                                                    </li>
+                                                                    <li><hr class="dropdown-divider"></li>
+                                                                @endif
+                                                                <li>
+                                                                    <a href="{{ route('admin.cashflow.show', $transaction->id) }}" class="dropdown-item view-action">
+                                                                        <i class="fas fa-eye me-2"></i>
+                                                                        View Details
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <a href="{{ route('admin.cashflow.edit', $transaction->id) }}" class="dropdown-item edit-action">
+                                                                        <i class="fas fa-edit me-2"></i>
+                                                                        Edit Transaction
+                                                                    </a>
+                                                                </li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li>
+                                                                    <form action="{{ route('admin.cashflow.destroy', $transaction->id) }}" method="POST" class="dropdown-item-form">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button type="submit" class="dropdown-item delete-action text-danger" onclick="return confirm('Are you sure you want to delete this cashflow transaction? This action cannot be undone.')">
+                                                                        <i class="fas fa-trash me-2"></i>
+                                                                        Delete Transaction
+                                                                    </button>
+                                                                </form>
+                                                                </li>
+                                                            </ul>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -257,43 +312,167 @@
     font-size: 0.9rem;
 }
 
-/* Action Buttons Inline */
-.action-buttons-inline {
+/* Enhanced Action Buttons */
+.action-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
-.btn-action {
-    padding: 0.4rem 0.8rem;
-    border-radius: 15px;
-    font-size: 0.8rem;
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-action.success {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-    color: white;
+.action-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
+    transition: left 0.5s ease;
 }
 
-.btn-action.success:hover {
-    background: linear-gradient(135deg, #0ea571 0%, #26d0ce 100%);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
+.action-btn:hover:before {
+    left: 100%;
 }
 
-.btn-action.primary {
+.action-btn.primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
 }
 
-.btn-action.primary:hover {
+.action-btn.primary:hover {
     background: linear-gradient(135deg, #5a67d8 0%, #6c5ce7 100%);
-    color: white;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.2);
+}
+
+.action-btn.success:hover {
+    background: linear-gradient(135deg, #0ea571 0%, #26d0ce 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.3);
+}
+
+.action-btn.info {
+    background: linear-gradient(135deg, #17a2b8 0%, #4c1d95 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.2);
+}
+
+.action-btn.info:hover {
+    background: linear-gradient(135deg, #138496 0%, #312e81 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(23, 162, 184, 0.3);
+}
+
+.action-btn.warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+}
+
+.action-btn.warning:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #f59e0b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+}
+
+.action-btn.secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a1a72 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.2);
+}
+
+.action-btn.secondary:hover {
+    background: linear-gradient(135deg, #5a1a72 0%, #495057 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
+}
+
+/* Dropdown Styles */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-toggle {
+    background: linear-gradient(135deg, #6c757d 0%, #5a1a72 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown-toggle:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #495057 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.15);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #e3e6f6;
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 200px;
+    padding: 0.5rem 0;
+    margin-top: 0.25rem;
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+.dropdown-item-form {
+    padding: 0;
+    margin: 0;
 }
 
 /* Responsive Design */
@@ -303,10 +482,52 @@
         gap: 0.25rem;
     }
     
-    .btn-action {
+    .action-btn {
         width: 100%;
         justify-content: center;
     }
 }
+
+// Bulk approve functionality
+function bulkApprovePending() {
+    if (confirm('Are you sure you want to approve all pending cashflow transactions? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("admin.cashflow.bulk-approve") }}';
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        
+        form.appendChild(csrfToken);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('.dropdown');
+    dropdowns.forEach(dropdown => {
+        if (!dropdown.contains(event.target)) {
+            const menu = dropdown.querySelector('.dropdown-menu');
+            if (menu) {
+                menu.style.display = 'none';
+            }
+        }
+    });
+});
+
+// Toggle dropdown menus
+document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const menu = this.parentElement.querySelector('.dropdown-menu');
+        if (menu) {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+    });
+});
 </style>
 @endsection

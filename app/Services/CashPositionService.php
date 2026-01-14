@@ -73,45 +73,109 @@ class CashPositionService
         
         // Operating activities
         $operatingInflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->operating()
             ->inflow()
             ->sum('amount');
             
         $operatingOutflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->operating()
             ->outflow()
             ->sum('amount');
 
         // Investing activities
         $investingInflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->investing()
             ->inflow()
             ->sum('amount');
             
         $investingOutflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->investing()
             ->outflow()
             ->sum('amount');
 
         // Financing activities
         $financingInflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->financing()
             ->inflow()
             ->sum('amount');
             
         $financingOutflows = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->financing()
             ->outflow()
             ->sum('amount');
 
         $openingBalance = self::getBalanceAsOf($startDate->copy()->subDay()->toDateString());
         $closingBalance = self::getBalanceAsOf($endDate->toDateString());
+
+        // Get detailed transactions for each category
+        $operatingDetails = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
+            ->whereIn('status', ['CLEARED', 'PENDING'])
+            ->operating()
+            ->orderBy('transaction_date')
+            ->get()
+            ->groupBy('subcategory')
+            ->map(function ($transactions, $subcategory) {
+                $inflows = $transactions->where('transaction_type', 'INFLOW')->sum('amount');
+                $outflows = $transactions->where('transaction_type', 'OUTFLOW')->sum('amount');
+                
+                return [
+                    'subcategory' => $subcategory,
+                    'inflows' => $inflows,
+                    'outflows' => $outflows,
+                    'net' => $inflows - $outflows,
+                    'transactions' => $transactions->toArray()
+                ];
+            })
+            ->values()
+            ->toArray();
+
+        $investingDetails = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
+            ->whereIn('status', ['CLEARED', 'PENDING'])
+            ->investing()
+            ->orderBy('transaction_date')
+            ->get()
+            ->groupBy('subcategory')
+            ->map(function ($transactions, $subcategory) {
+                $inflows = $transactions->where('transaction_type', 'INFLOW')->sum('amount');
+                $outflows = $transactions->where('transaction_type', 'OUTFLOW')->sum('amount');
+                
+                return [
+                    'subcategory' => $subcategory,
+                    'inflows' => $inflows,
+                    'outflows' => $outflows,
+                    'net' => $inflows - $outflows,
+                    'transactions' => $transactions->toArray()
+                ];
+            })
+            ->values()
+            ->toArray();
+
+        $financingDetails = CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
+            ->whereIn('status', ['CLEARED', 'PENDING'])
+            ->financing()
+            ->orderBy('transaction_date')
+            ->get()
+            ->groupBy('subcategory')
+            ->map(function ($transactions, $subcategory) {
+                $inflows = $transactions->where('transaction_type', 'INFLOW')->sum('amount');
+                $outflows = $transactions->where('transaction_type', 'OUTFLOW')->sum('amount');
+                
+                return [
+                    'subcategory' => $subcategory,
+                    'inflows' => $inflows,
+                    'outflows' => $outflows,
+                    'net' => $inflows - $outflows,
+                    'transactions' => $transactions->toArray()
+                ];
+            })
+            ->values()
+            ->toArray();
 
         return [
             'fiscal_year' => $fiscalYear->name,
@@ -121,19 +185,22 @@ class CashPositionService
             'operating_activities' => [
                 'inflows' => $operatingInflows,
                 'outflows' => $operatingOutflows,
-                'net' => $operatingInflows - $operatingOutflows
+                'net' => $operatingInflows - $operatingOutflows,
+                'details' => $operatingDetails
             ],
             
             'investing_activities' => [
                 'inflows' => $investingInflows,
                 'outflows' => $investingOutflows,
-                'net' => $investingInflows - $investingOutflows
+                'net' => $investingInflows - $investingOutflows,
+                'details' => $investingDetails
             ],
             
             'financing_activities' => [
                 'inflows' => $financingInflows,
                 'outflows' => $financingOutflows,
-                'net' => $financingInflows - $financingOutflows
+                'net' => $financingInflows - $financingOutflows,
+                'details' => $financingDetails
             ],
             
             'summary' => [

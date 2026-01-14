@@ -87,7 +87,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->operating()
             ->inflow()
             ->fiscalYear($fiscalYearId)
@@ -104,7 +104,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->operating()
             ->outflow()
             ->fiscalYear($fiscalYearId)
@@ -121,7 +121,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->investing()
             ->inflow()
             ->fiscalYear($fiscalYearId)
@@ -138,7 +138,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->investing()
             ->outflow()
             ->fiscalYear($fiscalYearId)
@@ -155,7 +155,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->financing()
             ->inflow()
             ->fiscalYear($fiscalYearId)
@@ -172,7 +172,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->financing()
             ->outflow()
             ->fiscalYear($fiscalYearId)
@@ -189,7 +189,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->operating()
             ->fiscalYear($fiscalYearId)
             ->orderBy('transaction_date')
@@ -221,7 +221,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->investing()
             ->fiscalYear($fiscalYearId)
             ->orderBy('transaction_date')
@@ -253,7 +253,7 @@ class CashflowStatementService
         $endDate = $startDate->copy()->endOfMonth();
 
         return CashflowTransaction::whereBetween('transaction_date', [$startDate, $endDate])
-            ->cleared()
+            ->whereIn('status', ['CLEARED', 'PENDING'])
             ->financing()
             ->fiscalYear($fiscalYearId)
             ->orderBy('transaction_date')
