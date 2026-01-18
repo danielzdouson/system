@@ -16,7 +16,7 @@ class CashflowStatementService
     /**
      * Generate monthly cashflow statement with real business data
      */
-    public function generateMonthlyStatement($fiscalYearId, $month): array
+    public function generateMonthlyStatement($fiscalYearId, $month, $filters = []): array
     {
         $fiscalYear = FiscalYear::find($fiscalYearId);
         if (!$fiscalYear) {
@@ -68,7 +68,10 @@ class CashflowStatementService
                 'opening_balance' => $monthData['opening_balance'],
                 'net_cashflow' => $monthData['net_cashflow'],
                 'closing_balance' => $monthData['closing_balance']
-            ]
+            ],
+            
+            // Add individual transactions for detailed view
+            'transactions' => $this->getFilteredTransactions($fiscalYearId, $month)
         ];
     }
 
@@ -565,6 +568,70 @@ class CashflowStatementService
                 ];
             })
             ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get individual transactions for the period
+     */
+    private function getPeriodTransactions($fiscalYearId, $month): array
+    {
+        $fiscalYear = FiscalYear::find($fiscalYearId);
+        $startDate = Carbon::create($fiscalYear->start_date->year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+        
+        return CashflowTransaction::with(['member', 'creator', 'fiscalYear'])
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->toArray();
+    }
+    
+    /**
+     * Get all transactions for selected month/year based on transaction dates
+     */
+    private function getFilteredTransactions($fiscalYearId, $month, $filters = []): array
+    {
+        // Use the fiscal year to get the correct year, but filter by transaction dates
+        $fiscalYear = FiscalYear::find($fiscalYearId);
+        
+        // Calculate the actual year based on fiscal year start month
+        $fiscalYearStartMonth = $fiscalYear->start_date->month;
+        $fiscalYearStartYear = $fiscalYear->start_date->year;
+        
+        if ($month >= $fiscalYearStartMonth) {
+            // Month is in the first year of fiscal year
+            $year = $fiscalYearStartYear;
+        } else {
+            // Month is in the second year of fiscal year
+            $year = $fiscalYearStartYear + 1;
+        }
+        
+        $startDate = Carbon::create($year, $month, 1);
+        $endDate = $startDate->copy()->endOfMonth();
+        
+        // Simple date-based query - get ALL transactions for this month/year
+        $query = CashflowTransaction::with(['member', 'creator', 'fiscalYear'])
+            ->whereBetween('transaction_date', [$startDate, $endDate]);
+            
+        // Apply additional filters if provided
+        if (isset($filters['transaction_type'])) {
+            $query->where('transaction_type', $filters['transaction_type']);
+        }
+        
+        if (isset($filters['category'])) {
+            $query->where('category', $filters['category']);
+        }
+        
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        
+        return $query->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
             ->toArray();
     }
 }

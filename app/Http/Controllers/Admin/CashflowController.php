@@ -168,10 +168,87 @@ class CashflowController extends Controller
         $transactions = $query->paginate(50);
         $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
 
+        // Calculate real-time totals
+        $totalInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+            ->where('status', 'CLEARED')
+            ->sum('amount');
+            
+        $totalOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
+            ->where('status', 'CLEARED')
+            ->sum('amount');
+            
+        $totalBalance = $totalInflows - $totalOutflows;
+
+        // Calculate month-over-month changes
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        $lastMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
+        $lastMonthYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
+
+        // Current month totals
+        $currentMonthInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+            ->where('status', 'CLEARED')
+            ->whereMonth('transaction_date', $currentMonth)
+            ->whereYear('transaction_date', $currentYear)
+            ->sum('amount');
+            
+        $currentMonthOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
+            ->where('status', 'CLEARED')
+            ->whereMonth('transaction_date', $currentMonth)
+            ->whereYear('transaction_date', $currentYear)
+            ->sum('amount');
+
+        // Last month totals
+        $lastMonthInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+            ->where('status', 'CLEARED')
+            ->whereMonth('transaction_date', $lastMonth)
+            ->whereYear('transaction_date', $lastMonthYear)
+            ->sum('amount');
+            
+        $lastMonthOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
+            ->where('status', 'CLEARED')
+            ->whereMonth('transaction_date', $lastMonth)
+            ->whereYear('transaction_date', $lastMonthYear)
+            ->sum('amount');
+
+        // Calculate monthly balances
+        $currentMonthBalance = $currentMonthInflows - $currentMonthOutflows;
+        $lastMonthBalance = $lastMonthInflows - $lastMonthOutflows;
+
+        // Calculate percentage changes with better error handling
+        $inflowChange = 0;
+        $outflowChange = 0;
+        $balanceChange = 0;
+        
+        // Only calculate if there was data last month
+        if ($lastMonthInflows > 0) {
+            $inflowChange = (($currentMonthInflows - $lastMonthInflows) / $lastMonthInflows) * 100;
+            // Cap at reasonable range to prevent unrealistic values
+            $inflowChange = max(-100, min(1000, $inflowChange));
+        }
+        
+        if ($lastMonthOutflows > 0) {
+            $outflowChange = (($currentMonthOutflows - $lastMonthOutflows) / $lastMonthOutflows) * 100;
+            // Cap at reasonable range to prevent unrealistic values
+            $outflowChange = max(-100, min(1000, $outflowChange));
+        }
+        
+        if ($lastMonthBalance > 0) {
+            $balanceChange = (($currentMonthBalance - $lastMonthBalance) / $lastMonthBalance) * 100;
+            // Cap at reasonable range to prevent unrealistic values
+            $balanceChange = max(-100, min(1000, $balanceChange));
+        }
+
         return view('admin.cashflow.index', compact(
             'transactions',
             'activeFiscalYear',
-            'fiscalYears'
+            'fiscalYears',
+            'totalBalance',
+            'totalInflows',
+            'totalOutflows',
+            'balanceChange',
+            'inflowChange',
+            'outflowChange'
         ));
     }
 
@@ -188,7 +265,8 @@ class CashflowController extends Controller
             $statementService = new CashflowStatementService();
             $statement = $statementService->generateMonthlyStatement(
                 $request->fiscal_year_id,
-                $request->month
+                $request->month,
+                $request->all() // Pass all URL parameters for filtering
             );
         }
 

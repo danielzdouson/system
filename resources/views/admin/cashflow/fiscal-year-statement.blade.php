@@ -290,7 +290,7 @@
                                     <div class="col-md-3">
                                         <div class="stat-item">
                                             <h6>Opening Balance</h6>
-                                            <h4 class="text-primary">UGX {{ number_format($statement['summary']['opening_balance'], 0) }}</h4>
+                                            <h4 class="text-primary">UGX {{ number_format($statement['summary']['opening_balance'] ?? 0, 0) }}</h4>
                                         </div>
                                     </div>
                                     <div class="col-md-3">

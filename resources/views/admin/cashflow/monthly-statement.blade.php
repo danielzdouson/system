@@ -103,7 +103,7 @@ use Carbon\Carbon;
     </div>
 
     <div class="content">
-        <div class="container-fluid px-4" style="max-width: 1400px; margin: 0 auto;">
+        <div class="container-fluid px-4" style="max-width: 1800px; margin: 0 auto;">
             <!-- Statement Generator Form -->
             <div class="row mb-4">
                 <div class="col-12">
@@ -177,205 +177,142 @@ use Carbon\Carbon;
 
             <!-- Statement Display -->
             @if($statement)
-                <div class="row g-4 align-items-stretch">
-                    <!-- Operating Activities -->
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <div class="data-card h-100">
+                <!-- Transaction List -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="data-card">
                             <div class="data-card-header">
                                 <h5 class="data-title">
-                                    <i class="fas fa-cogs me-2"></i>
-                                    Operating Activities
+                                    <i class="fas fa-list me-2"></i>
+                                    All Transactions for {{ $statement['period'] }}
                                 </h5>
                                 <div class="data-subtitle">
-                                    Day-to-day operations and member transactions
+                                    Complete transaction list for the selected period
+                                </div>
+                                <div class="mt-3">
+                                    <a href="/admin/cashflow/export-monthly-pdf?fiscal_year_id={{ request('fiscal_year_id') }}&month={{ request('month') }}" class="btn btn-success btn-sm">
+                                        <i class="fas fa-file-pdf me-2"></i>
+                                        Download PDF
+                                    </a>
                                 </div>
                             </div>
                             <div class="data-card-body">
-                                <div class="row text-center">
-                                    <div class="col-6">
-                                        <h6 class="text-success">Inflows</h6>
-                                        <h3 class="text-success">UGX {{ number_format($statement['operating_activities']['inflows'], 0) }}</h3>
-                                    </div>
-                                    <div class="col-6">
-                                        <h6 class="text-danger">Outflows</h6>
-                                        <h3 class="text-danger">UGX {{ number_format($statement['operating_activities']['outflows'], 0) }}</h3>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <h6 class="text-primary">Net Operating Cashflow</h6>
-                                        <h3 class="{{ $statement['operating_activities']['net'] >= 0 ? 'text-success' : 'text-danger' }}">
-                                            UGX {{ number_format($statement['operating_activities']['net'], 0) }}
-                                        </h3>
-                                    </div>
-                                </div>
-                                @if(!empty($statement['operating_activities']['details']))
-                                    <div class="mt-3">
-                                        <p class="text-muted">No detailed operating transactions found.</p>
-                                    </div>
-                                @else
-                                    <div class="table-responsive mt-3">
-                                        <table class="table table-sm">
-                                            <thead>
+                                @if(isset($statement['transactions']) && count($statement['transactions']) > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="table-light">
                                                 <tr>
-                                                    <th>Subcategory</th>
-                                                    <th>Inflows</th>
-                                                    <th>Outflows</th>
-                                                    <th>Net</th>
+                                                    <th>Date</th>
+                                                    <th>Description</th>
+                                                    <th>Category</th>
+                                                    <th>Amount</th>
+                                                    <th>Status</th>
+                                                    <th>Member</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach($statement['operating_activities']['details'] as $detail)
+                                                @foreach($statement['transactions'] as $transaction)
                                                     <tr>
-                                                        <td>{{ $detail['subcategory'] }}</td>
-                                                        <td class="text-success">UGX {{ number_format($detail['inflows'], 0) }}</td>
-                                                        <td class="text-danger">UGX {{ number_format($detail['outflows'], 0) }}</td>
-                                                        <td class="{{ $detail['net'] >= 0 ? 'text-success' : 'text-danger' }}">UGX {{ number_format($detail['net'], 0) }}</td>
+                                                        <td>{{ \Carbon\Carbon::parse($transaction['transaction_date'])->format('M d, Y') }}</td>
+                                                        <td>{{ $transaction['description'] ?? 'N/A' }}</td>
+                                                        <td>{{ $transaction['category'] }}</td>
+                                                        <td class="{{ $transaction['transaction_type'] == 'INFLOW' ? 'text-success' : 'text-danger' }}">
+                                                            {{ $transaction['transaction_type'] == 'INFLOW' ? '+' : '-' }}UGX {{ number_format($transaction['amount'], 0) }}
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-{{ $transaction['status'] == 'CLEARED' ? 'success' : 'warning' }} text-white">
+                                                                {{ $transaction['status'] }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+    @if(isset($transaction['member']))
+        {{ $transaction['member']['name'] ?? ($transaction['member']['first_name'] . ' ' . ($transaction['member']['last_name'] ?? '')) }}
+    @else
+        N/A
+    @endif
+</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>
                                         </table>
                                     </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Investing Activities -->
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <div class="data-card h-100">
-                            <div class="data-card-header">
-                                <h5 class="data-title">
-                                    <i class="fas fa-chart-line me-2"></i>
-                                    Investing Activities
-                                </h5>
-                                <div class="data-subtitle">
-                                    Investments and asset management
-                                </div>
-                            </div>
-                            <div class="data-card-body">
-                                <div class="row text-center">
-                                    <div class="col-6">
-                                        <h6 class="text-info">Inflows</h6>
-                                        <h3 class="text-info">UGX {{ number_format($statement['investing_activities']['inflows'], 0) }}</h3>
-                                    </div>
-                                    <div class="col-6">
-                                        <h6 class="text-warning">Outflows</h6>
-                                        <h3 class="text-warning">UGX {{ number_format($statement['investing_activities']['outflows'], 0) }}</h3>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <h6 class="text-primary">Net Investing Cashflow</h6>
-                                        <h3 class="{{ $statement['investing_activities']['net'] >= 0 ? 'text-success' : 'text-danger' }}">
-                                            UGX {{ number_format($statement['investing_activities']['net'], 0) }}
-                                        </h3>
-                                    </div>
-                                </div>
-                                @if(!empty($statement['investing_activities']['details']))
-                                    <div class="mt-3">
-                                        <p class="text-muted">No investing transactions found.</p>
-                                    </div>
-                                @else
-                                    <div class="table-responsive mt-3">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Subcategory</th>
-                                                    <th>Inflows</th>
-                                                    <th>Outflows</th>
-                                                    <th>Net</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($statement['investing_activities']['details'] as $detail)
-                                                    <tr>
-                                                        <td>{{ $detail['subcategory'] }}</td>
-                                                        <td class="text-info">UGX {{ number_format($detail['inflows'], 0) }}</td>
-                                                        <td class="text-warning">UGX {{ number_format($detail['outflows'], 0) }}</td>
-                                                        <td class="{{ $detail['net'] >= 0 ? 'text-success' : 'text-danger' }}">UGX {{ number_format($detail['net'], 0) }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Financing Activities -->
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        <div class="data-card h-100">
-                            <div class="data-card-header">
-                                <h5 class="data-title">
-                                    <i class="fas fa-hand-holding-usd me-2"></i>
-                                    Financing Activities
-                                </h5>
-                                <div class="data-subtitle">
-                                    Loans and repayments
-                                </div>
-                            </div>
-                            <div class="data-card-body">
-                                <div class="row text-center">
-                                    <div class="col-6">
-                                        <h6 class="text-warning">Inflows</h6>
-                                        <h3 class="text-warning">UGX {{ number_format($statement['financing_activities']['inflows'], 0) }}</h3>
-                                    </div>
-                                    <div class="col-6">
-                                        <h6 class="text-primary">Outflows</h6>
-                                        <h3 class="text-primary">UGX {{ number_format($statement['financing_activities']['outflows'], 0) }}</h3>
-                                    </div>
-                                </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <h6 class="text-info">Net Financing Cashflow</h6>
-                                        <h3 class="{{ $statement['financing_activities']['net'] >= 0 ? 'text-success' : 'text-danger' }}">
-                                            UGX {{ number_format($statement['financing_activities']['net'], 0) }}
-                                        </h3>
-                                    </div>
-                                </div>
-                                @if(!empty($statement['financing_activities']['details']))
-                                    <div class="mt-3">
-                                        <p class="text-muted">No financing transactions found.</p>
+                                    
+                                    <!-- Summary Calculations -->
+                                    <div class="row mt-4">
+                                        <div class="col-12">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6 class="card-title mb-3">
+                                                        <i class="fas fa-calculator me-2"></i>
+                                                        Monthly Summary Calculations
+                                                    </h6>
+                                                    @php
+                                                        $totalInflows = collect($statement['transactions'])->where('transaction_type', 'INFLOW')->sum('amount');
+                                                        $totalOutflows = collect($statement['transactions'])->where('transaction_type', 'OUTFLOW')->sum('amount');
+                                                        $netCashflow = $totalInflows - $totalOutflows;
+                                                        $transactionCount = count($statement['transactions']);
+                                                        $openingBalance = $statement['summary']['opening_balance'] ?? 0;
+                                                        $closingBalance = $openingBalance + $netCashflow;
+                                                    @endphp
+                                                    <div class="row text-center">
+                                                        <div class="col-md-3 col-sm-6 mb-3">
+                                                            <div class="p-3 border rounded">
+                                                                <h6 class="text-success mb-1">Total Inflows</h6>
+                                                                <h4 class="text-success">UGX {{ number_format($totalInflows, 0) }}</h4>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 col-sm-6 mb-3">
+                                                            <div class="p-3 border rounded">
+                                                                <h6 class="text-danger mb-1">Total Outflows</h6>
+                                                                <h4 class="text-danger">UGX {{ number_format($totalOutflows, 0) }}</h4>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 col-sm-6 mb-3">
+                                                            <div class="p-3 border rounded">
+                                                                <h6 class="text-primary mb-1">Net Cashflow</h6>
+                                                                <h4 class="text-primary">UGX {{ number_format($netCashflow, 0) }}</h4>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3 col-sm-6 mb-3">
+                                                            <div class="p-3 border rounded">
+                                                                <h6 class="text-info mb-1">Transaction Count</h6>
+                                                                <h4 class="text-info">{{ $transactionCount }}</h4>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Opening and Closing Balance -->
+                                                    <div class="row mt-3">
+                                                        <div class="col-md-4 mb-3">
+                                                            <div class="p-3 border rounded bg-white">
+                                                                <h6 class="text-secondary mb-1">Opening Balance</h6>
+                                                                <h5 class="text-secondary">UGX {{ number_format($openingBalance, 0) }}</h5>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
+                                                            <div class="p-3 border rounded bg-white">
+                                                                <h6 class="text-primary mb-1">Monthly Net Change</h6>
+                                                                <h5 class="text-primary">UGX {{ number_format($netCashflow, 0) }}</h5>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4 mb-3">
+                                                            <div class="p-3 border rounded bg-white">
+                                                                <h6 class="text-success mb-1">Closing Balance</h6>
+                                                                <h5 class="text-success">UGX {{ number_format($closingBalance, 0) }}</h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 @else
-                                    <div class="table-responsive mt-3">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Subcategory</th>
-                                                    <th>Inflows</th>
-                                                    <th>Outflows</th>
-                                                    <th>Net</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($statement['financing_activities']['details'] as $detail)
-                                                    <tr>
-                                                        <td>{{ $detail['subcategory'] }}</td>
-                                                        <td class="text-warning">UGX {{ number_format($detail['inflows'], 0) }}</td>
-                                                        <td class="text-primary">UGX {{ number_format($detail['outflows'], 0) }}</td>
-                                                        <td class="{{ $detail['net'] >= 0 ? 'text-success' : 'text-danger' }}">UGX {{ number_format($detail['net'], 0) }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
+                                    <div class="alert alert-warning">
+                                        <h5><i class="fas fa-exclamation-triangle me-2"></i>No Transactions Found</h5>
+                                        <p class="mb-0">No transactions found for Fiscal Year {{ $statement['fiscal_year'] }}, Month {{ $statement['month'] }}.</p>
+                                        <p class="text-muted">Try selecting a different period or check if transactions have been recorded.</p>
                                     </div>
                                 @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Summary -->
-                    <div class="col-md-12 mb-4">
-                        <div class="data-card summary-card">
-                            <div class="data-card-header">
-                                <h5 class="data-title">
-                                    <i class="fas fa-chart-pie me-2"></i>
-                                    Cashflow Summary
-                                </h5>
-                                <div class="data-subtitle">
                                     Overall cash position for the period
                                 </div>
                             </div>
@@ -427,7 +364,7 @@ use Carbon\Carbon;
 <style>
 /* Enhanced Action Cards */
 .action-card {
-    width: 170%;
+    width: 230%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -451,7 +388,7 @@ use Carbon\Carbon;
 
 /* Enhanced Data Card */
 .data-card {
-    width: 195%;
+    width: 230%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -465,7 +402,7 @@ use Carbon\Carbon;
 }
 
 .data-card.summary-card {
-    width: 170%;
+    width: 230%;
     margin: 0 auto;
 }
 

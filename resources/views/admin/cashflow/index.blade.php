@@ -626,9 +626,9 @@
                     UGX {{ number_format($totalBalance ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Current Balance</div>
-                <div class="stat-change">
-                    <i class="fas fa-arrow-up me-1"></i>
-                    +12.5% from last month
+                <div class="stat-change {{ $balanceChange >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $balanceChange >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $balanceChange >= 0 ? '+' : '' }}{{ number_format($balanceChange, 1) }}% from last month
                 </div>
             </div>
             
@@ -640,9 +640,9 @@
                     UGX {{ number_format($totalInflows ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Total Inflows</div>
-                <div class="stat-change">
-                    <i class="fas fa-arrow-up me-1"></i>
-                    +8.3% from last month
+                <div class="stat-change {{ $inflowChange >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $inflowChange >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $inflowChange >= 0 ? '+' : '' }}{{ number_format($inflowChange, 1) }}% from last month
                 </div>
             </div>
             
@@ -654,9 +654,9 @@
                     UGX {{ number_format($totalOutflows ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Total Outflows</div>
-                <div class="stat-change negative">
-                    <i class="fas fa-arrow-down me-1"></i>
-                    -3.2% from last month
+                <div class="stat-change {{ $outflowChange >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $outflowChange >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $outflowChange >= 0 ? '+' : '' }}{{ number_format($outflowChange, 1) }}% from last month
                 </div>
             </div>
             
