@@ -5,11 +5,24 @@
     <title>@yield('title', 'SACCO System')</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    @stack('styles')
+
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
             background-color: #f4f6f8;
+            overflow-x: hidden;
         }
 
         .header {
@@ -30,6 +43,10 @@
         .container {
             display: flex;
             min-height: 100vh;
+            position: relative;
+            flex-direction: row;
+            margin: 0;
+            padding: 0;
         }
 
         .sidebar {
@@ -38,6 +55,12 @@
             color: #ffffff;
             padding: 25px 20px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+            order: 1;
+            margin: 0;
+            left: 0;
         }
 
         .sidebar h3 {
@@ -196,6 +219,11 @@
         .content {
             flex: 1;
             padding: 20px;
+            overflow-x: visible;
+            position: relative;
+            order: 2;
+            width: calc(100% - 250px);
+            margin-left: 0;
         }
 
         .card {
@@ -264,59 +292,59 @@
 <body>
 
 <div class="header">
-    <h2>SACCO Management System</h2>
+    <h2><i class="fas fa-university me-2"></i>SACCO Management System</h2>
 </div>
 
 <div class="container">
 
     <div class="sidebar">
-        <h3>📊 Navigation</h3>
+        <h3><i class="fas fa-compass me-2"></i>Navigation</h3>
 
         <a href="{{ route('dashboard') }}" class="nav-link">
-            <span class="nav-icon">🏠</span> Dashboard
+            <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span> Dashboard
         </a>
         <a href="{{ route('admin.members.index') }}" class="nav-link">
-            <span class="nav-icon">👥</span> Members
+            <span class="nav-icon"><i class="fas fa-users"></i></span> Members
         </a>
         <a href="{{ route('admin.group-savings.dashboard') }}" class="nav-link">
-            <span class="nav-icon">💰</span> Group Savings
+            <span class="nav-icon"><i class="fas fa-piggy-bank"></i></span> Group Savings
         </a>
         <div class="nav-dropdown" id="groupLoansDropdown">
             <div class="nav-link nav-dropdown-toggle" onclick="toggleDropdown('groupLoansDropdown')">
                 <div>
-                    <span class="nav-icon">💳</span> Group Loans
+                    <span class="nav-icon"><i class="fas fa-hand-holding-usd"></i></span> Group Loans
                 </div>
                 <span class="nav-dropdown-icon">▼</span>
             </div>
             <div class="nav-submenu" id="groupLoansSubmenu">
                 <a href="{{ route('admin.group-loans.index') }}" class="nav-sublink">
-                    <span class="nav-icon">📋</span> Loan Overview
+                    <span class="nav-icon"><i class="fas fa-list"></i></span> Loan Overview
                 </a>
                 <a href="{{ route('admin.group-loans.requests') }}" class="nav-sublink">
-                    <span class="nav-icon">📝</span> Loan Requests
+                    <span class="nav-icon"><i class="fas fa-file-invoice"></i></span> Loan Requests
                 </a>
                 <a href="{{ route('admin.group-loans.all') }}" class="nav-sublink">
-                    <span class="nav-icon">📊</span> All Loans
+                    <span class="nav-icon"><i class="fas fa-chart-bar"></i></span> All Loans
                 </a>
                 <a href="{{ route('admin.group-loans.reports') }}" class="nav-sublink">
-                    <span class="nav-icon">📈</span> Loan Reports
+                    <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Loan Reports
                 </a>
             </div>
         </div>
         <a href="{{ route('admin.cashflow.index') }}" class="nav-link">
-            <span class="nav-icon">💸</span> Cash Flow
+            <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Cash Flow
         </a>
         <a href="{{ route('admin.accounts.index') }}" class="nav-link">
-            <span class="nav-icon">🏦</span> Accounts
+            <span class="nav-icon"><i class="fas fa-wallet"></i></span> Accounts
         </a>
         <a href="{{ route('admin.financials.index') }}" class="nav-link">
-            <span class="nav-icon">📈</span> Financials
+            <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Financials
         </a>
         <a href="{{ route('admin.reports.index') }}" class="nav-link">
-            <span class="nav-icon">📊</span> Reports
+            <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Reports
         </a>
         <a href="{{ route('admin.import.index') }}" class="nav-link">
-            <span class="nav-icon">📁</span> Data Import
+            <span class="nav-icon"><i class="fas fa-file-import"></i></span> Data Import
         </a>
     </div>
 
@@ -366,6 +394,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+@stack('scripts')
 
 </body>
 </html>

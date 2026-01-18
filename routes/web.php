@@ -101,6 +101,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('cashflow/bulk-approve', [App\Http\Controllers\Admin\CashflowController::class, 'bulkApprove'])->name('cashflow.bulk-approve');
     Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
     Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
+    Route::get('cashflow/comprehensive-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'comprehensiveMonthlyReport'])->name('cashflow.comprehensive-monthly');
+
+    // Cash Flow Dashboard Routes
+    Route::get('cashflow-dashboard', [App\Http\Controllers\Admin\CashFlowDashboardController::class, 'index'])->name('admin.cashflow.dashboard');
+    Route::get('cashflow-dashboard/data', [App\Http\Controllers\Admin\CashFlowDashboardController::class, 'getDashboardData'])->name('admin.cashflow.dashboard.data');
+    Route::get('cashflow-dashboard/months', [App\Http\Controllers\Admin\CashFlowDashboardController::class, 'getMonths'])->name('admin.cashflow.dashboard.months');
     Route::get('cashflow/export-monthly-pdf', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatementPDF'])->name('cashflow.export.monthly.pdf');
     Route::get('cashflow/export-fiscal-year', [App\Http\Controllers\Admin\CashflowController::class, 'exportFiscalYearStatement'])->name('cashflow.export.fiscal-year');
     Route::get('cashflow/position', [App\Http\Controllers\Admin\CashflowController::class, 'getCashPosition'])->name('cashflow.position');

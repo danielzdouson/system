@@ -103,7 +103,7 @@ use Carbon\Carbon;
     </div>
 
     <div class="content">
-        <div class="container-fluid">
+        <div class="container-fluid px-4" style="max-width: 1400px; margin: 0 auto;">
             <!-- Statement Generator Form -->
             <div class="row mb-4">
                 <div class="col-12">
@@ -177,10 +177,10 @@ use Carbon\Carbon;
 
             <!-- Statement Display -->
             @if($statement)
-                <div class="row">
+                <div class="row g-4 align-items-stretch">
                     <!-- Operating Activities -->
-                    <div class="col-md-4 mb-4">
-                        <div class="data-card">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="data-card h-100">
                             <div class="data-card-header">
                                 <h5 class="data-title">
                                     <i class="fas fa-cogs me-2"></i>
@@ -242,8 +242,8 @@ use Carbon\Carbon;
                     </div>
 
                     <!-- Investing Activities -->
-                    <div class="col-md-4 mb-4">
-                        <div class="data-card">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="data-card h-100">
                             <div class="data-card-header">
                                 <h5 class="data-title">
                                     <i class="fas fa-chart-line me-2"></i>
@@ -305,8 +305,8 @@ use Carbon\Carbon;
                     </div>
 
                     <!-- Financing Activities -->
-                    <div class="col-md-4 mb-4">
-                        <div class="data-card">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="data-card h-100">
                             <div class="data-card-header">
                                 <h5 class="data-title">
                                     <i class="fas fa-hand-holding-usd me-2"></i>
@@ -369,7 +369,7 @@ use Carbon\Carbon;
 
                     <!-- Summary -->
                     <div class="col-md-12 mb-4">
-                        <div class="data-card">
+                        <div class="data-card summary-card">
                             <div class="data-card-header">
                                 <h5 class="data-title">
                                     <i class="fas fa-chart-pie me-2"></i>
@@ -425,6 +425,138 @@ use Carbon\Carbon;
 
 <!-- Enhanced Styles -->
 <style>
+/* Enhanced Action Cards */
+.action-card {
+    width: 170%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.action-card-body {
+    padding: 1rem;
+}
+
+.action-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Enhanced Data Card */
+.data-card {
+    width: 195%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 0;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.data-card.summary-card {
+    width: 170%;
+    margin: 0 auto;
+}
+
+.data-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.data-card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.data-card-body {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Form Controls */
+.form-select {
+    border: 2px solid #e3e6f6;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+/* Action Buttons */
+.action-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2));
+    transition: left 0.5s ease;
+}
+
+.action-btn:hover::before {
+    left: 100%;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.action-btn.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
 /* Stat Items */
 .stat-item {
     text-align: center;
@@ -446,6 +578,15 @@ use Carbon\Carbon;
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .action-card,
+    .data-card {
+        width: 100%;
+    }
+    
+    .data-card-header {
+        padding: 1.5rem;
+    }
+    
     .data-card-body {
         padding: 1rem;
     }

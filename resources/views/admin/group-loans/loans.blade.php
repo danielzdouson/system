@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <div class="content">
+    <div class="content" style="">
         <div class="container-fluid">
             <!-- Quick Actions -->
             <div class="row mb-4">
@@ -340,6 +340,7 @@
 
 /* Enhanced Action Cards */
 .action-card {
+    width: 170%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -348,7 +349,7 @@
 }
 
 .action-card-body {
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .action-title {
@@ -395,6 +396,7 @@
 
 /* Filter Card */
 .filter-card {
+    width: 170%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -415,10 +417,11 @@
 
 /* Enhanced Data Card */
 .data-card {
+    width: 170%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
+    overflow:hidden;
     margin-bottom: 2rem;
 }
 

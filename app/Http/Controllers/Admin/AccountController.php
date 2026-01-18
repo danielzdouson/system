@@ -4,96 +4,62 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\MemberAccount;
-use App\Models\Member;
-use App\Models\FiscalYear;
 
 class AccountController extends Controller
 {
     /**
-     * Display all member accounts
+     * Display a listing of the resource.
      */
     public function index()
     {
-        $activeFiscalYear = FiscalYear::getActive();
-        
-        if (!$activeFiscalYear) {
-            return view('admin.accounts.index', [
-                'accounts' => collect(),
-                'activeFiscalYear' => null,
-            ]);
-        }
-
-        $accounts = MemberAccount::with(['member', 'fiscalYear'])
-            ->where('fiscal_year_id', $activeFiscalYear->id)
-            ->orderBy('current_balance', 'desc')
-            ->get();
-
-        return view('admin.accounts.index', compact('accounts', 'activeFiscalYear'));
+        //
     }
 
     /**
-     * Show specific member account details
+     * Show the form for creating a new resource.
      */
-    public function show($memberId)
+    public function create()
     {
-        $activeFiscalYear = FiscalYear::getActive();
-        
-        if (!$activeFiscalYear) {
-            return redirect()->route('admin.accounts.index')
-                ->with('error', 'No active fiscal year found');
-        }
-
-        $member = Member::findOrFail($memberId);
-        $account = MemberAccount::where('member_id', $memberId)
-            ->where('fiscal_year_id', $activeFiscalYear->id)
-            ->with(['member', 'fiscalYear'])
-            ->first();
-
-        if (!$account) {
-            return redirect()->route('admin.accounts.index')
-                ->with('error', 'Account not found for this member');
-        }
-
-        // Get transaction history (deposits and distributions)
-        $deposits = $member->deposits()
-            ->where('fiscal_year_id', $activeFiscalYear->id)
-            ->with('distributions')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('admin.accounts.show', compact('member', 'account', 'deposits', 'activeFiscalYear'));
+        //
     }
 
     /**
-     * Show account summary statistics
+     * Store a newly created resource in storage.
      */
-    public function summary()
+    public function store(Request $request)
     {
-        $activeFiscalYear = FiscalYear::getActive();
-        
-        if (!$activeFiscalYear) {
-            return view('admin.accounts.summary', [
-                'summary' => null,
-                'activeFiscalYear' => null,
-            ]);
-        }
+        //
+    }
 
-        $accounts = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)->get();
-        
-        $summary = [
-            'total_members' => $accounts->count(),
-            'total_deposited' => $accounts->sum('total_deposited'),
-            'total_distributed' => $accounts->sum('total_distributed'),
-            'total_balance' => $accounts->sum('current_balance'),
-            'total_savings_balance' => $accounts->sum('savings_balance'),
-            'total_welfare_balance' => $accounts->sum('welfare_balance'),
-            'total_fines_balance' => $accounts->sum('fines_balance'),
-            'total_other_balance' => $accounts->sum('other_balance'),
-            'members_with_balance' => $accounts->where('current_balance', '>', 0)->count(),
-            'members_with_zero_balance' => $accounts->where('current_balance', '=', 0)->count(),
-        ];
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
 
-        return view('admin.accounts.summary', compact('summary', 'activeFiscalYear'));
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
     }
 }
