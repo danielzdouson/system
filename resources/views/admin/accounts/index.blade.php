@@ -3,7 +3,7 @@
 @section('title', 'Member Accounts Management')
 
 @section('content')
-<div class="container-fluid" style="margin-left: 250px; padding: 20px;">
+<div class="container-fluid" style="margin-left: 10px; padding: 5px; width: 130%;">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -105,7 +105,7 @@
     </div>
 
     <!-- Members Table -->
-    <div class="row">
+    <div class="row" style="margin-left: 10px; margin-right: 10px;">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center p-3">

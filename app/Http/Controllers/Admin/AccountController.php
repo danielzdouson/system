@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Models\User;
 use App\Models\MemberAccount;
 use App\Models\FiscalYear;
+use App\Models\Deposit;
 use Illuminate\Support\Facades\Hash;
 
 class AccountController extends Controller
@@ -69,7 +70,19 @@ class AccountController extends Controller
         
         $currentFiscalYear = FiscalYear::where('status', 'active')->first();
         
-        return view('admin.accounts.show', compact('member', 'currentFiscalYear'));
+        // Get the member's account for the current fiscal year
+        $account = null;
+        if ($currentFiscalYear) {
+            $account = $member->memberAccounts->where('fiscal_year_id', $currentFiscalYear->id)->first();
+        }
+        
+        // Get member's deposits with distributions
+        $deposits = Deposit::where('member_id', $memberId)
+            ->with('distributions')
+            ->latest()
+            ->get();
+        
+        return view('admin.accounts.show', compact('member', 'currentFiscalYear', 'account', 'deposits'));
     }
 
     /**
@@ -95,8 +108,11 @@ class AccountController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'member',
-            'member_id' => $member->id,
         ]);
+
+        // Link the user to the member
+        $member->user_id = $user->id;
+        $member->save();
 
         return redirect()->back()->with('success', 'User account created successfully for ' . $member->first_name . ' ' . $member->last_name);
     }

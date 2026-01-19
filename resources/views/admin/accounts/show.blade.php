@@ -37,7 +37,7 @@
                 <div class="card-header">
                     <h5 class="card-title">
                         <i class="fas fa-calendar-alt me-2"></i>
-                        Fiscal Year: {{ $activeFiscalYear->name }}
+                        Fiscal Year: {{ $currentFiscalYear->name ?? 'N/A' }}
                     </h5>
                 </div>
             </div>

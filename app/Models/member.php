@@ -21,6 +21,7 @@ class Member extends Model
         'address',
         'city',
         'country',
+        'user_id',
     ];
 
     // Cast date_of_birth to a date

@@ -59,8 +59,11 @@ class MemberController extends Controller
                 'email' => $request->user_email,
                 'password' => Hash::make($request->user_password),
                 'role' => 'member',
-                'member_id' => $member->id,
             ]);
+
+            // Link the user to the member
+            $member->user_id = $user->id;
+            $member->save();
 
             $message = 'Member and user account created successfully.';
         } else {
