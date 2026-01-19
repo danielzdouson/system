@@ -595,6 +595,7 @@ class GroupSavingsController extends Controller
             'deposit' => $deposit,
             'memberAccount' => $memberAccount,
             'unpaidFines' => $unpaidFines,
+            'availableBalance' => $memberAccount ? $memberAccount->current_balance : 0,
         ]);
     }
 
@@ -605,6 +606,8 @@ class GroupSavingsController extends Controller
             'welfare_amount' => 'required|numeric|min:0',
             'fines_amount' => 'required|numeric|min:0',
             'other_amount' => 'required|numeric|min:0',
+            'distribution_month' => 'required|integer|min:1|max:12',
+            'distribution_note' => 'nullable|string|max:255',
         ]);
 
         $deposit = Deposit::findOrFail($depositId);
@@ -620,6 +623,10 @@ class GroupSavingsController extends Controller
             return redirect()->back()->with('error', 'Total distribution exceeds available account balance');
         }
 
+        // Get the target month for distribution
+        $targetMonth = (int) $request->distribution_month;
+        $distributionNote = $request->distribution_note ?? 'Distribution from deposit #' . $deposit->id;
+
         // Distribute from member account
         $memberAccount->distributeFunds(
             $request->savings_amount,
@@ -628,28 +635,28 @@ class GroupSavingsController extends Controller
             $request->other_amount
         );
 
-        // Create distributions
+        // Create distributions with target month
         if ($request->savings_amount > 0) {
-            $deposit->distribute('savings', $request->savings_amount, 'Member savings');
-            $this->updateGroupSaving($deposit->member_id, $deposit->fiscal_year_id, $deposit->month, $request->savings_amount);
+            $deposit->distribute('savings', $request->savings_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            $this->updateGroupSaving($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->savings_amount);
         }
 
         if ($request->welfare_amount > 0) {
-            $deposit->distribute('welfare', $request->welfare_amount, 'Group welfare fund');
-            $this->updateWelfareFund($deposit->fiscal_year_id, $deposit->month, $request->welfare_amount);
+            $deposit->distribute('welfare', $request->welfare_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            $this->updateWelfareFund($deposit->fiscal_year_id, $targetMonth, $request->welfare_amount);
         }
 
         if ($request->fines_amount > 0) {
-            $deposit->distribute('fines', $request->fines_amount, 'Fine payment');
-            $this->payFinesFromDistribution($deposit->member_id, $deposit->fiscal_year_id, $deposit->month, $request->fines_amount);
+            $deposit->distribute('fines', $request->fines_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            $this->payFinesFromDistribution($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->fines_amount);
         }
 
         if ($request->other_amount > 0) {
-            $deposit->distribute('other', $request->other_amount, $request->other_description ?? 'Other');
+            $deposit->distribute('other', $request->other_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
         }
 
         return redirect()->route('admin.group-savings.dashboard')
-            ->with('success', 'Deposit distributed successfully');
+            ->with('success', 'Deposit distributed successfully to ' . \Carbon\Carbon::create()->month($targetMonth)->format('F'));
     }
 
     private function payFinesFromDistribution($memberId, $fiscalYearId, $month, $amount)

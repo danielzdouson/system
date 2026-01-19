@@ -1,8 +1,13 @@
-@extends('layouts.admin')
-
-@section('title', 'Distribute Deposit')
-
-@section('content')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribute Deposit</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="row mb-4">
@@ -102,6 +107,8 @@
                 <div class="card-body p-4">
                     <form method="POST" action="{{ route('admin.group-savings.store-distribution', $deposit->id) }}" id="distributionForm">
                         @csrf
+                        <input type="hidden" name="distribution_month" value="{{ $deposit->month }}">
+                        <input type="hidden" name="distribution_note" value="Distribution from deposit #{{ $deposit->id }}">
                         
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -115,7 +122,7 @@
                                             <i class="fas fa-piggy-bank"></i>
                                         </span>
                                         <input type="number" name="savings_amount" id="savings_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to member's savings</small>
@@ -133,7 +140,7 @@
                                             <i class="fas fa-hands-helping"></i>
                                         </span>
                                         <input type="number" name="welfare_amount" id="welfare_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to group welfare fund</small>
@@ -153,7 +160,7 @@
                                             <i class="fas fa-gavel"></i>
                                         </span>
                                         <input type="number" name="fines_amount" id="fines_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to fines payment</small>
@@ -171,7 +178,7 @@
                                             <i class="fas fa-ellipsis-h"></i>
                                         </span>
                                         <input type="number" name="other_amount" id="other_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to other funds</small>
@@ -327,6 +334,7 @@
 </div>
 
 <style>
+
 .distribution-input {
     position: relative;
 }
@@ -436,12 +444,17 @@
     border-radius: 15px 15px 0 0 !important;
     border-bottom: none;
 }
+.container-fluid{
+    margin-bottom: -1200px;
+    padding-left: -30px;
+}
 </style>
 
-@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const totalDeposit = {{ $deposit->balance }};
+    const availableBalance = {{ $availableBalance ?? $deposit->balance }};
     const inputs = ['savings_amount', 'welfare_amount', 'fines_amount', 'other_amount'];
     
     function updateSummary() {
@@ -451,8 +464,9 @@ document.addEventListener('DOMContentLoaded', function() {
             totalDistributed += value;
         });
         
-        const remaining = totalDeposit - totalDistributed;
+        const remaining = availableBalance - totalDistributed;
         
+        document.getElementById('total_deposit').textContent = availableBalance.toLocaleString();
         document.getElementById('total_distributed').textContent = totalDistributed.toLocaleString();
         document.getElementById('remaining_balance').textContent = remaining.toLocaleString();
         
@@ -497,4 +511,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSummary();
 });
 </script>
-@endsection
+</body>
+</html>

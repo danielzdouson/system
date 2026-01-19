@@ -57,7 +57,7 @@ class Deposit extends Model
         return $this->balance == 0;
     }
 
-    public function distribute($type, $amount, $description = null)
+    public function distribute($type, $amount, $description = null, $targetMonth = null, $fiscalYearId = null)
     {
         if ($amount > $this->balance) {
             throw new \Exception('Distribution amount exceeds available balance');
@@ -68,6 +68,8 @@ class Deposit extends Model
             'amount' => $amount,
             'description' => $description,
             'created_by' => auth()->id(),
+            'month' => (int) $targetMonth ?? $this->month,
+            'fiscal_year_id' => (int) $fiscalYearId ?? $this->fiscal_year_id,
         ]);
 
         $this->balance = $this->balance - $amount;

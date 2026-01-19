@@ -15,6 +15,8 @@ class Distribution extends Model
         'amount',
         'description',
         'created_by',
+        'month',
+        'fiscal_year_id',
     ];
 
     protected $casts = [
