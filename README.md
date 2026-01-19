@@ -1,61 +1,312 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SACCO Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive web-based Savings and Credit Cooperative (SACCO) management system built with Laravel 12 and modern web technologies.
 
-## About Laravel
+## 🏦 About SACCO System
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This system provides complete financial management capabilities for SACCO operations including member management, savings accounts, loan processing, group savings, and financial reporting. It's designed to streamline cooperative operations and provide transparent financial services to members.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Member Management
+- Complete member registration and profile management
+- Member financial accounts and summaries
+- Soft delete functionality for member records
+- Member search and filtering capabilities
 
-## Learning Laravel
+### Loan Management
+- Loan application and approval workflow
+- Multiple loan types and interest calculation methods
+- Repayment schedule generation and tracking
+- Loan penalty management
+- Loan status monitoring (pending, approved, disbursed, completed)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Savings Management
+- Individual member savings accounts
+- Group savings with monthly contributions
+- Deposit management and distribution
+- Savings interest calculation
+- Fine management for late contributions
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Financial Management
+- Cash flow tracking and reporting
+- Transaction management and auditing
+- Fiscal year management
+- Financial statements and reports
+- Excel import/export capabilities
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### User Management
+- Role-based access control
+- User authentication and authorization
+- Profile management
+- Activity logging
 
-## Laravel Sponsors
+## 🛠 Technology Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Backend
+- **Framework**: Laravel 12
+- **PHP Version**: ^8.2
+- **Database**: SQLite (configurable for MySQL/PostgreSQL)
+- **Authentication**: Laravel Breeze
+- **Excel Processing**: Maatwebsite Excel
 
-### Premium Partners
+### Frontend
+- **CSS Framework**: Tailwind CSS
+- **JavaScript**: Alpine.js
+- **Build Tool**: Vite
+- **HTTP Client**: Axios
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Development Tools
+- **Testing**: PHPUnit
+- **Code Style**: Laravel Pint
+- **Package Management**: Composer & npm
+- **Local Development**: Laravel Sail
 
-## Contributing
+## 📋 System Requirements
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- PHP 8.2 or higher
+- Composer
+- Node.js and npm
+- SQLite (or MySQL/PostgreSQL)
+- Web server (Apache/Nginx or PHP built-in server)
 
-## Code of Conduct
+## 🚀 Installation
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Prerequisites
+Ensure you have PHP 8.2+, Composer, and Node.js installed on your system.
 
-## Security Vulnerabilities
+### Setup Steps
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd saco_system
+   ```
 
-## License
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database setup**
+   ```bash
+   php artisan migrate
+   ```
+
+5. **Build frontend assets**
+   ```bash
+   npm run build
+   ```
+
+6. **Start development server**
+   ```bash
+   php artisan serve
+   ```
+
+### Quick Setup Script
+Use the provided composer script for automated setup:
+```bash
+composer run setup
+```
+
+## 🎯 Usage
+
+### Development
+Start the complete development environment with:
+```bash
+composer run dev
+```
+This will start:
+- Laravel development server
+- Queue worker
+- Log viewer
+- Vite frontend build
+
+### Testing
+Run the test suite:
+```bash
+composer run test
+```
+
+## 📁 Project Structure
+
+```
+saco_system/
+├── app/
+│   ├── Http/Controllers/          # Application controllers
+│   │   ├── Admin/                # Admin-specific controllers
+│   │   └── Auth/                 # Authentication controllers
+│   ├── Models/                   # Eloquent models
+│   ├── Services/                 # Business logic services
+│   └── Observers/                # Model observers
+├── database/
+│   ├── migrations/               # Database migrations
+│   └── seeders/                  # Database seeders
+├── resources/
+│   ├── views/                    # Blade templates
+│   └── js/                       # JavaScript files
+├── routes/                       # Application routes
+├── storage/                      # Application storage
+└── public/                       # Public assets
+```
+
+## 🗄 Database Schema
+
+### Core Tables
+- **members**: Member information and profiles
+- **users**: System users and authentication
+- **loans**: Loan records and details
+- **savings**: Individual savings accounts
+- **monthly_savings**: Monthly contribution tracking
+- **group_savings**: Group savings management
+- **transactions**: Financial transactions
+- **cash_flows**: Cash flow tracking
+- **fiscal_years**: Fiscal year management
+
+### Supporting Tables
+- **loan_requests**: Loan application records
+- **loan_repayments**: Loan repayment tracking
+- **repayment_schedules**: Automated repayment schedules
+- **loan_penalties**: Penalty management
+- **member_accounts**: Member financial accounts
+- **member_financials**: Financial summaries
+
+## 🔧 Configuration
+
+### Environment Variables
+Key configuration options in `.env`:
+
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+
+# For MySQL/PostgreSQL:
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=sacco_db
+# DB_USERNAME=root
+# DB_PASSWORD=
+```
+
+### Database Configuration
+The system defaults to SQLite for easy setup. To use MySQL or PostgreSQL:
+1. Update `DB_CONNECTION` in `.env`
+2. Configure database credentials
+3. Run migrations: `php artisan migrate`
+
+## 📊 Features in Detail
+
+### Loan Management
+- **Application Process**: Members can apply for loans with detailed information
+- **Approval Workflow**: Admin approval system with status tracking
+- **Interest Calculation**: Support for simple and compound interest
+- **Repayment Scheduling**: Automated monthly repayment schedules
+- **Penalty Management**: Late payment penalties and waivers
+
+### Group Savings
+- **Monthly Contributions**: Track member contributions to group savings
+- **Deposit Management**: Handle deposits and distributions
+- **Fine System**: Automated fines for late contributions
+- **Reporting**: Monthly and annual savings reports
+
+### Financial Reporting
+- **Cash Flow Statements**: Detailed cash inflow/outflow tracking
+- **Loan Portfolios**: Comprehensive loan status reports
+- **Member Statements**: Individual member financial summaries
+- **Excel Export**: Export reports to Excel format
+
+## 🔐 Security Features
+
+- User authentication and authorization
+- Role-based access control
+- CSRF protection
+- SQL injection prevention
+- Input validation and sanitization
+- Secure password hashing
+
+## 🧪 Testing
+
+The system includes PHPUnit tests for core functionality:
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test
+php artisan test --filter LoanTest
+
+# Generate test coverage report
+php artisan test --coverage
+```
+
+## 📝 API Endpoints
+
+The system provides RESTful API endpoints for:
+- Member management (`/api/members`)
+- Loan processing (`/api/loans`)
+- Savings operations (`/api/savings`)
+- Transaction records (`/api/transactions`)
+- Financial reports (`/api/reports`)
+
+## 🔄 Maintenance
+
+### Database Maintenance
+```bash
+# Clear caches
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+
+# Reset database (development only)
+php artisan migrate:fresh --seed
+```
+
+### Log Management
+```bash
+# View application logs
+php artisan pail
+
+# Clear old logs
+php artisan log:clear
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Check the Laravel documentation at [laravel.com/docs](https://laravel.com/docs)
+- Review the application logs for debugging information
+
+## 📈 Roadmap
+
+Planned future enhancements:
+- Mobile application support
+- Advanced reporting dashboards
+- SMS notifications for members
+- Integration with payment gateways
+- Multi-branch support
+- Advanced audit logging
+
+---
+
+**Built with ❤️ using Laravel and modern web technologies**

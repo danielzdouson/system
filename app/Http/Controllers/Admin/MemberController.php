@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Member;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class MemberController extends Controller
 {
@@ -41,11 +43,31 @@ class MemberController extends Controller
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
             'country' => 'nullable|string|max:100',
+            // User account fields
+            'create_user_account' => 'nullable|boolean',
+            'user_email' => 'required_if:create_user_account,1|email|max:255|unique:users,email',
+            'user_password' => 'required_if:create_user_account,1|string|min:8',
         ]);
 
-        Member::create($request->all());
+        // Create member
+        $member = Member::create($request->all());
 
-        return redirect()->route('admin.members.index')->with('success', 'Member created successfully.');
+        // Create user account if requested
+        if ($request->boolean('create_user_account')) {
+            $user = User::create([
+                'name' => $member->first_name . ' ' . $member->last_name,
+                'email' => $request->user_email,
+                'password' => Hash::make($request->user_password),
+                'role' => 'member',
+                'member_id' => $member->id,
+            ]);
+
+            $message = 'Member and user account created successfully.';
+        } else {
+            $message = 'Member created successfully.';
+        }
+
+        return redirect()->route('admin.members.index')->with('success', $message);
     }
 
     /**

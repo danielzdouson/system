@@ -45,7 +45,7 @@ class User extends Authenticatable
     // If a User is linked to a Member account
     public function member()
     {
-        return $this->hasOne(Member::class);
+        return $this->hasOne(Member::class, 'user_id');
     }
 
     // User verifying a member's KYC

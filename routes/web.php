@@ -18,8 +18,33 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Dashboard route
-Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+// Dashboard route - redirect based on user role
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+    if ($user && $user->isMember()) {
+        return redirect()->route('member.dashboard');
+    }
+    return app(App\Http\Controllers\Admin\DashboardController::class)->index();
+})->middleware('auth')->name('dashboard')->middleware('auth');
+
+// Debug route - check member layout
+Route::get('/debug-member', function () {
+    $user = auth()->user();
+    return 'User: ' . ($user ? $user->name : 'Not logged in') . 
+           ', Role: ' . ($user ? $user->role : 'No role') . 
+           ', Is Member: ' . ($user ? ($user->isMember() ? 'YES' : 'NO') : 'No user');
+})->middleware('auth');
+
+// Temporarily change user to member for testing
+Route::get('/make-member', function () {
+    $user = auth()->user();
+    if ($user) {
+        $user->role = 'member';
+        $user->save();
+        return 'Changed role to member. Please refresh the page.';
+    }
+    return 'No user logged in.';
+})->middleware('auth');
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
@@ -63,6 +88,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('accounts', [App\Http\Controllers\Admin\AccountController::class, 'index'])->name('accounts.index');
     Route::get('accounts/summary', [App\Http\Controllers\Admin\AccountController::class, 'summary'])->name('accounts.summary');
     Route::get('accounts/{memberId}', [App\Http\Controllers\Admin\AccountController::class, 'show'])->name('accounts.show');
+    Route::post('accounts/{memberId}/create-user', [App\Http\Controllers\Admin\AccountController::class, 'createUserAccount'])->name('accounts.create-user');
+    Route::post('accounts/{memberId}/reset-password', [App\Http\Controllers\Admin\AccountController::class, 'resetPassword'])->name('accounts.reset-password');
+    Route::post('accounts/{memberId}/toggle-status', [App\Http\Controllers\Admin\AccountController::class, 'toggleUserStatus'])->name('accounts.toggle-status');
     Route::get('group-loans/all', [App\Http\Controllers\Admin\GroupLoanController::class, 'loans'])->name('group-loans.all');
     Route::get('group-loans/{loan}', [App\Http\Controllers\Admin\GroupLoanController::class, 'show'])->name('group-loans.show');
     Route::get('group-loans/{loan}/payment/{schedule}', [App\Http\Controllers\Admin\GroupLoanController::class, 'showPaymentForm'])->name('group-loans.payment.form');
