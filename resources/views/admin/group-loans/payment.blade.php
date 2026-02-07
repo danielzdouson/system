@@ -273,6 +273,11 @@
 
 <style>
 /* Enhanced Page Header */
+.container-fluid {
+    width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
 .page-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;

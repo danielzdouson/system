@@ -109,7 +109,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.monthly-savings.index') }}" style="display:flex; align-items:center; padding:20px; background:#f0f9ff; border:2px solid #7dd3fc; border-radius:8px; text-decoration:none; color:#075985; transition:all 0.3s ease;">
+        <a href="{{ route('admin.group-savings.dashboard') }}" style="display:flex; align-items:center; padding:20px; background:#f0f9ff; border:2px solid #7dd3fc; border-radius:8px; text-decoration:none; color:#075985; transition:all 0.3s ease;">
             <span style="font-size:24px; margin-right:10px;">📊</span>
             <div>
                 <div style="font-weight:600; color:#075985;">Monthly Savings</div>
@@ -132,7 +132,7 @@
                         <div style="font-size:12px; color:#6b7280;">{{ $saving->membership_number ?? 'N/A' }}</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="color:#059669; font-weight:600;">UGX {{ number_format($saving->getTotalMonthlyContributions(), 0) }}</div>
+                        <div style="color:#059669; font-weight:600;">UGX {{ number_format($saving->getTotalMonthlyContributions() ?? 0, 0) }}</div>
                     </div>
                 </div>
             @endforeach
@@ -154,7 +154,7 @@
                         <div style="font-size:12px; color:#6b7280;">Loan Balance</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="color:#dc2626; font-weight:600;">UGX {{ number_format($loan->total, 0) }}</div>
+                        <div style="color:#dc2626; font-weight:600;">UGX {{ number_format($loan->total ?? 0, 0) }}</div>
                     </div>
                 </div>
             @endforeach
@@ -177,7 +177,7 @@
                     </div>
                     <div style="text-align:right;">
                         <div style="font-weight:600; {{ $transaction->type === 'income' ? 'color:#059669;' : 'color:#dc2626;' }}">
-                            {{ $transaction->type === 'income' ? '+' : '-' }} UGX {{ number_format($transaction->amount, 0) }}
+                            {{ $transaction->type === 'income' ? '+' : '-' }} UGX {{ number_format($transaction->amount ?? 0, 0) }}
                         </div>
                     </div>
                 </div>

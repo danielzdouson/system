@@ -42,11 +42,14 @@ class MemberDashboardController extends Controller
         }
 
         // Get active loans
-        $activeLoans = Loan::where('member_id', $member->id)
-            ->where('loan_status', 'active')
-            ->with(['repaymentSchedules' => function($query) {
-                $query->where('status', 'pending')->orderBy('due_date');
-            }])
+        $activeLoans = Loan::with(['member', 'repaymentSchedules'])
+            ->where('member_id', $member->id)
+            ->where(function($query) {
+                $query->where('loan_status', 'active')
+                      ->orWhere('loan_status', 'disbursed');
+            })
+            ->whereHas('member')
+            ->latest()
             ->get();
 
         // Get recent transactions
@@ -59,7 +62,6 @@ class MemberDashboardController extends Controller
         // Calculate totals
         $totalSavings = $memberAccount ? $memberAccount->savings_balance : 0;
         $totalLoans = $activeLoans->sum('balance');
-        $availableCredit = 1000000 - $totalLoans; // Example credit limit
         $nextPayment = null;
 
         if ($activeLoans->isNotEmpty()) {
@@ -79,7 +81,6 @@ class MemberDashboardController extends Controller
             'recentTransactions',
             'totalSavings',
             'totalLoans',
-            'availableCredit',
             'nextPayment',
             'currentFiscalYear'
         ));
@@ -126,15 +127,20 @@ class MemberDashboardController extends Controller
             abort(403, 'No member account linked to your user account.');
         }
 
-        $activeLoans = Loan::where('member_id', $member->id)
-            ->where('loan_status', 'active')
-            ->with(['repaymentSchedules' => function($query) {
-                $query->orderBy('due_date');
-            }])
+        $activeLoans = Loan::with(['member', 'repaymentSchedules'])
+            ->where('member_id', $member->id)
+            ->where(function($query) {
+                $query->where('loan_status', 'active')
+                      ->orWhere('loan_status', 'disbursed');
+            })
+            ->whereHas('member')
+            ->latest()
             ->get();
 
-        $completedLoans = Loan::where('member_id', $member->id)
+        $completedLoans = Loan::with(['member'])
+            ->where('member_id', $member->id)
             ->where('loan_status', 'completed')
+            ->whereHas('member')
             ->latest()
             ->get();
 

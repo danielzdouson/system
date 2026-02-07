@@ -13,6 +13,20 @@ class LoanRepaymentObserver
      */
     public function created(LoanRepayment $repayment): void
     {
+        // Update loan balance and repayment totals
+        $loan = $repayment->loan;
+        $loan->paid_amount += $repayment->payment_amount;
+        $loan->balance = max(0, $loan->total_repayable - $loan->paid_amount);
+        $loan->total_repayment += $repayment->payment_amount;
+        
+        // Update loan status if fully paid
+        if ($loan->balance <= 0) {
+            $loan->loan_status = 'completed';
+            $loan->completed_at = now();
+        }
+        
+        $loan->save();
+
         // Create cashflow transaction for loan repayment
         CashflowTransaction::create([
             'transaction_date' => $repayment->payment_date,

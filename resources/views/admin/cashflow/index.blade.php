@@ -719,10 +719,15 @@
                     <label class="form-label">Status</label>
                     <select name="status" class="form-control">
                         <option value="">All Status</option>
-                        <option value="PENDING" {{ request('status') == 'PENDING' ? 'selected' : '' }}>Pending</option>
-                        <option value="CLEARED" {{ request('status') == 'CLEARED' ? 'selected' : '' }}>Cleared</option>
-                        <option value="RECONCILED" {{ request('status') == 'RECONCILED' ? 'selected' : '' }}>Reconciled</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="cleared" {{ request('status') == 'cleared' ? 'selected' : '' }}>Cleared</option>
+                        <option value="reconciled" {{ request('status') == 'reconciled' ? 'selected' : '' }}>Reconciled</option>
                     </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search description, reference...">
                 </div>
                 
                 <div class="form-group">
@@ -805,6 +810,7 @@
                                 <th><i class="fas fa-coins me-2"></i> Amount</th>
                                 <th><i class="fas fa-credit-card me-2"></i> Method</th>
                                 <th><i class="fas fa-info-circle me-2"></i> Status</th>
+                                <th><i class="fas fa-database me-2"></i> Source</th>
                                 <th><i class="fas fa-cogs me-2"></i> Actions</th>
                             </tr>
                         </thead>
@@ -813,12 +819,12 @@
                                 <tr>
                                     <td>
                                         <span class="date-badge">
-                                            {{ $transaction->transaction_date->format('M d, Y') }}
+                                            {{ \Carbon\Carbon::parse($transaction->transaction_date)->format('M d, Y') }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="type-badge {{ $transaction->transaction_type == 'INFLOW' ? 'inflow' : 'outflow' }}">
-                                            {{ $transaction->transaction_type }}
+                                        <span class="type-badge {{ $transaction->type == 'income' || $transaction->type == 'INFLOW' ? 'inflow' : 'outflow' }}">
+                                            {{ strtoupper($transaction->type) }}
                                         </span>
                                     </td>
                                     <td>
@@ -832,17 +838,25 @@
                                             @if($transaction->reference_number)
                                                 <br><small class="text-muted">Ref: {{ $transaction->reference_number }}</small>
                                             @endif
+                                            @if(isset($transaction->member_id) && $transaction->member_id)
+                                                <br><small class="text-info">Member ID: {{ $transaction->member_id }}</small>
+                                            @endif
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="amount-display {{ $transaction->transaction_type == 'INFLOW' ? 'inflow' : 'outflow' }}">
+                                        <span class="amount-display {{ $transaction->type == 'income' || $transaction->type == 'INFLOW' ? 'inflow' : 'outflow' }}">
                                             UGX {{ number_format($transaction->amount, 0) }}
                                         </span>
                                     </td>
                                     <td>{{ $transaction->payment_method }}</td>
                                     <td>
                                         <span class="status-badge {{ strtolower($transaction->status) }}">
-                                            {{ $transaction->status }}
+                                            {{ ucfirst($transaction->status) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ $transaction->transaction_source ?? 'Manual Entry' }}
                                         </span>
                                     </td>
                                     <td>
@@ -851,38 +865,21 @@
                                                 <i class="fas fa-ellipsis-h"></i>
                                             </button>
                                             <ul class="dropdown-menu">
-                                                @if($transaction->status == 'PENDING' && auth()->user()->can('approve-cashflow'))
-                                                    <li>
-                                                        <a href="{{ route('admin.cashflow.approve', $transaction->id) }}" class="dropdown-item">
-                                                            <i class="fas fa-check-circle"></i>
-                                                            Approve Transaction
-                                                        </a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                @endif
                                                 <li>
-                                                    <a href="{{ route('admin.cashflow.show', $transaction->id) }}" class="dropdown-item">
+                                                    <a href="#" class="dropdown-item" onclick="showTransactionDetails('{{ $transaction->source_model }}', {{ $transaction->id }})">
                                                         <i class="fas fa-eye"></i>
                                                         View Details
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a href="{{ route('admin.cashflow.edit', $transaction->id) }}" class="dropdown-item">
-                                                        <i class="fas fa-edit"></i>
-                                                        Edit Transaction
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <form action="{{ route('admin.cashflow.destroy', $transaction->id) }}" method="POST" class="dropdown-item-form">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="dropdown-item danger" onclick="return confirm('Are you sure you want to delete this cashflow transaction?')">
-                                                            <i class="fas fa-trash"></i>
-                                                            Delete Transaction
-                                                        </button>
-                                                    </form>
-                                                </li>
+                                                @if($transaction->status == 'PENDING' && auth()->user()->can('approve-cashflow'))
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <a href="#" class="dropdown-item" onclick="approveTransaction('{{ $transaction->source_model }}', {{ $transaction->id }})">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            Approve Transaction
+                                                        </a>
+                                                    </li>
+                                                @endif
                                             </ul>
                                         </div>
                                     </td>
@@ -975,38 +972,108 @@ function bulkApprovePending() {
         const button = event.target;
         const originalContent = button.innerHTML;
         button.innerHTML = '<span class="loading-spinner"></span> Approving...';
-        button.disabled = true;
         
-        // Simulate API call
-        setTimeout(() => {
+        // Submit form
+        fetch('/admin/cashflow/bulk-approve', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                transaction_ids: getPendingTransactionIds()
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error approving transactions: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error approving transactions');
+        })
+        .finally(() => {
             button.innerHTML = originalContent;
-            button.disabled = false;
-            
-            // Show success message
-            showNotification('All pending transactions approved successfully!', 'success');
-            
-            // Refresh page after delay
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        }, 2000);
+        });
     }
 }
 
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-    notification.style.zIndex = '9999';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+function showTransactionDetails(sourceModel, transactionId) {
+    // Redirect to appropriate detail page based on source model
+    let url;
+    switch(sourceModel) {
+        case 'CashFlow':
+            url = `/admin/cashflow/${transactionId}`;
+            break;
+        case 'CashflowTransaction':
+            url = `/admin/cashflow/${transactionId}`;
+            break;
+        case 'Deposit':
+            url = `/admin/group-savings/deposit/${transactionId}`;
+            break;
+        case 'Loan':
+            url = `/admin/group-loans/${transactionId}`;
+            break;
+        case 'LoanRepayment':
+            url = `/admin/group-loans/repayment/${transactionId}`;
+            break;
+        default:
+            url = `/admin/cashflow/${transactionId}`;
+    }
+    window.location.href = url;
+}
+
+function approveTransaction(sourceModel, transactionId) {
+    if (confirm('Are you sure you want to approve this transaction?')) {
+        let url;
+        switch(sourceModel) {
+            case 'CashflowTransaction':
+                url = `/admin/cashflow/${transactionId}/approve`;
+                break;
+            case 'CashFlow':
+                url = `/admin/cashflow/${transactionId}/approve`;
+                break;
+            default:
+                alert('This transaction type cannot be approved from this interface.');
+                return;
+        }
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error approving transaction: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error approving transaction');
+        });
+    }
+}
+
+function getPendingTransactionIds() {
+    const pendingIds = [];
+    document.querySelectorAll('tr').forEach(row => {
+        const statusBadge = row.querySelector('.status-badge');
+        if (statusBadge && statusBadge.textContent.toLowerCase().includes('pending')) {
+            const transactionId = row.querySelector('[onclick*="showTransactionDetails"]').getAttribute('onclick').match(/\d+/)[0];
+            pendingIds.push(parseInt(transactionId));
+        }
+    });
+    return pendingIds;
 }
 </script>
 @endpush

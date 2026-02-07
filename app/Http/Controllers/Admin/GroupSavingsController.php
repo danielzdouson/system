@@ -400,7 +400,14 @@ class GroupSavingsController extends Controller
             ->pluck('member_id')
             ->toArray();
 
-        $activeMemberIds = array_unique(array_merge($depositMemberIds, $savingMemberIds, $fineMemberIds));
+        // Get members with available balance but no deposit in current month
+        $balanceOnlyMemberIds = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('current_balance', '>', 0)
+            ->whereNotIn('member_id', $depositMemberIds)
+            ->pluck('member_id')
+            ->toArray();
+
+        $activeMemberIds = array_unique(array_merge($depositMemberIds, $savingMemberIds, $fineMemberIds, $balanceOnlyMemberIds));
         $members = Member::whereIn('id', $activeMemberIds)->orderBy('first_name')->orderBy('last_name')->get();
         $monthlyData = [];
 
@@ -409,6 +416,11 @@ class GroupSavingsController extends Controller
             $saving = GroupSaving::where('member_id', $member->id)
                 ->where('fiscal_year_id', $activeFiscalYear->id)
                 ->where('month', $month)
+                ->first();
+
+            // Get member account for current balance
+            $memberAccount = MemberAccount::where('member_id', $member->id)
+                ->where('fiscal_year_id', $activeFiscalYear->id)
                 ->first();
 
             // Get unpaid fines for this member and month
@@ -426,9 +438,10 @@ class GroupSavingsController extends Controller
                 'welfare_amount' => $deposit ? $deposit->distributions()->where('type', 'welfare')->sum('amount') : 0,
                 'fines_amount' => $deposit ? $deposit->distributions()->where('type', 'fines')->sum('amount') : 0,
                 'other_amount' => $deposit ? $deposit->distributions()->where('type', 'other')->sum('amount') : 0,
-                'current_balance' => $deposit ? $deposit->balance : 0,
+                'current_balance' => $memberAccount ? $memberAccount->current_balance : 0,
                 'unpaid_fines' => $unpaidFines,
                 'unpaid_fines_total' => $unpaidFines->sum('amount'),
+                'has_balance_but_no_deposit' => !$deposit && $memberAccount && $memberAccount->current_balance > 0,
             ];
         }
 
@@ -485,7 +498,14 @@ class GroupSavingsController extends Controller
             ->pluck('member_id')
             ->toArray();
 
-        $activeMemberIds = array_unique(array_merge($depositMemberIds, $savingMemberIds, $fineMemberIds));
+        // Get members with available balance but no deposit in current month
+        $balanceOnlyMemberIds = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('current_balance', '>', 0)
+            ->whereNotIn('member_id', $depositMemberIds)
+            ->pluck('member_id')
+            ->toArray();
+
+        $activeMemberIds = array_unique(array_merge($depositMemberIds, $savingMemberIds, $fineMemberIds, $balanceOnlyMemberIds));
         $members = Member::whereIn('id', $activeMemberIds)->orderBy('first_name')->orderBy('last_name')->get();
         $monthlyData = [];
 
@@ -494,6 +514,11 @@ class GroupSavingsController extends Controller
             $saving = GroupSaving::where('member_id', $member->id)
                 ->where('fiscal_year_id', $activeFiscalYear->id)
                 ->where('month', $month)
+                ->first();
+
+            // Get member account for current balance
+            $memberAccount = MemberAccount::where('member_id', $member->id)
+                ->where('fiscal_year_id', $activeFiscalYear->id)
                 ->first();
 
             // Get unpaid fines for this member and month
@@ -511,9 +536,10 @@ class GroupSavingsController extends Controller
                 'welfare_amount' => $deposit ? $deposit->distributions()->where('type', 'welfare')->sum('amount') : 0,
                 'fines_amount' => $deposit ? $deposit->distributions()->where('type', 'fines')->sum('amount') : 0,
                 'other_amount' => $deposit ? $deposit->distributions()->where('type', 'other')->sum('amount') : 0,
-                'current_balance' => $deposit ? $deposit->balance : 0,
+                'current_balance' => $memberAccount ? $memberAccount->current_balance : 0,
                 'unpaid_fines' => $unpaidFines,
                 'unpaid_fines_total' => $unpaidFines->sum('amount'),
+                'has_balance_but_no_deposit' => !$deposit && $memberAccount && $memberAccount->current_balance > 0,
             ];
         }
 
@@ -635,24 +661,71 @@ class GroupSavingsController extends Controller
             $request->other_amount
         );
 
-        // Create distributions with target month
+        // Update deposit balance for tracking purposes
+        $totalDistribution = $request->savings_amount + $request->welfare_amount + 
+                           $request->fines_amount + $request->other_amount;
+        
+        // Only update deposit balance if it has sufficient funds
+        if ($deposit->balance >= $totalDistribution) {
+            $deposit->balance -= $totalDistribution;
+            $deposit->status = $deposit->balance == 0 ? 'distributed' : 'partial';
+            $deposit->save();
+        }
+
+        // Create distributions with target month using member account balance
         if ($request->savings_amount > 0) {
-            $deposit->distribute('savings', $request->savings_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            // Create distribution record directly instead of using deposit->distribute()
+            Distribution::create([
+                'deposit_id' => $deposit->id,
+                'type' => 'savings',
+                'amount' => $request->savings_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $targetMonth,
+                'fiscal_year_id' => $deposit->fiscal_year_id,
+            ]);
             $this->updateGroupSaving($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->savings_amount);
         }
 
         if ($request->welfare_amount > 0) {
-            $deposit->distribute('welfare', $request->welfare_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            // Create distribution record directly instead of using deposit->distribute()
+            Distribution::create([
+                'deposit_id' => $deposit->id,
+                'type' => 'welfare',
+                'amount' => $request->welfare_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $targetMonth,
+                'fiscal_year_id' => $deposit->fiscal_year_id,
+            ]);
             $this->updateWelfareFund($deposit->fiscal_year_id, $targetMonth, $request->welfare_amount);
         }
 
         if ($request->fines_amount > 0) {
-            $deposit->distribute('fines', $request->fines_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            // Create distribution record directly instead of using deposit->distribute()
+            Distribution::create([
+                'deposit_id' => $deposit->id,
+                'type' => 'fines',
+                'amount' => $request->fines_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $targetMonth,
+                'fiscal_year_id' => $deposit->fiscal_year_id,
+            ]);
             $this->payFinesFromDistribution($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->fines_amount);
         }
 
         if ($request->other_amount > 0) {
-            $deposit->distribute('other', $request->other_amount, $distributionNote, $targetMonth, $deposit->fiscal_year_id);
+            // Create distribution record directly instead of using deposit->distribute()
+            Distribution::create([
+                'deposit_id' => $deposit->id,
+                'type' => 'other',
+                'amount' => $request->other_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $targetMonth,
+                'fiscal_year_id' => $deposit->fiscal_year_id,
+            ]);
         }
 
         return redirect()->route('admin.group-savings.dashboard')
@@ -768,5 +841,164 @@ class GroupSavingsController extends Controller
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
         return $months[$month] ?? 'Unknown';
+    }
+
+    public function distributeBalance($memberId, $month, $fiscalYearId = null)
+    {
+        // Get fiscal year from parameter or session
+        if ($fiscalYearId) {
+            $activeFiscalYear = FiscalYear::find($fiscalYearId);
+        } else {
+            $selectedYearId = session('selected_fiscal_year');
+            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+        }
+
+        if (!$activeFiscalYear) {
+            return redirect()->route('admin.group-savings.dashboard')
+                ->with('error', 'No fiscal year found');
+        }
+
+        $member = Member::findOrFail($memberId);
+        
+        // Get member account
+        $memberAccount = MemberAccount::where('member_id', $memberId)
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->first();
+
+        if (!$memberAccount || $memberAccount->current_balance <= 0) {
+            return redirect()->back()
+                ->with('error', 'No available balance to distribute');
+        }
+
+        // Get unpaid fines for this member and month
+        $unpaidFines = Fine::where('member_id', $memberId)
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month)
+            ->where('status', 'pending')
+            ->get();
+
+        return view('admin.group-savings.distribute-balance', [
+            'member' => $member,
+            'memberAccount' => $memberAccount,
+            'activeFiscalYear' => $activeFiscalYear,
+            'month' => $month,
+            'monthName' => $this->getMonthName($month),
+            'unpaidFines' => $unpaidFines,
+            'availableBalance' => $memberAccount->current_balance,
+        ]);
+    }
+
+    public function storeBalanceDistribution(Request $request, $memberId, $month, $fiscalYearId = null)
+    {
+        $request->validate([
+            'savings_amount' => 'required|numeric|min:0',
+            'welfare_amount' => 'required|numeric|min:0',
+            'fines_amount' => 'required|numeric|min:0',
+            'other_amount' => 'required|numeric|min:0',
+            'distribution_note' => 'nullable|string|max:255',
+        ]);
+
+        // Get fiscal year
+        if ($fiscalYearId) {
+            $activeFiscalYear = FiscalYear::find($fiscalYearId);
+        } else {
+            $selectedYearId = session('selected_fiscal_year');
+            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+        }
+
+        if (!$activeFiscalYear) {
+            return redirect()->back()->with('error', 'No fiscal year found');
+        }
+
+        $member = Member::findOrFail($memberId);
+        $totalDistribution = $request->savings_amount + $request->welfare_amount + 
+                           $request->fines_amount + $request->other_amount;
+
+        // Get member account
+        $memberAccount = MemberAccount::where('member_id', $memberId)
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->first();
+
+        if (!$memberAccount || $totalDistribution > $memberAccount->current_balance) {
+            return redirect()->back()->with('error', 'Total distribution exceeds available account balance');
+        }
+
+        // Create virtual deposit for tracking
+        $virtualDeposit = Deposit::create([
+            'member_id' => $memberId,
+            'fiscal_year_id' => $activeFiscalYear->id,
+            'month' => $month,
+            'amount' => 0,
+            'balance' => 0,
+            'status' => 'virtual',
+            'deposit_date' => now(),
+            'notes' => 'Virtual deposit for balance distribution',
+            'created_by' => auth()->id(),
+        ]);
+
+        // Distribute from member account
+        $memberAccount->distributeFunds(
+            $request->savings_amount,
+            $request->welfare_amount,
+            $request->fines_amount,
+            $request->other_amount
+        );
+
+        $distributionNote = $request->distribution_note ?? "Balance distribution for {$this->getMonthName($month)}";
+
+        // Create distributions
+        if ($request->savings_amount > 0) {
+            Distribution::create([
+                'deposit_id' => $virtualDeposit->id,
+                'type' => 'savings',
+                'amount' => $request->savings_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $month,
+                'fiscal_year_id' => $activeFiscalYear->id,
+            ]);
+            $this->updateGroupSaving($memberId, $activeFiscalYear->id, $month, $request->savings_amount);
+        }
+
+        if ($request->welfare_amount > 0) {
+            Distribution::create([
+                'deposit_id' => $virtualDeposit->id,
+                'type' => 'welfare',
+                'amount' => $request->welfare_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $month,
+                'fiscal_year_id' => $activeFiscalYear->id,
+            ]);
+            $this->updateWelfareFund($activeFiscalYear->id, $month, $request->welfare_amount);
+        }
+
+        if ($request->fines_amount > 0) {
+            Distribution::create([
+                'deposit_id' => $virtualDeposit->id,
+                'type' => 'fines',
+                'amount' => $request->fines_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $month,
+                'fiscal_year_id' => $activeFiscalYear->id,
+            ]);
+            $this->payFinesFromDistribution($memberId, $activeFiscalYear->id, $month, $request->fines_amount);
+        }
+
+        if ($request->other_amount > 0) {
+            Distribution::create([
+                'deposit_id' => $virtualDeposit->id,
+                'type' => 'other',
+                'amount' => $request->other_amount,
+                'description' => $distributionNote,
+                'created_by' => auth()->id(),
+                'month' => $month,
+                'fiscal_year_id' => $activeFiscalYear->id,
+            ]);
+        }
+
+        return redirect()->route('admin.group-savings.monthly', ['month' => $month])
+            ->with('success', 'Balance distributed successfully to ' . $this->getMonthName($month));
     }
 }

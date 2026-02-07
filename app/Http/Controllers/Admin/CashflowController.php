@@ -3,13 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CashFlow;
 use App\Models\CashflowTransaction;
+use App\Models\Deposit;
+use App\Models\Distribution;
+use App\Models\Loan;
+use App\Models\LoanRepayment;
+use App\Models\Transaction;
 use App\Models\FiscalYear;
 use App\Services\CashPositionService;
 use App\Services\CashflowStatementService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CashflowStatementExport;
 use App\Exports\CashflowTransactionExport;
@@ -130,52 +137,296 @@ class CashflowController extends Controller
     }
 
     /**
+     * Get comprehensive transactions from all system models
+     */
+    private function getAllTransactions($request = null)
+    {
+        // Get CashFlow transactions
+        $cashFlowQuery = CashFlow::with(['user'])
+            ->select([
+                'id',
+                'transaction_date',
+                'description',
+                'reference_number',
+                'type',
+                'category',
+                'amount',
+                'payment_method',
+                'status',
+                'notes',
+                'user_id',
+                'created_at',
+                DB::raw("'CashFlow' as source_model"),
+                DB::raw("'Manual Entry' as transaction_source")
+            ]);
+
+        // Get CashflowTransaction records
+        $cashflowTransactionQuery = CashflowTransaction::with(['member', 'creator'])
+            ->select([
+                'id',
+                'transaction_date',
+                'description',
+                'reference_number',
+                DB::raw("'INFLOW' as type"),
+                'category',
+                'amount',
+                'payment_method',
+                'status',
+                'notes',
+                'member_id',
+                'created_at',
+                DB::raw("'CashflowTransaction' as source_model"),
+                DB::raw("'Cashflow Transaction' as transaction_source")
+            ]);
+
+        // Get Deposit records (treated as inflows)
+        $depositQuery = Deposit::with(['member', 'creator'])
+            ->select([
+                'id',
+                'deposit_date as transaction_date',
+                DB::raw("'Group Savings Deposit' as description"),
+                DB::raw("CONCAT('DEP-', id) as reference_number"),
+                DB::raw("'income' as type"),
+                DB::raw("'OPERATING' as category"),
+                'amount',
+                DB::raw("'savings' as payment_method"),
+                'status',
+                'notes',
+                'member_id',
+                'created_at',
+                DB::raw("'Deposit' as source_model"),
+                DB::raw("'Group Savings' as transaction_source")
+            ]);
+
+        // Get Distribution records (treated as outflows)
+        $distributionQuery = Distribution::with(['deposit.member', 'creator'])
+            ->select([
+                'id',
+                'created_at as transaction_date',
+                'description',
+                DB::raw("CONCAT('DIST-', id) as reference_number"),
+                DB::raw("'expense' as type"),
+                DB::raw("'OPERATING' as category"),
+                'amount',
+                DB::raw("'distribution' as payment_method"),
+                DB::raw("'distributed' as status"),
+                'notes',
+                DB::raw("NULL as member_id"),
+                'created_at',
+                DB::raw("'Distribution' as source_model"),
+                DB::raw("'Savings Distribution' as transaction_source")
+            ]);
+
+        // Get Loan disbursements (treated as outflows)
+        $loanQuery = Loan::with(['member', 'disbursedBy'])
+            ->where('disbursement_date', '!=', null)
+            ->select([
+                'id',
+                'disbursement_date as transaction_date',
+                DB::raw("CONCAT('Loan Disbursement - ', loan_purpose) as description"),
+                'loan_number as reference_number',
+                DB::raw("'expense' as type"),
+                DB::raw("'FINANCING' as category"),
+                'loan_amount as amount',
+                DB::raw("'loan_disbursement' as payment_method"),
+                DB::raw("'disbursed' as status"),
+                'notes',
+                'member_id',
+                'created_at',
+                DB::raw("'Loan' as source_model"),
+                DB::raw("'Loan Disbursement' as transaction_source")
+            ]);
+
+        // Get Loan repayments (treated as inflows)
+        $loanRepaymentQuery = LoanRepayment::with(['loan.member', 'receivedBy'])
+            ->select([
+                'id',
+                'payment_date as transaction_date',
+                DB::raw("CONCAT('Loan Repayment - ', receipt_number) as description"),
+                'receipt_number as reference_number',
+                DB::raw("'income' as type"),
+                DB::raw("'FINANCING' as category"),
+                'payment_amount as amount',
+                'payment_method',
+                DB::raw("'received' as status"),
+                'notes',
+                DB::raw("NULL as member_id"),
+                'created_at',
+                DB::raw("'LoanRepayment' as source_model"),
+                DB::raw("'Loan Repayment' as transaction_source")
+            ]);
+
+        // Apply filters to all queries if request is provided
+        if ($request) {
+            // Date filters
+            if ($request->filled('date_from')) {
+                $dateFrom = $request->date_from;
+                $cashFlowQuery->where('transaction_date', '>=', $dateFrom);
+                $cashflowTransactionQuery->where('transaction_date', '>=', $dateFrom);
+                $depositQuery->where('deposit_date', '>=', $dateFrom);
+                $distributionQuery->where('created_at', '>=', $dateFrom);
+                $loanQuery->where('disbursement_date', '>=', $dateFrom);
+                $loanRepaymentQuery->where('payment_date', '>=', $dateFrom);
+            }
+
+            if ($request->filled('date_to')) {
+                $dateTo = $request->date_to;
+                $cashFlowQuery->where('transaction_date', '<=', $dateTo);
+                $cashflowTransactionQuery->where('transaction_date', '<=', $dateTo);
+                $depositQuery->where('deposit_date', '<=', $dateTo);
+                $distributionQuery->where('created_at', '<=', $dateTo);
+                $loanQuery->where('disbursement_date', '<=', $dateTo);
+                $loanRepaymentQuery->where('payment_date', '<=', $dateTo);
+            }
+
+            // Transaction type filter
+            if ($request->filled('transaction_type')) {
+                $type = $request->transaction_type === 'INFLOW' ? 'income' : 'expense';
+                $cashFlowQuery->where('type', $type);
+                $cashflowTransactionQuery->whereRaw("'INFLOW' = ?", [$request->transaction_type]);
+                $depositQuery->whereRaw("'income' = ?", [$type]);
+                $distributionQuery->whereRaw("'expense' = ?", [$type]);
+                $loanQuery->whereRaw("'expense' = ?", [$type]);
+                $loanRepaymentQuery->whereRaw("'income' = ?", [$type]);
+            }
+
+            // Category filter
+            if ($request->filled('category')) {
+                $cashFlowQuery->where('category', $request->category);
+                $cashflowTransactionQuery->where('category', $request->category);
+                $depositQuery->whereRaw("'OPERATING' = ?", [$request->category]);
+                $distributionQuery->whereRaw("'OPERATING' = ?", [$request->category]);
+                $loanQuery->whereRaw("'FINANCING' = ?", [$request->category]);
+                $loanRepaymentQuery->whereRaw("'FINANCING' = ?", [$request->category]);
+            }
+
+            // Status filter
+            if ($request->filled('status')) {
+                $cashFlowQuery->where('status', $request->status);
+                $cashflowTransactionQuery->where('status', $request->status);
+                $depositQuery->where('status', $request->status);
+                $distributionQuery->whereRaw("'distributed' = ?", [$request->status]);
+                $loanQuery->whereRaw("'disbursed' = ?", [$request->status]);
+                $loanRepaymentQuery->whereRaw("'received' = ?", [$request->status]);
+            }
+
+            // Search filter
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $cashFlowQuery->where(function($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('reference_number', 'like', "%{$search}%")
+                      ->orWhere('notes', 'like', "%{$search}%");
+                });
+
+                $cashflowTransactionQuery->where(function($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('reference_number', 'like', "%{$search}%")
+                      ->orWhere('notes', 'like', "%{$search}%");
+                });
+
+                $depositQuery->where(function($q) use ($search) {
+                    $q->where('notes', 'like', "%{$search}%");
+                });
+
+                $distributionQuery->where(function($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('notes', 'like', "%{$search}%");
+                });
+
+                $loanQuery->where(function($q) use ($search) {
+                    $q->where('loan_purpose', 'like', "%{$search}%")
+                      ->orWhere('loan_number', 'like', "%{$search}%")
+                      ->orWhere('notes', 'like', "%{$search}%");
+                });
+
+                $loanRepaymentQuery->where(function($q) use ($search) {
+                    $q->where('receipt_number', 'like', "%{$search}%")
+                      ->orWhere('notes', 'like', "%{$search}%");
+                });
+            }
+        }
+
+        // Union all queries and order by date
+        $allTransactions = $cashFlowQuery
+            ->unionAll($cashflowTransactionQuery)
+            ->unionAll($depositQuery)
+            ->unionAll($distributionQuery)
+            ->unionAll($loanQuery)
+            ->unionAll($loanRepaymentQuery)
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc');
+
+        return $allTransactions;
+    }
+
+    /**
      * Display cashflow transactions list
      */
     public function index(Request $request): View
     {
         $activeFiscalYear = FiscalYear::where('status', 'active')->first();
         
-        $query = CashflowTransaction::with(['member', 'creator', 'fiscalYear'])
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc');
+        // Use comprehensive transaction query
+        $query = $this->getAllTransactions($request);
+        
+        // Since we're using union queries, we need to paginate differently
+        // We'll get all results and paginate manually, or use a simpler approach
+        $allTransactions = $query->get();
+        
+        // Manual pagination
+        $page = $request->get('page', 1);
+        $perPage = 50;
+        $total = $allTransactions->count();
+        $transactions = $allTransactions->forPage($page, $perPage);
+        
+        // Create pagination object
+        $pagination = new \Illuminate\Pagination\LengthAwarePaginator(
+            $transactions,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'pageName' => 'page',
+            ]
+        );
 
-        // Apply filters
-        if ($request->filled('fiscal_year_id')) {
-            $query->where('fiscal_year_id', $request->fiscal_year_id);
-        }
-
-        if ($request->filled('transaction_type')) {
-            $query->where('transaction_type', $request->transaction_type);
-        }
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->where('transaction_date', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->where('transaction_date', '<=', $request->date_to);
-        }
-
-        $transactions = $query->paginate(50);
         $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
 
-        // Calculate real-time totals
-        $totalInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+        // Calculate real-time totals from all transaction sources
+        $totalInflows = 0;
+        $totalOutflows = 0;
+        
+        // From CashFlow
+        $totalInflows += CashFlow::where('type', 'income')
+            ->where('status', 'cleared')
+            ->sum('amount');
+        $totalOutflows += CashFlow::where('type', 'expense')
+            ->where('status', 'cleared')
+            ->sum('amount');
+            
+        // From CashflowTransaction
+        $totalInflows += CashflowTransaction::where('transaction_type', 'INFLOW')
+            ->where('status', 'CLEARED')
+            ->sum('amount');
+        $totalOutflows += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
             ->sum('amount');
             
-        $totalOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
-            ->where('status', 'CLEARED')
+        // From Deposits (inflows)
+        $totalInflows += Deposit::where('status', 'cleared')
             ->sum('amount');
+            
+        // From Distributions (outflows)
+        $totalOutflows += Distribution::sum('amount');
+            
+        // From Loan disbursements (outflows)
+        $totalOutflows += Loan::whereNotNull('disbursement_date')
+            ->sum('loan_amount');
+            
+        // From Loan repayments (inflows)
+        $totalInflows += LoanRepayment::sum('payment_amount');
             
         $totalBalance = $totalInflows - $totalOutflows;
 
@@ -185,31 +436,93 @@ class CashflowController extends Controller
         $lastMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
         $lastMonthYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
 
-        // Current month totals
-        $currentMonthInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+        // Current month totals from all sources
+        $currentMonthInflows = 0;
+        $currentMonthOutflows = 0;
+        
+        $currentMonthInflows += CashFlow::where('type', 'income')
+            ->where('status', 'cleared')
+            ->whereMonth('transaction_date', $currentMonth)
+            ->whereYear('transaction_date', $currentYear)
+            ->sum('amount');
+            
+        $currentMonthOutflows += CashFlow::where('type', 'expense')
+            ->where('status', 'cleared')
+            ->whereMonth('transaction_date', $currentMonth)
+            ->whereYear('transaction_date', $currentYear)
+            ->sum('amount');
+
+        $currentMonthInflows += CashflowTransaction::where('transaction_type', 'INFLOW')
             ->where('status', 'CLEARED')
             ->whereMonth('transaction_date', $currentMonth)
             ->whereYear('transaction_date', $currentYear)
             ->sum('amount');
             
-        $currentMonthOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
+        $currentMonthOutflows += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
             ->whereMonth('transaction_date', $currentMonth)
             ->whereYear('transaction_date', $currentYear)
             ->sum('amount');
 
-        // Last month totals
-        $lastMonthInflows = CashflowTransaction::where('transaction_type', 'INFLOW')
+        $currentMonthInflows += Deposit::where('status', 'cleared')
+            ->whereMonth('deposit_date', $currentMonth)
+            ->whereYear('deposit_date', $currentYear)
+            ->sum('amount');
+            
+        $currentMonthOutflows += Distribution::whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->sum('amount');
+            
+        $currentMonthOutflows += Loan::whereNotNull('disbursement_date')
+            ->whereMonth('disbursement_date', $currentMonth)
+            ->whereYear('disbursement_date', $currentYear)
+            ->sum('loan_amount');
+            
+        $currentMonthInflows += LoanRepayment::whereMonth('payment_date', $currentMonth)
+            ->whereYear('payment_date', $currentYear)
+            ->sum('payment_amount');
+
+        // Last month totals (similar logic)
+        $lastMonthInflows = 0;
+        $lastMonthOutflows = 0;
+        
+        $lastMonthInflows += CashFlow::where('type', 'income')
+            ->where('status', 'cleared')
+            ->whereMonth('transaction_date', $lastMonth)
+            ->whereYear('transaction_date', $lastMonthYear)
+            ->sum('amount');
+            
+        $lastMonthOutflows += CashFlow::where('type', 'expense')
+            ->where('status', 'cleared')
+            ->whereMonth('transaction_date', $lastMonth)
+            ->whereYear('transaction_date', $lastMonthYear)
+            ->sum('amount');
+
+        $lastMonthInflows += CashflowTransaction::where('transaction_type', 'INFLOW')
             ->where('status', 'CLEARED')
             ->whereMonth('transaction_date', $lastMonth)
             ->whereYear('transaction_date', $lastMonthYear)
             ->sum('amount');
             
-        $lastMonthOutflows = CashflowTransaction::where('transaction_type', 'OUTFLOW')
+        $lastMonthOutflows += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
             ->whereMonth('transaction_date', $lastMonth)
             ->whereYear('transaction_date', $lastMonthYear)
             ->sum('amount');
+
+        $lastMonthInflows += Deposit::where('status', 'cleared')
+            ->whereMonth('deposit_date', $lastMonth)
+            ->whereYear('deposit_date', $lastMonthYear)
+            ->sum('amount');
+            
+        $lastMonthOutflows += Loan::whereNotNull('disbursement_date')
+            ->whereMonth('disbursement_date', $lastMonth)
+            ->whereYear('disbursement_date', $lastMonthYear)
+            ->sum('loan_amount');
+            
+        $lastMonthInflows += LoanRepayment::whereMonth('payment_date', $lastMonth)
+            ->whereYear('payment_date', $lastMonthYear)
+            ->sum('payment_amount');
 
         // Calculate monthly balances
         $currentMonthBalance = $currentMonthInflows - $currentMonthOutflows;
@@ -239,6 +552,10 @@ class CashflowController extends Controller
             $balanceChange = max(-100, min(1000, $balanceChange));
         }
 
+        // Count pending transactions
+        $pendingCount = CashflowTransaction::where('status', 'PENDING')->count() +
+                       CashFlow::where('status', 'pending')->count();
+
         return view('admin.cashflow.index', compact(
             'transactions',
             'activeFiscalYear',
@@ -248,7 +565,8 @@ class CashflowController extends Controller
             'totalOutflows',
             'balanceChange',
             'inflowChange',
-            'outflowChange'
+            'outflowChange',
+            'pendingCount'
         ));
     }
 

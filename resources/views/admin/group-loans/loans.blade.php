@@ -211,7 +211,7 @@
                                                         <span class="rate-badge">{{ $loan->interest_rate }}%</span>
                                                     </td>
                                                     <td>
-                                                        <span class="date-badge">{{ $loan->disbursement_date->format('M d, Y') }}</span>
+                                                        <span class="date-badge">{{ $loan->disbursement_date ? $loan->disbursement_date->format('M d, Y') : 'N/A' }}</span>
                                                     </td>
                                                     <td>
                                                         <span class="balance-badge">

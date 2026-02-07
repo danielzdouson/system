@@ -157,10 +157,22 @@ class GroupLoanController extends Controller
         $interestRate = (float) $request->interest_rate;
         $loanTermMonths = (int) $request->loan_term_months;
         
-        // Calculate loan details
-        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / 100;
-        $totalRepayment = $principalAmount + $totalInterest;
-        $monthlyPayment = $totalRepayment / $loanTermMonths;
+        // Calculate loan details using proper amortization
+        $monthlyRate = $interestRate / 12 / 100; // Monthly interest rate as decimal
+        
+        if ($monthlyRate == 0) {
+            // If no interest, simple division
+            $monthlyPayment = $principalAmount / $loanTermMonths;
+            $totalInterest = 0;
+            $totalRepayment = $principalAmount;
+        } else {
+            // Use amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            $r = $monthlyRate;
+            $n = $loanTermMonths;
+            $monthlyPayment = $principalAmount * ($r * pow(1 + $r, $n)) / (pow(1 + $r, $n) - 1);
+            $totalRepayment = $monthlyPayment * $loanTermMonths;
+            $totalInterest = $totalRepayment - $principalAmount;
+        }
         
         // Generate unique loan number
         $loanNumber = 'LN-' . date('Y') . '-' . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
@@ -391,10 +403,22 @@ class GroupLoanController extends Controller
         $interestRate = (float) $loanRequest->interest_rate;
         $loanTermMonths = (int) $loanRequest->loan_term_months;
         
-        // Calculate loan details
-        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / 100;
-        $totalRepayment = $principalAmount + $totalInterest;
-        $monthlyPayment = $totalRepayment / $loanTermMonths;
+        // Calculate loan details using proper amortization
+        $monthlyRate = $interestRate / 12 / 100; // Monthly interest rate as decimal
+        
+        if ($monthlyRate == 0) {
+            // If no interest, simple division
+            $monthlyPayment = $principalAmount / $loanTermMonths;
+            $totalInterest = 0;
+            $totalRepayment = $principalAmount;
+        } else {
+            // Use amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            $r = $monthlyRate;
+            $n = $loanTermMonths;
+            $monthlyPayment = $principalAmount * ($r * pow(1 + $r, $n)) / (pow(1 + $r, $n) - 1);
+            $totalRepayment = $monthlyPayment * $loanTermMonths;
+            $totalInterest = $totalRepayment - $principalAmount;
+        }
         
         // Generate unique loan number
         $loanNumber = 'LN-' . date('Y') . '-' . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);

@@ -69,6 +69,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('group-savings/deposit', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeDeposit'])->name('group-savings.store-deposit');
     Route::get('group-savings/distribute/{depositId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeDeposit'])->name('group-savings.distribute');
     Route::post('group-savings/distribute/{depositId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeDistribution'])->name('group-savings.store-distribution');
+    Route::get('group-savings/distribute-balance/{memberId}/{month}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeBalance'])->name('group-savings.distribute-balance');
+    Route::get('group-savings/distribute-balance/{memberId}/{month}/{fiscalYearId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeBalance'])->name('group-savings.distribute-balance.fiscal');
+    Route::post('group-savings/distribute-balance/{memberId}/{month}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeBalanceDistribution'])->name('group-savings.store-balance-distribution');
+    Route::post('group-savings/distribute-balance/{memberId}/{month}/{fiscalYearId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeBalanceDistribution'])->name('group-savings.store-balance-distribution.fiscal');
     Route::get('group-savings/fines', [App\Http\Controllers\Admin\GroupSavingsController::class, 'finesIndex'])->name('group-savings.fines');
     Route::post('group-savings/fines/{fineId}/pay', [App\Http\Controllers\Admin\GroupSavingsController::class, 'payFine'])->name('group-savings.fines.pay');
     Route::post('group-savings/fines/{fineId}/waive', [App\Http\Controllers\Admin\GroupSavingsController::class, 'waiveFine'])->name('group-savings.fines.waive');

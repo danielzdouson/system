@@ -118,6 +118,17 @@
                                 Fines Management
                             </a>
                         </div>
+                        
+                        <!-- Balance Filter -->
+                        <div class="balance-filter mt-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="balanceOnlyFilter" onchange="toggleBalanceFilter()">
+                                <label class="form-check-label" for="balanceOnlyFilter">
+                                    <i class="fas fa-filter me-2"></i>
+                                    Show only members with available balance
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,6 +176,10 @@
                                                 @if($data['deposit'])
                                                     <span class="amount-badge success">
                                                         UGX {{ number_format($data['deposit']->amount, 0) }}
+                                                    </span>
+                                                @elseif($data['has_balance_but_no_deposit'])
+                                                    <span class="amount-badge info">
+                                                        Available: UGX {{ number_format($data['current_balance'], 0) }}
                                                     </span>
                                                 @else
                                                     <span class="no-data-badge">No Deposit</span>
@@ -217,6 +232,12 @@
                                                         <a href="{{ route('admin.group-savings.distribute', $data['deposit']->id) }}" class="btn-action primary">
                                                             <i class="fas fa-coins"></i>
                                                             Distribute
+                                                        </a>
+                                                    @endif
+                                                    @if($data['has_balance_but_no_deposit'])
+                                                        <a href="{{ route('admin.group-savings.distribute-balance', [$data['member']->id, request('month')]) }}" class="btn-action info">
+                                                            <i class="fas fa-wallet"></i>
+                                                            Distribute Balance
                                                         </a>
                                                     @endif
                                                     <button class="btn-action warning" onclick="applyFine({{ $data['member']->id }}, {{ request('month') }})">
@@ -302,6 +323,13 @@
 
     <style>
     /* Enhanced Page Header */
+
+    .container-fluid {
+        width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
     .page-header {
         background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
         border-radius: 20px;
@@ -667,12 +695,50 @@
 
     .btn-action.warning {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .btn-action.info {
+        background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        color: white;
     }
 
     .btn-action:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         color: white;
+    }
+
+    /* Balance Filter Styles */
+    .balance-filter {
+        padding: 1rem;
+        background: rgba(54, 209, 220, 0.1);
+        border-radius: 10px;
+        border-left: 4px solid #36d1dc;
+    }
+
+    .balance-filter .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .balance-filter .form-check-input {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .balance-filter .form-check-label {
+        cursor: pointer;
+        font-weight: 500;
+        color: #333;
+        margin: 0;
+    }
+
+    .balance-filter .form-check-input:checked {
+        background-color: #36d1dc;
+        border-color: #36d1dc;
     }
 
     /* Enhanced Modal */
@@ -739,6 +805,29 @@ function applyFine(memberId, month) {
     document.getElementById('fine_member_id').value = memberId;
     document.getElementById('fine_month').value = month;
     new bootstrap.Modal(document.getElementById('applyFineModal')).show();
+}
+
+function toggleBalanceFilter() {
+    const checkbox = document.getElementById('balanceOnlyFilter');
+    const rows = document.querySelectorAll('.table-row-hover');
+    
+    rows.forEach(row => {
+        const balanceCell = row.querySelector('td:nth-child(7)'); // Balance column
+        const balanceText = balanceCell ? balanceCell.textContent.trim() : '';
+        const balanceAmount = parseInt(balanceText.replace(/[^0-9]/g, '')) || 0;
+        
+        if (checkbox.checked) {
+            // Show only rows with balance > 0 and no deposit
+            const depositCell = row.querySelector('td:nth-child(2)'); // Deposit column
+            const hasDeposit = depositCell && !depositCell.textContent.includes('No Deposit');
+            const hasBalance = balanceAmount > 0;
+            
+            row.style.display = (hasBalance && !hasDeposit) ? '' : 'none';
+        } else {
+            // Show all rows
+            row.style.display = '';
+        }
+    });
 }
 
 // Auto-fill member info when modal opens

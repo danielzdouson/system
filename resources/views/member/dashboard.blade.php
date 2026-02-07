@@ -79,27 +79,7 @@
             </div>
         </div>
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100 animate__animated animate__fadeInUp animate__delay-3s">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
-                                <i class="fas fa-credit-card fa-lg"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Available Credit</h6>
-                            <h4 class="mb-0 text-info">UGX {{ number_format($availableCredit, 0) }}</h4>
-                            <small class="text-info">
-                                <i class="fas fa-check-circle"></i> Ready to use
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100 animate__animated animate__fadeInUp animate__delay-4s">
                 <div class="card-body">
