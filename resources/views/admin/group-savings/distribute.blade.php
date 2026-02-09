@@ -452,6 +452,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Prevent back button navigation
+history.pushState(null, null, location.href);
+window.onpopstate = function () {
+    history.go(1);
+    alert('You cannot go back from this page. The deposit has already been created and requires distribution.');
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const totalDeposit = {{ $deposit->balance }};
     const availableBalance = {{ $availableBalance ?? $deposit->balance }};
@@ -509,6 +516,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     updateSummary();
+    
+    // Warn before page refresh/close
+    window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+    });
 });
 </script>
 </body>

@@ -556,14 +556,26 @@ class GroupSavingsController extends Controller
         $activeFiscalYear = FiscalYear::getActive();
         $members = Member::all();
 
-        return view('admin.group-savings.create-deposit', [
+        $response = view('admin.group-savings.create-deposit', [
             'activeFiscalYear' => $activeFiscalYear,
             'members' => $members,
         ]);
+
+        return response($response)
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function storeDeposit(Request $request)
     {
+        // Check for duplicate submission using session token
+        $sessionKey = 'deposit_form_submitted_' . $request->member_id . '_' . $request->month;
+        if (session($sessionKey)) {
+            return redirect()->route('admin.group-savings.dashboard')
+                ->with('error', 'Deposit already submitted for this member and month.');
+        }
+
         $request->validate([
             'member_id' => 'required|exists:members,id',
             'month' => 'required|integer|min:1|max:12',
@@ -577,6 +589,9 @@ class GroupSavingsController extends Controller
         if (!$activeFiscalYear) {
             return redirect()->back()->with('error', 'No active fiscal year found');
         }
+
+        // Mark this form as submitted in session
+        session([$sessionKey => true]);
 
         $deposit = Deposit::create([
             'member_id' => $request->member_id,
@@ -598,7 +613,10 @@ class GroupSavingsController extends Controller
         $this->applyLatePaymentFines($request->member_id, $activeFiscalYear->id, $request->month, $request->deposit_date);
 
         return redirect()->route('admin.group-savings.distribute', $deposit->id)
-            ->with('success', 'Deposit created successfully. Please distribute the funds.');
+            ->with('success', 'Deposit created successfully. Please distribute the funds.')
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function distributeDeposit($depositId)
@@ -617,12 +635,17 @@ class GroupSavingsController extends Controller
             ->where('status', 'pending')
             ->get();
 
-        return view('admin.group-savings.distribute', [
+        $response = view('admin.group-savings.distribute', [
             'deposit' => $deposit,
             'memberAccount' => $memberAccount,
             'unpaidFines' => $unpaidFines,
             'availableBalance' => $memberAccount ? $memberAccount->current_balance : 0,
         ]);
+
+        return response($response)
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function storeDistribution(Request $request, $depositId)
@@ -648,6 +671,10 @@ class GroupSavingsController extends Controller
         if (!$memberAccount || $totalDistribution > $memberAccount->current_balance) {
             return redirect()->back()->with('error', 'Total distribution exceeds available account balance');
         }
+
+        // Clear the session token to allow future deposits
+        $sessionKey = 'deposit_form_submitted_' . $deposit->member_id . '_' . $deposit->month;
+        session()->forget($sessionKey);
 
         // Get the target month for distribution
         $targetMonth = (int) $request->distribution_month;

@@ -453,6 +453,26 @@
                     <label class="form-label">Phone</label>
                     <input type="text" name="phone" class="form-input" placeholder="Enter phone number">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Physical Address</label>
+                    <textarea name="physical_address" class="form-input" placeholder="Enter physical address" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Postal Code</label>
+                    <input type="text" name="postal_code" class="form-input" placeholder="Enter postal code">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Next of Kin Name</label>
+                    <input type="text" name="next_of_kin_name" class="form-input" placeholder="Enter next of kin name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Next of Kin Phone</label>
+                    <input type="text" name="next_of_kin_phone" class="form-input" placeholder="Enter next of kin phone number">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Next of Kin Relationship</label>
+                    <input type="text" name="next_of_kin_relationship" class="form-input" placeholder="e.g., Spouse, Parent, Sibling">
+                </div>
                 
                 <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
                     <button type="submit" class="btn btn-primary">
@@ -515,6 +535,18 @@
                                                 <div class="member-detail">
                                                     <i class="fas fa-phone me-1"></i>
                                                     {{ $member->phone }}
+                                                </div>
+                                            @endif
+                                            @if($member->physical_address)
+                                                <div class="member-detail">
+                                                    <i class="fas fa-home me-1"></i>
+                                                    {{ Str::limit($member->physical_address, 30) }}
+                                                </div>
+                                            @endif
+                                            @if($member->next_of_kin_name)
+                                                <div class="member-detail">
+                                                    <i class="fas fa-user-friends me-1"></i>
+                                                    {{ $member->next_of_kin_name }} ({{ $member->next_of_kin_relationship ?? 'Kin' }})
                                                 </div>
                                             @endif
                                         </div>

@@ -21,6 +21,11 @@ class Member extends Model
         'address',
         'city',
         'country',
+        'physical_address',
+        'postal_code',
+        'next_of_kin_name',
+        'next_of_kin_phone',
+        'next_of_kin_relationship',
         'user_id',
     ];
 

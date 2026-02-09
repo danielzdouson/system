@@ -623,12 +623,12 @@
                     <i class="fas fa-wallet"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totalBalance ?? 0, 0) }}
+                    UGX {{ number_format($totals['totalBalance'] ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Current Balance</div>
-                <div class="stat-change {{ $balanceChange >= 0 ? '' : 'negative' }}">
-                    <i class="fas fa-arrow-{{ $balanceChange >= 0 ? 'up' : 'down' }} me-1"></i>
-                    {{ $balanceChange >= 0 ? '+' : '' }}{{ number_format($balanceChange, 1) }}% from last month
+                <div class="stat-change {{ $totals['balanceChange'] >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $totals['balanceChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $totals['balanceChange'] >= 0 ? '+' : '' }}{{ number_format($totals['balanceChange'], 1) }}% from last month
                 </div>
             </div>
             
@@ -637,12 +637,12 @@
                     <i class="fas fa-arrow-down"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totalInflows ?? 0, 0) }}
+                    UGX {{ number_format($totals['totalInflows'] ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Total Inflows</div>
-                <div class="stat-change {{ $inflowChange >= 0 ? '' : 'negative' }}">
-                    <i class="fas fa-arrow-{{ $inflowChange >= 0 ? 'up' : 'down' }} me-1"></i>
-                    {{ $inflowChange >= 0 ? '+' : '' }}{{ number_format($inflowChange, 1) }}% from last month
+                <div class="stat-change {{ $totals['inflowChange'] >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $totals['inflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $totals['inflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['inflowChange'], 1) }}% from last month
                 </div>
             </div>
             
@@ -651,12 +651,12 @@
                     <i class="fas fa-arrow-up"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totalOutflows ?? 0, 0) }}
+                    UGX {{ number_format($totals['totalOutflows'] ?? 0, 0) }}
                 </div>
                 <div class="stat-label">Total Outflows</div>
-                <div class="stat-change {{ $outflowChange >= 0 ? '' : 'negative' }}">
-                    <i class="fas fa-arrow-{{ $outflowChange >= 0 ? 'up' : 'down' }} me-1"></i>
-                    {{ $outflowChange >= 0 ? '+' : '' }}{{ number_format($outflowChange, 1) }}% from last month
+                <div class="stat-change {{ $totals['outflowChange'] >= 0 ? '' : 'negative' }}">
+                    <i class="fas fa-arrow-{{ $totals['outflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
+                    {{ $totals['outflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['outflowChange'], 1) }}% from last month
                 </div>
             </div>
             
@@ -665,7 +665,7 @@
                     <i class="fas fa-clock"></i>
                 </div>
                 <div class="stat-value">
-                    {{ $pendingCount ?? 0 }}
+                    {{ $totals['pendingCount'] ?? 0 }}
                 </div>
                 <div class="stat-label">Pending Transactions</div>
                 <div class="stat-change">
@@ -794,11 +794,11 @@
                     Cash Flow Transactions
                 </div>
                 <div class="table-subtitle">
-                    {{ $transactions->total() }} transactions found
+                    {{ $paginatedTransactions->total() }} transactions found
                 </div>
             </div>
             
-            @if($transactions->count() > 0)
+            @if($paginatedTransactions->count() > 0)
                 <div class="table-responsive">
                     <table class="modern-table">
                         <thead>
@@ -815,7 +815,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($transactions as $transaction)
+                            @foreach($paginatedTransactions as $transaction)
                                 <tr>
                                     <td>
                                         <span class="date-badge">
@@ -891,7 +891,7 @@
                 
                 <!-- Pagination -->
                 <div class="d-flex justify-content-center mt-4">
-                    {{ $transactions->links() }}
+                    {{ $paginatedTransactions->links() }}
                 </div>
             @else
                 <div class="empty-state">
@@ -1015,11 +1015,23 @@ function showTransactionDetails(sourceModel, transactionId) {
         case 'Deposit':
             url = `/admin/group-savings/deposit/${transactionId}`;
             break;
+        case 'Distribution':
+            url = `/admin/group-savings/distribution/${transactionId}`;
+            break;
         case 'Loan':
             url = `/admin/group-loans/${transactionId}`;
             break;
         case 'LoanRepayment':
             url = `/admin/group-loans/repayment/${transactionId}`;
+            break;
+        case 'Fine':
+            url = `/admin/fines/${transactionId}`;
+            break;
+        case 'WelfareFund':
+            url = `/admin/welfare/${transactionId}`;
+            break;
+        case 'LoanPenalty':
+            url = `/admin/loans/penalty/${transactionId}`;
             break;
         default:
             url = `/admin/cashflow/${transactionId}`;

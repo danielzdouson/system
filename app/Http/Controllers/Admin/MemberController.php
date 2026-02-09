@@ -43,6 +43,11 @@ class MemberController extends Controller
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
             'country' => 'nullable|string|max:100',
+            'physical_address' => 'nullable|string|max:500',
+            'postal_code' => 'nullable|string|max:20',
+            'next_of_kin_name' => 'nullable|string|max:255',
+            'next_of_kin_phone' => 'nullable|string|max:20',
+            'next_of_kin_relationship' => 'nullable|string|max:100',
             // User account fields
             'create_user_account' => 'nullable|boolean',
             'user_email' => 'required_if:create_user_account,1|email|max:255|unique:users,email',
@@ -100,6 +105,11 @@ class MemberController extends Controller
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
             'country' => 'nullable|string|max:100',
+            'physical_address' => 'nullable|string|max:500',
+            'postal_code' => 'nullable|string|max:20',
+            'next_of_kin_name' => 'nullable|string|max:255',
+            'next_of_kin_phone' => 'nullable|string|max:20',
+            'next_of_kin_relationship' => 'nullable|string|max:100',
         ]);
 
         $member->update($request->all());
