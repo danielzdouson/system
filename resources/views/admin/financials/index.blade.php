@@ -28,167 +28,10 @@
     $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')->sum('amount');
     $netCashFlow = $cashFlowIncome - $cashFlowExpenses;
     
-    // Recent activities
-    $recentSavings = \App\Models\MonthlySaving::with('member')->latest()->take(5)->get();
-    $recentLoans = \App\Models\MemberLoanSummary::with('member')->latest()->take(5)->get();
-    $recentCashFlow = \App\Models\CashFlow::latest()->take(5)->get();
-@endphp
+    @endphp
 
-<!-- Financial Overview Cards -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:20px; margin-bottom:30px;">
-    <!-- Total Members Card -->
-    <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">👥</span>
-            <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">Total Members</h4>
-                <p style="margin:5px 0 0 0; font-size:32px; font-weight:bold;">{{ $totalMembers }}</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- Total Savings Card -->
-    <div style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">💰</span>
-            <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">Total Savings</h4>
-                <p style="margin:5px 0 0 0; font-size:32px; font-weight:bold;">UGX {{ number_format($totalSavings, 2) }}</p>
-            </div>
-        </div>
-    </div>
 
-    <!-- Total Loans Card -->
-    <div style="background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">💳</span>
-            <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">Total Loans</h4>
-                <p style="margin:5px 0 0 0; font-size:32px; font-weight:bold;">UGX {{ number_format($totalLoans, 2) }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Net Cash Flow Card -->
-    <div style="background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">💸</span>
-            <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">Net Cash Flow</h4>
-                <p style="margin:5px 0 0 0; font-size:32px; font-weight:bold;">UGX {{ number_format($netCashFlow, 2) }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-bottom:30px;">
-    <h3 style="margin:0 0 20px 0; color:#1f2937;">Quick Actions</h3>
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:15px;">
-        <a href="{{ route('admin.financials.create') }}" style="display:flex; align-items:center; padding:20px; background:#f8fafc; border:2px solid #e5e7eb; border-radius:8px; text-decoration:none; color:#374151; transition:all 0.3s ease;">
-            <span style="font-size:24px; margin-right:10px;">➕</span>
-            <div>
-                <div style="font-weight:600; color:#1f2937;">Add Financial Record</div>
-                <div style="font-size:12px; color:#6b7280;">Record member contributions</div>
-            </div>
-        </a>
-        
-        <a href="{{ route('admin.cashflow.index') }}" style="display:flex; align-items:center; padding:20px; background:#f0fdf4; border:2px solid #bbf7d0; border-radius:8px; text-decoration:none; color:#166534; transition:all 0.3s ease;">
-            <span style="font-size:24px; margin-right:10px;">💸</span>
-            <div>
-                <div style="font-weight:600; color:#166534;">Cash Flow</div>
-                <div style="font-size:12px; color:#6b7280;">View all transactions</div>
-            </div>
-        </a>
-        
-        <a href="{{ route('admin.group-loans.index') }}" style="display:flex; align-items:center; padding:20px; background:#fef3c7; border:2px solid #fbbf24; border-radius:8px; text-decoration:none; color:#92400e; transition:all 0.3s ease;">
-            <span style="font-size:24px; margin-right:10px;">📋</span>
-            <div>
-                <div style="font-weight:600; color:#92400e;">Loan Management</div>
-                <div style="font-size:12px; color:#6b7280;">Manage member loans</div>
-            </div>
-        </a>
-
-        <a href="{{ route('admin.group-savings.dashboard') }}" style="display:flex; align-items:center; padding:20px; background:#f0f9ff; border:2px solid #7dd3fc; border-radius:8px; text-decoration:none; color:#075985; transition:all 0.3s ease;">
-            <span style="font-size:24px; margin-right:10px;">📊</span>
-            <div>
-                <div style="font-weight:600; color:#075985;">Monthly Savings</div>
-                <div style="font-size:12px; color:#6b7280;">View member savings</div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- Financial Activity Overview -->
-<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:30px;">
-    <!-- Recent Savings -->
-    <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-        <h4 style="margin:0 0 15px 0; color:#1f2937;">📈 Recent Savings</h4>
-        @if($recentSavings->count() > 0)
-            @foreach($recentSavings as $saving)
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f3f4f6;">
-                    <div>
-                        <div style="font-weight:500; color:#374151;">{{ $saving->member->name ?? 'Unknown' }}</div>
-                        <div style="font-size:12px; color:#6b7280;">{{ $saving->membership_number ?? 'N/A' }}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="color:#059669; font-weight:600;">UGX {{ number_format($saving->getTotalMonthlyContributions() ?? 0, 0) }}</div>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div style="text-align:center; padding:20px; color:#9ca3af; font-style:italic;">
-                No recent savings
-            </div>
-        @endif
-    </div>
-
-    <!-- Recent Loans -->
-    <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-        <h4 style="margin:0 0 15px 0; color:#1f2937;">💳 Recent Loans</h4>
-        @if($recentLoans->count() > 0)
-            @foreach($recentLoans as $loan)
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f3f4f6;">
-                    <div>
-                        <div style="font-weight:500; color:#374151;">{{ $loan->member->name ?? 'Unknown' }}</div>
-                        <div style="font-size:12px; color:#6b7280;">Loan Balance</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="color:#dc2626; font-weight:600;">UGX {{ number_format($loan->total ?? 0, 0) }}</div>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div style="text-align:center; padding:20px; color:#9ca3af; font-style:italic;">
-                No recent loans
-            </div>
-        @endif
-    </div>
-
-    <!-- Recent Cash Flow -->
-    <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-        <h4 style="margin:0 0 15px 0; color:#1f2937;">💰 Recent Transactions</h4>
-        @if($recentCashFlow->count() > 0)
-            @foreach($recentCashFlow as $transaction)
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f3f4f6;">
-                    <div>
-                        <div style="font-weight:500; color:#374151;">{{ $transaction->description }}</div>
-                        <div style="font-size:12px; color:#6b7280;">{{ $transaction->transaction_date->format('M d, Y') }}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:600; {{ $transaction->type === 'income' ? 'color:#059669;' : 'color:#dc2626;' }}">
-                            {{ $transaction->type === 'income' ? '+' : '-' }} UGX {{ number_format($transaction->amount ?? 0, 0) }}
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div style="text-align:center; padding:20px; color:#9ca3af; font-style:italic;">
-                No recent transactions
-            </div>
-        @endif
-    </div>
-</div>
 
 <!-- Detailed Financial Summary -->
 <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
@@ -242,4 +85,249 @@
     </div>
 </div>
 
+<!-- Members Financial Standing Section -->
+<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-top:30px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0; color:#1f2937;">
+            <i class="fas fa-users me-2"></i>
+            Members Financial Standing
+        </h3>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="memberSearch" placeholder="Search members..." 
+                   style="padding:8px 12px; border:1px solid #e5e7eb; border-radius:6px; min-width:200px;">
+            <button onclick="exportMembersData()" class="btn btn-sm btn-success">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Enhanced Summary Cards -->
+    <div id="membersSummaryCards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:25px;">
+        <!-- Will be populated by JavaScript with comprehensive financial data -->
+    </div>
+
+    <!-- Members Table -->
+    <div class="table-responsive">
+        <table class="table table-hover" id="membersTable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Member Name</th>
+                    <th>Member Number</th>
+                    <th>Total Deposits</th>
+                    <th>Total Savings</th>
+                    <th>Welfare</th>
+                    <th>Outstanding Fines</th>
+                    <th>Loan Balance</th>
+                    <th>Available Balance</th>
+                    <th>Distributed Funds</th>
+                    <th>Net Worth</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="membersTableBody">
+                <tr>
+                    <td colspan="11" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="mt-2">Loading members data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="membersPagination" class="d-flex justify-content-center mt-3">
+        <!-- Will be populated by JavaScript -->
+    </div>
+</div>
+
 @endsection
+
+<script>
+let currentPage = 1;
+let searchTimer;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadMembersData();
+    
+    // Setup search
+    document.getElementById('memberSearch').addEventListener('input', function(e) {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            currentPage = 1;
+            loadMembersData();
+        }, 500);
+    });
+});
+
+function loadMembersData() {
+    const search = document.getElementById('memberSearch').value;
+    
+    fetch(`{{ route('admin.financials.members-sector') }}?page=${currentPage}&per_page=20&search=${search}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateSummaryCards(data.data.stats);
+                updateMembersTable(data.data.members);
+                updatePagination(data.data.members);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading members data:', error);
+            document.getElementById('membersTableBody').innerHTML = 
+                '<tr><td colspan="11" class="text-center text-danger py-4">Error loading data. Please try again.</td></tr>';
+        });
+}
+
+function updateSummaryCards(stats) {
+    const cardsHtml = `
+        <div class="card text-center" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">👥 Total Members</h6>
+                <h4 class="mb-1">${stats.total_members}</h4>
+                <small>Active Accounts</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">💰 Total Savings</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_savings, 0)}</h4>
+                <small>Member Contributions</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">💵 Available Balance</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_available_balance, 0)}</h4>
+                <small>Deposits - Distributed</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">💳 Total Loans</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_loan_balance, 0)}</h4>
+                <small>Outstanding Loans</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">🤝 Total Welfare</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_welfare, 0)}</h4>
+                <small>Social Fund</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">⚠️ Outstanding Fines</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_outstanding_fines, 0)}</h4>
+                <small>Unpaid Penalties</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">📊 Total Net Worth</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_net_worth, 0)}</h4>
+                <small>Assets - Liabilities</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #84cc16 0%, #65a30d 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">📈 Total Deposits</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_deposits, 0)}</h4>
+                <small>All Time Deposits</small>
+            </div>
+        </div>
+    `;
+    document.getElementById('membersSummaryCards').innerHTML = cardsHtml;
+}
+
+function updateMembersTable(members) {
+    let tbodyHtml = '';
+    
+    members.data.forEach(member => {
+        const netWorthClass = member.net_worth >= 0 ? 'text-success' : 'text-danger';
+        const statusBadge = getStatusBadge(member.status);
+        
+        tbodyHtml += `
+            <tr>
+                <td><strong>${member.name}</strong></td>
+                <td>${member.member_number}</td>
+                <td class="text-success">UGX ${number_format(member.total_deposits, 0)}</td>
+                <td class="text-success">UGX ${number_format(member.total_savings, 0)}</td>
+                <td class="text-info">UGX ${number_format(member.welfare, 0)}</td>
+                <td class="text-danger">UGX ${number_format(member.outstanding_fines, 0)}</td>
+                <td class="text-danger">UGX ${number_format(member.loan_balance, 0)}</td>
+                <td class="text-primary fw-bold">UGX ${number_format(member.available_balance, 0)}</td>
+                <td class="text-warning">UGX ${number_format(member.distributed_funds, 0)}</td>
+                <td class="${netWorthClass} fw-bold">UGX ${number_format(member.net_worth, 0)}</td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    });
+    
+    if (members.data.length === 0) {
+        tbodyHtml = '<tr><td colspan="11" class="text-center py-4">No members found</td></tr>';
+    }
+    
+    document.getElementById('membersTableBody').innerHTML = tbodyHtml;
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'active': '<span class="badge bg-success">Active</span>',
+        'inactive': '<span class="badge bg-secondary">Inactive</span>',
+        'delinquent': '<span class="badge bg-danger">Delinquent</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">Unknown</span>';
+}
+
+function updatePagination(members) {
+    const pagination = document.getElementById('membersPagination');
+    
+    if (members.last_page <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let paginationHtml = '<nav><ul class="pagination">';
+    
+    // Previous button
+    if (members.prev_page_url) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${members.current_page - 1})">Previous</a></li>`;
+    }
+    
+    // Page numbers
+    for (let i = 1; i <= members.last_page; i++) {
+        const activeClass = i === members.current_page ? 'active' : '';
+        paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="changePage(${i})">${i}</a></li>`;
+    }
+    
+    // Next button
+    if (members.next_page_url) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${members.current_page + 1})">Next</a></li>`;
+    }
+    
+    paginationHtml += '</ul></nav>';
+    pagination.innerHTML = paginationHtml;
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadMembersData();
+}
+
+function exportMembersData() {
+    const search = document.getElementById('memberSearch').value;
+    window.open(`{{ route('admin.financials.members-sector') }}?export=1&search=${search}`, '_blank');
+}
+
+// Helper function for number formatting
+function number_format(number, decimals) {
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    }).format(number);
+}
+</script>

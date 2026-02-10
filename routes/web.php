@@ -117,6 +117,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         return redirect()->route('admin.financials.index')->with('success', 'Financial saved successfully.');
     })->name('financials.store');
     
+    Route::get('financials/members-sector', [App\Http\Controllers\Admin\MemberFinancialController::class, 'membersSector'])->name('financials.members-sector');
+    
     // Cashflow Routes
     Route::get('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'index'])->name('cashflow.index');
     Route::get('cashflow/create', [App\Http\Controllers\Admin\CashflowController::class, 'create'])->name('cashflow.create');

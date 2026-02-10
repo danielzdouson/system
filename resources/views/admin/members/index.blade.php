@@ -116,6 +116,20 @@
     flex-direction: column;
 }
 
+.row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.col-md-6 {
+    flex: 1;
+}
+
+.col-md-4 {
+    flex: 1;
+}
+
 .form-label {
     font-weight: 500;
     color: #6c757d;
@@ -483,6 +497,104 @@
             </form>
         </div>
 
+        <!-- Edit Member Form -->
+        @if(isset($memberToEdit))
+        <div class="member-form-card">
+            <div class="form-header">
+                <h3 class="form-title">
+                    <i class="fas fa-user-edit me-2"></i>
+                    Edit Member: {{ $memberToEdit->first_name }} {{ $memberToEdit->last_name }}
+                </h3>
+            </div>
+            
+            <form method="POST" action="{{ route('admin.members.update', $memberToEdit->id) }}" class="member-form">
+                @csrf
+                @method('PUT')
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="first_name" required class="form-input" value="{{ $memberToEdit->first_name }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="last_name" required class="form-input" value="{{ $memberToEdit->last_name }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">National ID</label>
+                            <input type="text" name="national_id" class="form-input" value="{{ $memberToEdit->national_id }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-input" value="{{ $memberToEdit->email }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-input" value="{{ $memberToEdit->phone }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" name="date_of_birth" class="form-input" value="{{ $memberToEdit->date_of_birth ? $memberToEdit->date_of_birth->format('Y-m-d') : '' }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Physical Address</label>
+                    <textarea name="physical_address" class="form-input" rows="3">{{ $memberToEdit->physical_address }}</textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Postal Code</label>
+                            <input type="text" name="postal_code" class="form-input" value="{{ $memberToEdit->postal_code }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Next of Kin Name</label>
+                            <input type="text" name="next_of_kin_name" class="form-input" value="{{ $memberToEdit->next_of_kin_name }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Next of Kin Phone</label>
+                            <input type="text" name="next_of_kin_phone" class="form-input" value="{{ $memberToEdit->next_of_kin_phone }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Next of Kin Relationship</label>
+                    <input type="text" name="next_of_kin_relationship" class="form-input" placeholder="e.g., Spouse, Parent, Sibling" value="{{ $memberToEdit->next_of_kin_relationship }}">
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                    <a href="{{ route('admin.members.index') }}" class="btn btn-secondary me-2">
+                        <i class="fas fa-times me-2"></i>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        Update Member
+                    </button>
+                </div>
+            </form>
+        </div>
+        @endif
+
         <!-- Members Table -->
         <div class="members-table-card">
             <div class="table-header">
@@ -556,6 +668,10 @@
                                     <td>{{ $member->phone ?? 'N/A' }}</td>
                                     <td>{{ $member->created_at->format('M d, Y') }}</td>
                                     <td>
+                                        <a href="{{ route('admin.members.edit', $member->id) }}" class="btn btn-primary btn-sm me-2">
+                                            <i class="fas fa-edit me-1"></i>
+                                            Edit
+                                        </a>
                                         <form method="POST" action="{{ route('admin.members.destroy', $member->id) }}" 
                                               onsubmit="return confirm('Delete this member: {{ $member->first_name }} {{ $member->last_name }}?');" 
                                               class="action-form">

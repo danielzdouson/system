@@ -184,9 +184,9 @@
             </div>
 
             <!-- Recent Loans Table -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="data-card">
+            <div class="row" style="width: 850px;">
+                <div class="col-12" style="width: 850px;">
+                    <div class="data-card" style="width: 850px;">
                         <div class="data-card-header">
                             <h5 class="data-title">
                                 <i class="fas fa-history me-2"></i>
@@ -303,8 +303,9 @@
 
 <style>
 /* Enhanced Page Header */
+
 .container-fluid {
-    width: 900px;
+    width: 850px;
     margin: 0 auto;
     padding: 2rem;
 }

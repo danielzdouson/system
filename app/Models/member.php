@@ -40,13 +40,38 @@ class Member extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function loans()
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    public function monthlySaving()
+    {
+        return $this->hasOne(MonthlySaving::class);
+    }
+
+    public function memberFinancial()
+    {
+        return $this->hasOne(MemberFinancial::class);
+    }
+
+    public function memberLoanSummary()
+    {
+        return $this->hasOne(MemberLoanSummary::class);
+    }
+
     public function memberAccounts()
     {
         return $this->hasMany(MemberAccount::class);
     }
 
-    public function loans()
+    public function deposits()
     {
-        return $this->hasMany(Loan::class);
+        return $this->hasMany(Deposit::class);
+    }
+
+    public function fines()
+    {
+        return $this->hasMany(Fine::class);
     }
 }

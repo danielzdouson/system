@@ -6,9 +6,17 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Member;
 use App\Models\MemberFinancial;
+use App\Services\MemberFinancialSummaryService;
 
 class MemberFinancialController extends Controller
 {
+    protected $memberFinancialService;
+
+    public function __construct(MemberFinancialSummaryService $memberFinancialService)
+    {
+        $this->memberFinancialService = $memberFinancialService;
+    }
+
     public function create()
     {
         $members = Member::all(); // list of members for selection
@@ -35,5 +43,25 @@ class MemberFinancialController extends Controller
         MemberFinancial::create($data);
 
         return redirect()->back()->with('success', 'Member financial record saved!');
+    }
+
+    /**
+     * Get members sector data for financials page
+     */
+    public function membersSector(Request $request)
+    {
+        $perPage = $request->get('per_page', 20);
+        $search = $request->get('search');
+
+        $members = $this->memberFinancialService->getAllMembersFinancialSummary($perPage, $search);
+        $stats = $this->memberFinancialService->getMembersSummaryStats();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'members' => $members,
+                'stats' => $stats
+            ]
+        ]);
     }
 }
