@@ -31,32 +31,141 @@ use PDF;
 class CashflowController extends Controller
 {
     /**
-     * Display comprehensive cashflow with ALL system transactions
+     * Display comprehensive cashflow with optimized loading
      */
     public function index(Request $request): View
     {
         $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
         $activeFiscalYear = FiscalYear::where('status', 'active')->first();
         
-        // Get all comprehensive transactions
-        $transactions = $this->getAllTransactions($request);
+        // Check if this is an AJAX request for lazy loading
+        if ($request->ajax() && $request->has('load_transactions')) {
+            return $this->loadTransactionsAjax($request);
+        }
         
-        // Apply pagination
-        $paginatedTransactions = $transactions->paginate(50);
-        
-        // Calculate comprehensive totals
+        // Calculate comprehensive totals with caching
         $totals = $this->calculateComprehensiveTotals($request);
         
+        // Get chart data
+        $chartData = $this->getChartData($request);
+        
+        // Get initial transactions (first page only)
+        $initialTransactions = $this->getInitialTransactions($request);
+        
         return view('admin.cashflow.index', compact(
-            'paginatedTransactions',
+            'initialTransactions',
             'fiscalYears',
             'activeFiscalYear',
-            'totals'
+            'totals',
+            'chartData'
         ));
     }
 
     /**
-     * Get ALL transactions from the entire system
+     * Load transactions via AJAX for lazy loading
+     */
+    public function loadTransactionsAjax(Request $request)
+    {
+        $transactions = $this->getAllTransactions($request);
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 20);
+        
+        $paginatedTransactions = $transactions->paginate($perPage, ['*'], 'page', $page);
+        
+        return response()->json([
+            'transactions' => $paginatedTransactions->items(),
+            'pagination' => [
+                'current_page' => $paginatedTransactions->currentPage(),
+                'last_page' => $paginatedTransactions->lastPage(),
+                'per_page' => $paginatedTransactions->perPage(),
+                'total' => $paginatedTransactions->total(),
+                'has_more' => $paginatedTransactions->hasMorePages()
+            ]
+        ]);
+    }
+    
+    /**
+     * Get initial transactions for first page load
+     */
+    private function getInitialTransactions($request = null)
+    {
+        $transactions = $this->getAllTransactions($request);
+        return $transactions->paginate(20);
+    }
+    
+    /**
+     * Get chart data for visualization
+     */
+    private function getChartData($request = null)
+    {
+        // Get last 6 months of data for trends
+        $months = [];
+        $inflows = [];
+        $outflows = [];
+        
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthName = $date->format('M Y');
+            $months[] = $monthName;
+            
+            $inflows[] = $this->calculateMonthInflows($date->month, $date->year);
+            $outflows[] = $this->calculateMonthOutflows($date->month, $date->year);
+        }
+        
+        // Get category breakdown for current month
+        $categoryBreakdown = $this->getCategoryBreakdown();
+        
+        return [
+            'trends' => [
+                'months' => $months,
+                'inflows' => $inflows,
+                'outflows' => $outflows
+            ],
+            'categories' => $categoryBreakdown
+        ];
+    }
+    
+    /**
+     * Get category breakdown for current month
+     */
+    private function getCategoryBreakdown()
+    {
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+        
+        $categories = [
+            'Operating' => 0,
+            'Investing' => 0,
+            'Financing' => 0
+        ];
+        
+        // Calculate from all sources
+        $categories['Operating'] += 
+            CashFlow::where('category', 'OPERATING')
+                ->where('status', 'cleared')
+                ->whereMonth('transaction_date', $currentMonth)
+                ->whereYear('transaction_date', $currentYear)
+                ->sum('amount');
+                
+        $categories['Investing'] += 
+            CashFlow::where('category', 'INVESTING')
+                ->where('status', 'cleared')
+                ->whereMonth('transaction_date', $currentMonth)
+                ->whereYear('transaction_date', $currentYear)
+                ->sum('amount');
+                
+        $categories['Financing'] += 
+            CashFlow::where('category', 'FINANCING')
+                ->where('status', 'cleared')
+                ->whereMonth('transaction_date', $currentMonth)
+                ->whereYear('transaction_date', $currentYear)
+                ->sum('amount');
+        
+        return $categories;
+    }
+
+    /**
+     * Get ALL transactions from the entire system (optimized)
      */
     private function getAllTransactions($request = null)
     {

@@ -1,4 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', 'Investment Portfolio Management')
+
+@php
+use App\Models\Investment;
+@endphp
 
 @section('content')
 <div class="container-fluid">

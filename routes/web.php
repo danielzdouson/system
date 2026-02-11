@@ -121,6 +121,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     
     // Cashflow Routes
     Route::get('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'index'])->name('cashflow.index');
+    Route::get('cashflow/load', [App\Http\Controllers\Admin\CashflowController::class, 'loadTransactionsAjax'])->name('cashflow.load');
     Route::get('cashflow/create', [App\Http\Controllers\Admin\CashflowController::class, 'create'])->name('cashflow.create');
     Route::post('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'store'])->name('cashflow.store');
     Route::get('cashflow/dashboard', [App\Http\Controllers\Admin\CashflowController::class, 'dashboard'])->name('cashflow.dashboard');

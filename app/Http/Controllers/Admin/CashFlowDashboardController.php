@@ -5,6 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\CashFlowDashboardService;
 use App\Models\FiscalYear;
+use App\Models\Deposit;
+use App\Models\LoanRepayment;
+use App\Models\CashflowTransaction;
+use App\Models\CashFlow;
+use App\Models\Fine;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -100,9 +105,15 @@ class CashFlowDashboardController extends Controller
 
         $dashboardData = $this->dashboardService->getDashboardData($fiscalYearId, $month);
 
+        // Add pending count from comprehensive sources
+        $pendingCount = \App\Models\CashflowTransaction::where('status', 'PENDING')->count() +
+                       \App\Models\CashFlow::where('status', 'pending')->count() +
+                       \App\Models\Fine::where('status', 'pending')->count();
+
         return response()->json([
             'success' => true,
             'data' => $dashboardData,
+            'pendingCount' => $pendingCount,
         ]);
     }
 

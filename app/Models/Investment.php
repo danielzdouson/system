@@ -12,6 +12,8 @@ class Investment extends Model
 {
     use SoftDeletes;
 
+    protected $table = 'investment_portfolios';
+
     protected $fillable = [
         'name',
         'investment_type',
@@ -44,7 +46,7 @@ class Investment extends Model
     // Relationships
     public function transactions(): HasMany
     {
-        return $this->hasMany(InvestmentTransaction::class);
+        return $this->hasMany(InvestmentTransaction::class, 'investment_portfolio_id');
     }
 
     public function creator(): BelongsTo
