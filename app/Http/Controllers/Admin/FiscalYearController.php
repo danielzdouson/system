@@ -11,7 +11,8 @@ class FiscalYearController extends Controller
     public function index()
     {
         $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
-        return view('admin.fiscal-years.index', compact('fiscalYears'));
+        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        return view('admin.fiscal-years.index', compact('fiscalYears', 'activeFiscalYear'));
     }
 
     public function create()
@@ -40,7 +41,7 @@ class FiscalYearController extends Controller
             'status' => $request->status,
         ]);
 
-        return redirect()->route('admin.group-savings.dashboard')
+        return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" created successfully!');
     }
 
@@ -72,14 +73,14 @@ class FiscalYearController extends Controller
             'status' => $request->status,
         ]);
 
-        return redirect()->route('admin.group-savings.dashboard')
+        return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" updated successfully!');
     }
 
     public function destroy(FiscalYear $fiscalYear)
     {
         $fiscalYear->delete();
-        return redirect()->route('admin.group-savings.dashboard')
+        return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year deleted successfully!');
     }
 }

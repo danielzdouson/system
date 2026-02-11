@@ -145,6 +145,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('cashflow/export-fiscal-year', [App\Http\Controllers\Admin\CashflowController::class, 'exportFiscalYearStatement'])->name('cashflow.export.fiscal-year');
     Route::get('cashflow/position', [App\Http\Controllers\Admin\CashflowController::class, 'getCashPosition'])->name('cashflow.position');
     
+    // Investment Management Routes
+    Route::get('/investments', [App\Http\Controllers\Admin\InvestmentController::class, 'index'])->name('investments.index');
+    Route::get('/investments/create', [App\Http\Controllers\Admin\InvestmentController::class, 'create'])->name('investments.create');
+    Route::post('/investments', [App\Http\Controllers\Admin\InvestmentController::class, 'store'])->name('investments.store');
+    Route::get('/investments/{investment}', [App\Http\Controllers\Admin\InvestmentController::class, 'show'])->name('investments.show');
+    Route::get('/investments/{investment}/edit', [App\Http\Controllers\Admin\InvestmentController::class, 'edit'])->name('investments.edit');
+    Route::put('/investments/{investment}', [App\Http\Controllers\Admin\InvestmentController::class, 'update'])->name('investments.update');
+    Route::delete('/investments/{investment}', [App\Http\Controllers\Admin\InvestmentController::class, 'destroy'])->name('investments.destroy');
+    Route::post('/investments/{investment}/add-transaction', [App\Http\Controllers\Admin\InvestmentController::class, 'addTransaction'])->name('investments.add-transaction');
+    Route::post('/investments/{investment}/mark-matured', [App\Http\Controllers\Admin\InvestmentController::class, 'markAsMatured'])->name('investments.mark-matured');
+    Route::post('/investments/{investment}/close', [App\Http\Controllers\Admin\InvestmentController::class, 'close'])->name('investments.close');
+    
     // Import Routes
     Route::get('import', function() {
         return view('admin.import.index');

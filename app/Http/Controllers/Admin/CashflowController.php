@@ -12,6 +12,8 @@ use App\Models\LoanRepayment;
 use App\Models\LoanPenalty;
 use App\Models\Fine;
 use App\Models\WelfareFund;
+use App\Models\Investment;
+use App\Models\InvestmentTransaction;
 use App\Models\Transaction;
 use App\Models\FiscalYear;
 use App\Models\Member;
@@ -224,6 +226,26 @@ class CashflowController extends Controller
                 DB::raw("'Loan Penalty' as transaction_source")
             ]);
 
+        // Investment Transactions (both inflows and outflows)
+        $investmentTransactionQuery = InvestmentTransaction::query()
+            ->with('investment')
+            ->select([
+                'investment_transactions.id',
+                'investment_transactions.transaction_date',
+                DB::raw("CONCAT(investment_portfolios.name, ' - ', investment_transactions.transaction_type) as description"),
+                'investment_transactions.reference_number',
+                DB::raw("CASE WHEN investment_transactions.transaction_type IN ('INTEREST_INCOME', 'DIVIDEND_INCOME', 'CAPITAL_GAIN', 'PRINCIPAL_RETURN') THEN 'income' ELSE 'expense' END as type"),
+                DB::raw("'INVESTING' as category"),
+                'investment_transactions.amount',
+                'investment_transactions.payment_method',
+                DB::raw("'CLEARED' as status"),
+                DB::raw("NULL as member_id"),
+                'investment_transactions.created_at',
+                DB::raw("'InvestmentTransaction' as source_model"),
+                DB::raw("'Investment Transaction' as transaction_source")
+            ])
+            ->join('investment_portfolios', 'investment_transactions.investment_portfolio_id', '=', 'investment_portfolios.id');
+
         // Apply filters to all queries
         if ($request) {
             $this->applyFiltersToQueries($request, [
@@ -235,7 +257,8 @@ class CashflowController extends Controller
                 &$loanRepaymentQuery,
                 &$fineQuery,
                 &$welfareQuery,
-                &$loanPenaltyQuery
+                &$loanPenaltyQuery,
+                &$investmentTransactionQuery
             ]);
         }
 
@@ -249,6 +272,7 @@ class CashflowController extends Controller
             ->unionAll($fineQuery)
             ->unionAll($welfareQuery)
             ->unionAll($loanPenaltyQuery)
+            ->unionAll($investmentTransactionQuery)
             ->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc');
 
