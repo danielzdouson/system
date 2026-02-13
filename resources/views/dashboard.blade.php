@@ -162,6 +162,10 @@
 
 <style>
 /* Page Header */
+.container-fluid {
+    padding: 0;
+    width: 850px;
+}
 .page-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 20px;

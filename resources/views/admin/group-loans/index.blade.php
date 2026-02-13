@@ -102,7 +102,7 @@
             </div>
 
             <!-- Enhanced Financial Summary -->
-            <div class="row mb-4">
+            <div class="row mb-3">
                 <div class="col-md-4">
                     <div class="stat-card primary-gradient">
                         <div class="stat-card-body">
@@ -156,7 +156,7 @@
             </div>
 
             <!-- Enhanced Action Buttons -->
-            <div class="row mb-4">
+            <div class="row mb-3">
                 <div class="col-12">
                     <div class="action-card">
                         <div class="action-card-body">
@@ -184,9 +184,9 @@
             </div>
 
             <!-- Recent Loans Table -->
-            <div class="row" style="width: 850px;">
-                <div class="col-12" style="width: 850px;">
-                    <div class="data-card" style="width: 850px;">
+            <div class="row" >
+                <div class="col-12" >
+                    <div class="data-card" >
                         <div class="data-card-header">
                             <h5 class="data-title">
                                 <i class="fas fa-history me-2"></i>
@@ -303,6 +303,9 @@
 
 <style>
 /* Enhanced Page Header */
+.content{
+    width: 900px;
+}
 
 .container-fluid {
     width: 850px;
@@ -325,20 +328,20 @@
 
 /* Enhanced Statistics Cards */
 .stat-card {
-    border-radius: 20px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
     height: 100%;
 }
 
 .stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .stat-card-body {
-    padding: 1rem;
+    padding: 0.75rem;
     position: relative;
     display: flex;
     align-items: center;
@@ -346,10 +349,10 @@
 }
 
 .stat-icon {
-    font-size: 1.5rem;
-    opacity: 0.3;
+    font-size: 1.2rem;
+    opacity: 0.8;
     position: absolute;
-    right: 0.5rem;
+    right: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -360,14 +363,14 @@
 }
 
 .stat-title {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
     opacity: 0.9;
 }
 
 .stat-number {
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 700;
     margin: 0;
 }
@@ -375,9 +378,9 @@
 .stat-trend {
     position: absolute;
     top: 0.5rem;
-    right: 0.5rem;
-    font-size: 0.8rem;
-    opacity: 0.7;
+    right: 0.75rem;
+    font-size: 0.7rem;
+    opacity: 0.6;
 }
 
 .primary-gradient {
@@ -398,40 +401,42 @@
 
 /* Enhanced Action Cards */
 .action-card {
-    width: 170%;
+    width: 100%;
+    max-width: 100%;
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .action-card-body {
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .action-title {
     color: #333;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .action-buttons {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
 }
 
 .action-btn {
-    padding: 1rem 2rem;
-    border-radius: 50px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
     color: white;
+    font-size: 0.85rem;
 }
 
 .action-btn.primary {
@@ -454,7 +459,8 @@
 
 /* Enhanced Data Card */
 .data-card {
-    width: 170%;
+    width: 100%;
+    max-width: 100%;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -488,14 +494,37 @@
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
+    min-width: auto;
+    table-layout: auto;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .enhanced-table thead th {
     border: none;
-    padding: 1rem;
+    padding: 0.5rem 0.75rem;
     font-weight: 600;
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    white-space: nowrap;
+    text-align: left;
+    min-width: 60px;
+    font-size: 0.85rem;
 }
+
+.enhanced-table thead th:nth-child(1) { min-width: 60px; } /* Loan # */
+.enhanced-table thead th:nth-child(2) { min-width: 150px; } /* Member */
+.enhanced-table thead th:nth-child(3) { min-width: 80px; } /* Amount */
+.enhanced-table thead th:nth-child(4) { min-width: 60px; } /* Rate */
+.enhanced-table thead th:nth-child(5) { min-width: 80px; } /* Disbursed */
+.enhanced-table thead th:nth-child(6) { min-width: 70px; } /* Status */
+.enhanced-table thead th:nth-child(7) { min-width: 70px; } /* Actions */
 
 .enhanced-table tbody tr {
     transition: all 0.3s ease;
@@ -507,9 +536,14 @@
 }
 
 .enhanced-table td {
-    padding: 1rem;
+    padding: 0.5rem 0.75rem;
     vertical-align: middle;
     border-bottom: 1px solid #e9ecef;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+    font-size: 0.85rem;
 }
 
 .member-info strong {
@@ -641,12 +675,13 @@
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .stats-grid .stat-card {
-    min-height: 180px;
+    min-height: 120px;
+    padding: 1rem;
 }
 
 @media (max-width: 1200px) {

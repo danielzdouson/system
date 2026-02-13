@@ -175,6 +175,9 @@
 <!-- Enhanced Styles -->
 <style>
 /* Data Cards */
+.content{
+    width: 800px;
+}
 .data-card {
     background: white;
     border-radius: 20px;
@@ -182,6 +185,7 @@
     padding: 0;
     margin-bottom: 2rem;
     overflow: hidden;
+    width: 800px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 

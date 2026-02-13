@@ -269,6 +269,10 @@
 <!-- Enhanced Styles -->
 <style>
 /* Data Cards */
+.content{
+    width: 850px;
+
+}
 .data-card {
     background: white;
     border-radius: 20px;

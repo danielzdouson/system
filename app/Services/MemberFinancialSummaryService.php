@@ -25,6 +25,9 @@ class MemberFinancialSummaryService
                 $query->orderBy('fiscal_year_id', 'desc');
             },
             'deposits',
+            'loans' => function($query) {
+                $query->whereNotIn('status', ['completed', 'paid']);
+            },
             'fines' => function($query) {
                 $query->where('status', 'pending');
             }
@@ -60,21 +63,19 @@ class MemberFinancialSummaryService
         $totalSavings = $monthlySaving ? 
             ($monthlySaving->year_2024_2025_totals + $monthlySaving->current_year_savings) : 0;
 
-        // Get welfare contributions
-        $memberFinancial = $member->memberFinancial;
-        $welfare = $memberFinancial ? $memberFinancial->welfare : 0;
+        // Get welfare contributions from MemberAccount
+        $currentAccount = $member->memberAccounts->first();
+        $welfare = $currentAccount ? $currentAccount->welfare_balance : 0;
 
         // Get outstanding fines
         $outstandingFines = Fine::where('member_id', $member->id)
                                ->where('status', 'pending')
                                ->sum('amount');
 
-        // Get loan balance
-        $memberLoanSummary = $member->memberLoanSummary;
-        $loanBalance = $memberLoanSummary ? $memberLoanSummary->total : 0;
+        // Get loan balance from preloaded loans relationship
+        $loanBalance = $member->loans->sum('balance');
 
         // Get member account info (current available balance)
-        $currentAccount = $member->memberAccounts->first();
         $availableBalance = $currentAccount ? $currentAccount->current_balance : 0;
         $distributedFunds = $currentAccount ? $currentAccount->total_distributed : 0;
 
@@ -139,9 +140,9 @@ class MemberFinancialSummaryService
             'total_deposits' => Deposit::sum('amount'),
             'total_savings' => MonthlySaving::sum('year_2024_2025_totals') + 
                              MonthlySaving::sum('current_year_savings'),
-            'total_welfare' => MemberFinancial::sum('welfare'),
+            'total_welfare' => MemberAccount::sum('welfare_balance'),
             'total_outstanding_fines' => Fine::where('status', 'pending')->sum('amount'),
-            'total_loan_balance' => MemberLoanSummary::sum('total'),
+            'total_loan_balance' => \App\Models\Loan::whereNotIn('status', ['completed', 'paid'])->sum('balance'),
             'total_available_balance' => MemberAccount::sum('current_balance'),
             'total_distributed_funds' => MemberAccount::sum('total_distributed'),
         ];

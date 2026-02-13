@@ -11,6 +11,7 @@
 <style>
 /* Enhanced Chart Styles */
 .chart-container {
+    width:550px;
     background: white;
     border-radius: 20px;
     padding: 1.5rem;
@@ -870,6 +871,32 @@
 /* Smooth Transitions */
 * {
     transition: all 0.3s ease;
+}
+
+/* Hide header and sidebar on cashflow page */
+.header {
+    visibility: hidden;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.sidebar {
+    visibility: hidden;
+    width: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.content {
+    width: 100% !important;
+    margin-left: 0 !important;
+}
+
+.cashflow-dashboard {
+    margin-bottom: -900px !important;
 }
 </style>
 @endpush

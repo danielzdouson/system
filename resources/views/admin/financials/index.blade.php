@@ -1,8 +1,85 @@
-@extends('layouts.admin')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Financial Dashboard - SACCO System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-@section('title', 'Financial Dashboard')
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            overflow-x: hidden;
+        }
+        
+        .minimal-container {
+            padding: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .back-button {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header h2 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .page-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
 
-@section('content')
+<div class="minimal-container">
+    <!-- Back to Dashboard Button -->
+    <a href="{{ route('dashboard') }}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+    
+    <!-- Page Header -->
+    <div class="page-header">
+        <h2><i class="fas fa-chart-pie me-2"></i>Financial Dashboard</h2>
+        <p>Comprehensive financial overview and member standings</p>
+    </div>
 @php
     // Get real financial data
     $totalMembers = \App\Models\Member::count();
@@ -108,25 +185,25 @@
 
     <!-- Members Table -->
     <div class="table-responsive">
-        <table class="table table-hover" id="membersTable">
+        <table class="table table-hover table-striped" id="membersTable" style="font-size: 0.875rem; white-space: nowrap;">
             <thead class="table-dark">
                 <tr>
-                    <th>Member Name</th>
-                    <th>Member Number</th>
-                    <th>Total Deposits</th>
-                    <th>Total Savings</th>
-                    <th>Welfare</th>
-                    <th>Outstanding Fines</th>
-                    <th>Loan Balance</th>
-                    <th>Available Balance</th>
-                    <th>Distributed Funds</th>
-                    <th>Net Worth</th>
-                    <th>Status</th>
+                    <th style="min-width: 140px;">Member Name</th>
+                    <th style="min-width: 120px;">Member Number</th>
+                    <th style="min-width: 120px;">Total Deposits</th>
+                    <th style="min-width: 110px;">Total Savings</th>
+                    <th style="min-width: 80px;">Welfare</th>
+                    <th style="min-width: 130px;">Outstanding Fines</th>
+                    <th style="min-width: 110px;">Loan Balance</th>
+                    <th style="min-width: 130px;">Available Balance</th>
+                    <th style="min-width: 130px;">Distributed Funds</th>
+                    <th style="min-width: 100px;">Net Worth</th>
+                    <th style="min-width: 80px;">Status</th>
                 </tr>
             </thead>
             <tbody id="membersTableBody">
                 <tr>
-                    <td colspan="11" class="text-center py-4">
+                    <td colspan="12" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -143,7 +220,13 @@
     </div>
 </div>
 
-@endsection
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
 
 <script>
 let currentPage = 1;
@@ -177,7 +260,7 @@ function loadMembersData() {
         .catch(error => {
             console.error('Error loading members data:', error);
             document.getElementById('membersTableBody').innerHTML = 
-                '<tr><td colspan="11" class="text-center text-danger py-4">Error loading data. Please try again.</td></tr>';
+                '<tr><td colspan="12" class="text-center text-danger py-4">Error loading data. Please try again.</td></tr>';
         });
 }
 
@@ -268,7 +351,7 @@ function updateMembersTable(members) {
     });
     
     if (members.data.length === 0) {
-        tbodyHtml = '<tr><td colspan="11" class="text-center py-4">No members found</td></tr>';
+        tbodyHtml = '<tr><td colspan="12" class="text-center py-4">No members found</td></tr>';
     }
     
     document.getElementById('membersTableBody').innerHTML = tbodyHtml;
