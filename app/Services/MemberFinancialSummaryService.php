@@ -137,7 +137,7 @@ class MemberFinancialSummaryService
         
         $stats = [
             'total_members' => $members,
-            'total_deposits' => Deposit::sum('amount'),
+            'total_deposits' => Deposit::sum('amount') + \App\Models\CashflowTransaction::where('reference_type', 'DEPOSIT')->sum('amount'),
             'total_savings' => MonthlySaving::sum('year_2024_2025_totals') + 
                              MonthlySaving::sum('current_year_savings'),
             'total_welfare' => MemberAccount::sum('welfare_balance'),

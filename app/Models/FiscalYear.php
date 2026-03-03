@@ -45,7 +45,15 @@ class FiscalYear extends Model
 
     public function getTotalDepositsAttribute()
     {
-        return $this->deposits()->sum('amount');
+        // Count deposits from deposits table
+        $depositsSum = $this->deposits()->sum('amount');
+        
+        // Count deposits from cashflow_transactions table
+        $cashflowDepositsSum = \App\Models\CashflowTransaction::where('fiscal_year_id', $this->id)
+            ->where('reference_type', 'DEPOSIT')
+            ->sum('amount');
+        
+        return $depositsSum + $cashflowDepositsSum;
     }
 
     public function getTotalSavingsAttribute()
