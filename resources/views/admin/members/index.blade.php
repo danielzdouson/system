@@ -39,7 +39,6 @@
     min-height: 100vh;
     padding: 2rem 1rem;
     margin: 0;
-    margin-bottom: -700px ;
     border-radius: 0;
 }
 
@@ -1102,22 +1101,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add loading states for form submissions
-    const submitButtons = document.querySelectorAll('button[type="submit"]');
-    submitButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            if (!this.form.checkValidity()) {
+    const forms = document.querySelectorAll('.member-form');
+    forms.forEach(form => {
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function(e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                form.reportValidity();
                 return;
             }
             
-            const originalContent = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-            this.disabled = true;
+            // Show loading state
+            const originalContent = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            submitButton.disabled = true;
             
-            // Reset after 5 seconds in case of issues
+            // Reset if form submission takes too long (fallback)
             setTimeout(() => {
-                this.innerHTML = originalContent;
-                this.disabled = false;
-            }, 5000);
+                submitButton.innerHTML = originalContent;
+                submitButton.disabled = false;
+            }, 10000);
+        });
+        
+        // Reset button state when page is navigated back
+        window.addEventListener('pageshow', function() {
+            submitButton.innerHTML = originalContent;
+            submitButton.disabled = false;
         });
     });
     

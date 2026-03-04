@@ -45,8 +45,8 @@ class MemberDashboardController extends Controller
         $activeLoans = Loan::with(['member', 'repaymentSchedules'])
             ->where('member_id', $member->id)
             ->where(function($query) {
-                $query->where('loan_status', 'active')
-                      ->orWhere('loan_status', 'disbursed');
+                $query->where('status', 'active')
+                      ->orWhere('status', 'completed');
             })
             ->whereHas('member')
             ->latest()
@@ -130,8 +130,8 @@ class MemberDashboardController extends Controller
         $activeLoans = Loan::with(['member', 'repaymentSchedules'])
             ->where('member_id', $member->id)
             ->where(function($query) {
-                $query->where('loan_status', 'active')
-                      ->orWhere('loan_status', 'disbursed');
+                $query->where('status', 'active')
+                      ->orWhere('status', 'completed');
             })
             ->whereHas('member')
             ->latest()
@@ -139,7 +139,7 @@ class MemberDashboardController extends Controller
 
         $completedLoans = Loan::with(['member'])
             ->where('member_id', $member->id)
-            ->where('loan_status', 'completed')
+            ->where('status', 'completed')
             ->whereHas('member')
             ->latest()
             ->get();
