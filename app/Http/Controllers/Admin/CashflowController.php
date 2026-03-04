@@ -247,11 +247,11 @@ class CashflowController extends Controller
             ->select([
                 'id',
                 'disbursement_date as transaction_date',
-                DB::raw("CONCAT('Loan Disbursement - ', loan_purpose) as description"),
+                DB::raw("CONCAT('Loan Disbursement - ', loan_number) as description"),
                 'loan_number as reference_number',
                 DB::raw("'expense' as type"),
                 DB::raw("'FINANCING' as category"),
-                'loan_amount as amount',
+                'principal_amount as amount',
                 DB::raw("'loan_disbursement' as payment_method"),
                 DB::raw("'disbursed' as status"),
                 'member_id',
@@ -264,13 +264,13 @@ class CashflowController extends Controller
         $loanRepaymentQuery = LoanRepayment::query()
             ->select([
                 'id',
-                'payment_date as transaction_date',
-                DB::raw("CONCAT('Loan Repayment - ', receipt_number) as description"),
-                'receipt_number as reference_number',
+                'paid_at as transaction_date',
+                DB::raw("CONCAT('Loan Repayment - ', reference) as description"),
+                'reference as reference_number',
                 DB::raw("'income' as type"),
                 DB::raw("'FINANCING' as category"),
-                'payment_amount as amount',
-                'payment_method',
+                'amount as amount',
+                'method as payment_method',
                 DB::raw("'received' as status"),
                 DB::raw("NULL as member_id"),
                 'created_at',
@@ -513,12 +513,12 @@ class CashflowController extends Controller
 
         // From Loan Repayments
         $total += LoanRepayment::when($request && $request->filled('date_from'), function($q) use ($request) {
-                $q->where('payment_date', '>=', $request->date_from);
+                $q->where('paid_at', '>=', $request->date_from);
             })
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
-                $q->where('payment_date', '<=', $request->date_to);
+                $q->where('paid_at', '<=', $request->date_to);
             })
-            ->sum('payment_amount');
+            ->sum('amount');
 
         // From Fines (paid)
         $total += Fine::where('status', 'paid')
@@ -590,7 +590,7 @@ class CashflowController extends Controller
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
                 $q->where('disbursement_date', '<=', $request->date_to);
             })
-            ->sum('loan_amount');
+            ->sum('principal_amount');
 
         // From Welfare Funds
         $total += WelfareFund::when($request && $request->filled('date_from'), function($q) use ($request) {
@@ -686,9 +686,9 @@ class CashflowController extends Controller
             ->whereYear('deposit_date', $year)
             ->sum('amount');
 
-        $total += LoanRepayment::whereMonth('payment_date', $month)
-            ->whereYear('payment_date', $year)
-            ->sum('payment_amount');
+        $total += LoanRepayment::whereMonth('paid_at', $month)
+            ->whereYear('paid_at', $year)
+            ->sum('amount');
 
         $total += Fine::where('status', 'paid')
             ->whereMonth('updated_at', $month)
@@ -730,7 +730,7 @@ class CashflowController extends Controller
         $total += Loan::whereNotNull('disbursement_date')
             ->whereMonth('disbursement_date', $month)
             ->whereYear('disbursement_date', $year)
-            ->sum('loan_amount');
+            ->sum('principal_amount');
 
         $total += WelfareFund::whereMonth('created_at', $month)
             ->whereYear('created_at', $year)

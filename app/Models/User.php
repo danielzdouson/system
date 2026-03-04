@@ -19,6 +19,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'member_id',
         'role', // admin, loans_officer, treasurer, member, super_admin
     ];
 

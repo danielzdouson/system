@@ -53,7 +53,7 @@ class DashboardController
         if (!$activeFiscalYear) return 0;
         
         return Loan::where('fiscal_year_id', $activeFiscalYear->id)
-            ->whereIn('loan_status', ['disbursed', 'active'])
+            ->where('status', 'active')
             ->count();
     }
 
@@ -71,8 +71,8 @@ class DashboardController
         if (!$activeFiscalYear) return 0;
         
         return Loan::where('fiscal_year_id', $activeFiscalYear->id)
-            ->whereIn('loan_status', ['disbursed', 'active'])
-            ->sum('loan_amount');
+            ->where('status', 'active')
+            ->sum('principal_amount');
     }
 
     private function getTotalFines($activeFiscalYear)
@@ -116,7 +116,7 @@ class DashboardController
                 return [
                     'type' => 'loan',
                     'description' => 'Loan issued to ' . $memberName,
-                    'amount' => $loan->loan_amount,
+                    'amount' => $loan->principal_amount,
                     'date' => $loan->created_at,
                     'icon' => '💳'
                 ];

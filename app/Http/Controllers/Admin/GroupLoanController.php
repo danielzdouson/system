@@ -23,18 +23,15 @@ class GroupLoanController extends Controller
         
         // Get loan statistics
         $totalLoans = Loan::count();
-        $activeLoans = Loan::where('loan_status', 'disbursed')
-            ->orWhere('status', 'active')
+        $activeLoans = Loan::where('status', 'active')
             ->count();
-        $completedLoans = Loan::where('loan_status', 'completed')
-            ->orWhere('status', 'completed')
+        $completedLoans = Loan::where('status', 'completed')
             ->count();
-        $defaultedLoans = Loan::where('loan_status', 'defaulted')
-            ->orWhere('status', 'defaulted')
+        $defaultedLoans = Loan::where('status', 'defaulted')
             ->count();
 
         // Get financial summary
-        $totalDisbursed = Loan::sum('loan_amount');
+        $totalDisbursed = Loan::sum('principal_amount');
         $totalRepaid = Loan::sum('paid_amount');
         $totalOutstanding = $totalDisbursed - $totalRepaid;
 
@@ -50,8 +47,7 @@ class GroupLoanController extends Controller
             ->get();
 
         // Get overdue loans
-        $overdueLoans = Loan::where('loan_status', 'disbursed')
-            ->orWhere('status', 'active')
+        $overdueLoans = Loan::where('status', 'active')
             ->whereHas('repaymentSchedules', function($query) {
                 $query->where('due_date', '<', now())
                     ->where('status', 'pending');
@@ -182,18 +178,13 @@ class GroupLoanController extends Controller
             'member_id' => $request->member_id,
             'fiscal_year_id' => $activeFiscalYear->id,
             'loan_number' => $loanNumber,
-            'loan_amount' => $principalAmount,
             'principal_amount' => $principalAmount,
             'interest_rate' => $interestRate,
-            'loan_term' => $loanTermMonths,
             'duration_months' => $loanTermMonths,
-            'loan_purpose' => $request->purpose,
-            'loan_status' => 'disbursed',
             'disbursement_date' => now(),
-            'disbursed_by' => auth()->id(), // Add this field for database compatibility
-            'first_payment_date' => now()->addMonths(2), // First payment after 2 months
+            'disbursed_by' => auth()->id(),
+            'first_payment_date' => now()->addMonths(2),
             'maturity_date' => now()->addMonths($loanTermMonths),
-            'monthly_payment' => $monthlyPayment,
             'monthly_installment' => $monthlyPayment,
             'total_interest' => $totalInterest,
             'total_repayment' => $totalRepayment,
@@ -277,7 +268,7 @@ class GroupLoanController extends Controller
         // Check if loan is fully paid
         if ($loan->balance <= 0) {
             $loan->update([
-                'loan_status' => 'completed',
+                'status' => 'completed',
                 'completed_at' => now(),
             ]);
         }
@@ -319,8 +310,7 @@ class GroupLoanController extends Controller
         
         $loans = Loan::with(['member', 'repaymentSchedules'])
             ->when(request('status'), function($query, $status) {
-                $query->where('loan_status', $status)
-                      ->orWhere('status', $status);
+                $query->where('status', $status);
             })
             ->when(request('member_id'), function($query, $memberId) {
                 $query->where('member_id', $memberId);
@@ -352,7 +342,7 @@ class GroupLoanController extends Controller
 
         // Monthly loan activity - use correct field names
         $monthlyActivity = Loan::where('fiscal_year_id', $activeFiscalYear->id)
-            ->selectRaw('MONTH(disbursement_date) as month, COUNT(*) as loans_count, SUM(loan_amount) as total_amount')
+            ->selectRaw('MONTH(disbursement_date) as month, COUNT(*) as loans_count, SUM(principal_amount) as total_amount')
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -360,7 +350,7 @@ class GroupLoanController extends Controller
         // Fiscal year summary - use correct field names
         $fiscalYearSummary = [
             'total_loans' => Loan::where('fiscal_year_id', $activeFiscalYear->id)->count(),
-            'total_principal' => Loan::where('fiscal_year_id', $activeFiscalYear->id)->sum('loan_amount'),
+            'total_principal' => Loan::where('fiscal_year_id', $activeFiscalYear->id)->sum('principal_amount'),
             'total_interest' => Loan::where('fiscal_year_id', $activeFiscalYear->id)->sum('total_interest'),
             'total_repaid' => Loan::where('fiscal_year_id', $activeFiscalYear->id)->sum('paid_amount'),
             'total_penalties' => 0, // Will implement when penalties table is ready
@@ -428,18 +418,13 @@ class GroupLoanController extends Controller
             'member_id' => $loanRequest->member_id,
             'fiscal_year_id' => $activeFiscalYear->id,
             'loan_number' => $loanNumber,
-            'loan_amount' => $principalAmount,
             'principal_amount' => $principalAmount,
             'interest_rate' => $interestRate,
-            'loan_term' => $loanTermMonths,
             'duration_months' => $loanTermMonths,
-            'loan_purpose' => $loanRequest->purpose,
-            'loan_status' => 'disbursed',
             'disbursement_date' => now(),
             'disbursed_by' => auth()->id(),
-            'first_payment_date' => now()->addMonths(2), // First payment after 2 months
+            'first_payment_date' => now()->addMonths(2),
             'maturity_date' => now()->addMonths($loanTermMonths),
-            'monthly_payment' => $monthlyPayment,
             'monthly_installment' => $monthlyPayment,
             'total_interest' => $totalInterest,
             'total_repayment' => $totalRepayment,
