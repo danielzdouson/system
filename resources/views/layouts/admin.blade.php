@@ -346,6 +346,9 @@
         <a href="{{ route('admin.accounts.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-wallet"></i></span> Accounts
         </a>
+        <a href="{{ route('admin.documents.index') }}" class="nav-link">
+            <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Documents
+        </a>
         <a href="{{ route('admin.financials.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Financials
         </a>

@@ -3,8 +3,32 @@
 use App\Http\Controllers\Member\MemberDashboardController;
 use Illuminate\Support\Facades\Route;
 
+// Simple test route without member middleware
+Route::get('/member/simple-test', function () {
+    return [
+        'app_env' => config('app.env'),
+        'auth_check' => auth()->check(),
+        'user_id' => auth()->id(),
+        'user_name' => auth()->user() ? auth()->user()->name : 'No user',
+        'user_role' => auth()->user() ? auth()->user()->role : 'No role'
+    ];
+});
+
 // Member routes - require authentication and member role
 Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(function () {
+    
+    // Test route for debugging
+    Route::get('/test', function () {
+        $user = auth()->user();
+        $member = $user ? $user->member : null;
+        return [
+            'user_logged_in' => $user ? true : false,
+            'user_name' => $user ? $user->name : 'No user',
+            'member_exists' => $member ? true : false,
+            'member_id' => $member ? $member->id : 'No member',
+            'user_role' => $user ? $user->role : 'No role'
+        ];
+    })->name('test');
     
     // Dashboard
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('dashboard');

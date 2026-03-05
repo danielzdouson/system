@@ -93,4 +93,45 @@ class Document extends Model
             default => '<span class="badge bg-secondary">Unknown</span>',
         };
     }
+
+    public function getTypeColor(): string
+    {
+        return match($this->document_type) {
+            'constitution' => 'primary',
+            'legal' => 'info',
+            'loan_form' => 'warning',
+            'other' => 'secondary',
+            default => 'secondary',
+        };
+    }
+
+    public function getFormattedDocumentType(): string
+    {
+        return match($this->document_type) {
+            'constitution' => 'Constitution',
+            'legal' => 'Legal Document',
+            'loan_form' => 'Loan Form',
+            'other' => 'Other',
+            default => 'Unknown',
+        };
+    }
+
+    public function getFormattedFineAmount(): string
+    {
+        return number_format($this->fine_amount, 2) . ' UGX';
+    }
+
+    public function getStatusBadge(): string
+    {
+        return $this->is_active 
+            ? '<span class="badge bg-success">Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>';
+    }
+
+    public function getFineBadge(): string
+    {
+        return $this->requires_fine 
+            ? '<span class="badge bg-danger">YES</span>'
+            : '<span class="badge bg-success">NO</span>';
+    }
 }

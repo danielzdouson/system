@@ -31,38 +31,84 @@ class DocumentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'document_type' => 'required|in:constitution,legal,loan_form,other',
-            'file' => 'required|file|mimes:pdf|max:10240', // 10MB max
-            'requires_fine' => 'boolean',
-            'fine_amount' => 'nullable|numeric|min:0',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'document_type' => 'required|in:constitution,legal,loan_form,other',
+                'file' => 'required|file|mimes:pdf|max:10240', // 10MB max
+                'requires_fine' => 'boolean',
+                'fine_amount' => 'nullable|numeric|min:0',
+                'is_active' => 'boolean',
+            ]);
 
-        $file = $request->file('file');
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $originalFilename = $file->getClientOriginalName();
-        
-        // Store file in organized directory structure
-        $filePath = $file->storeAs('documents/' . date('Y/m'), $filename, 'local');
+            // Check if storage directory exists and is writable
+            $storagePath = storage_path('app/documents/' . date('Y/m'));
+            if (!is_dir($storagePath)) {
+                if (!mkdir($storagePath, 0755, true)) {
+                    \Log::error('Failed to create storage directory: ' . $storagePath);
+                    return redirect()
+                        ->back()
+                        ->withInput()
+                        ->with('error', 'Unable to create storage directory. Please check permissions.');
+                }
+            }
 
-        $document = Document::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'filename' => $filename,
-            'original_filename' => $originalFilename,
-            'file_path' => $filePath,
-            'file_size' => $file->getSize(),
-            'document_type' => $request->document_type,
-            'requires_fine' => $request->boolean('requires_fine', false),
-            'fine_amount' => $request->fine_amount ?? ($request->document_type === 'loan_form' ? 5000 : 0),
-            'uploaded_by' => auth()->id(),
-        ]);
+            if (!is_writable($storagePath)) {
+                \Log::error('Storage directory is not writable: ' . $storagePath);
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', 'Storage directory is not writable. Please check permissions.');
+            }
 
-        return redirect()
-            ->route('admin.documents.index')
-            ->with('success', 'Document uploaded successfully!');
+            $file = $request->file('file');
+            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $originalFilename = $file->getClientOriginalName();
+            
+            // Store file in organized directory structure
+            $filePath = $file->storeAs('documents/' . date('Y/m'), $filename, 'local');
+
+            if (!$filePath) {
+                \Log::error('Failed to store file: ' . $originalFilename);
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', 'Failed to store the uploaded file. Please try again.');
+            }
+
+            $document = Document::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'filename' => $filename,
+                'original_filename' => $originalFilename,
+                'file_path' => $filePath,
+                'file_size' => $file->getSize(),
+                'document_type' => $request->document_type,
+                'requires_fine' => $request->boolean('requires_fine', false),
+                'fine_amount' => $request->fine_amount ?? ($request->document_type === 'loan_form' ? 5000 : 0),
+                'is_active' => $request->boolean('is_active', true),
+                'uploaded_by' => auth()->id(),
+            ]);
+
+            \Log::info('Document uploaded successfully: ' . $document->title . ' (ID: ' . $document->id . ')');
+
+            return redirect()
+                ->route('admin.documents.index')
+                ->with('success', 'Document "' . $document->title . '" uploaded successfully!');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Document upload validation failed: ' . json_encode($e->errors()));
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Document upload error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'An error occurred while uploading the document: ' . $e->getMessage());
+        }
     }
 
     public function edit(Document $document): View

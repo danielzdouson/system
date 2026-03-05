@@ -12,6 +12,7 @@ use App\Models\Fine;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,7 @@ class DocumentController extends Controller
         return view('member.documents.show', compact('document', 'hasDownloaded'));
     }
 
-    public function download(Request $request, Document $document): RedirectResponse
+    public function download(Request $request, Document $document): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
     {
         $member = Auth::user()->member;
 
@@ -84,7 +85,7 @@ class DocumentController extends Controller
         return $this->performDownload($document, $download);
     }
 
-    private function performDownload(Document $document, DocumentDownload $download): RedirectResponse
+    private function performDownload(Document $document, DocumentDownload $download): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         if (!Storage::disk('local')->exists($document->file_path)) {
             abort(404, 'File not found');
@@ -162,18 +163,50 @@ class DocumentController extends Controller
 
     public function pendingGuarantees(): View
     {
-        $member = Auth::user()->member;
-        
-        // Get forms that need guarantors and member hasn't guaranteed yet
-        $availableGuarantees = UploadedForm::with(['member', 'document'])
-            ->where('status', 'pending_guarantors')
-            ->whereHas('guarantors', function($query) use ($member) {
-                $query->where('guarantor_member_id', $member->id);
-            }, '<', 1) // Member hasn't guaranteed this form yet
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        try {
+            // Debug: Check authentication first
+            if (!Auth::check()) {
+                \Log::error('User not authenticated in pendingGuarantees');
+                return redirect()->route('login');
+            }
+            
+            $user = Auth::user();
+            \Log::info('Authenticated user: ' . $user->name . ' (ID: ' . $user->id . ')');
+            
+            $member = $user->member;
+            
+            if (!$member) {
+                \Log::error('No member profile found for user: ' . $user->id);
+                return redirect()->route('member.dashboard')
+                    ->with('error', 'Member profile not found. Please contact administrator.');
+            }
+            
+            \Log::info('Member profile found: ' . $member->id);
+            
+            // Debug: Check if we can find any pending forms first
+            $allPendingForms = UploadedForm::where('status', 'pending_guarantors')->count();
+            \Log::info("Total pending forms: " . $allPendingForms);
+            
+            // Get forms that need guarantors and member hasn't guaranteed yet
+            $availableGuarantees = UploadedForm::with(['member', 'document'])
+                ->where('status', 'pending_guarantors')
+                ->whereDoesntHave('guarantors', function($query) use ($member) {
+                    $query->where('guarantor_member_id', $member->id);
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
 
-        return view('member.documents.pending-guarantees', compact('availableGuarantees'));
+            \Log::info("Available guarantees for member {$member->id}: " . $availableGuarantees->count());
+
+            return view('member.documents.pending-guarantees', compact('availableGuarantees'));
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in pendingGuarantees: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return redirect()->route('member.dashboard')
+                ->with('error', 'Unable to load pending guarantees. Please try again later.');
+        }
     }
 
     public function guaranteeDetails(UploadedForm $uploadedForm): View
