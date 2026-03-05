@@ -1,158 +1,115 @@
 @extends('layouts.admin')
 
-@section('title', 'Reports Dashboard')
+@section('title', 'Financial Reports Dashboard')
 
 @section('content')
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:30px;">
-    <!-- Summary Cards -->
-    <div style="background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">📊</span>
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">Financial Reports Dashboard</h1>
+    <p class="text-gray-600 mt-2">
+        @if($activeFiscalYear)
+            Fiscal Year: {{ $activeFiscalYear->name }} ({{ $activeFiscalYear->start_date->format('M d, Y') }} - {{ $activeFiscalYear->end_date->format('M d, Y') }})
+        @else
+            No Active Fiscal Year
+        @endif
+    </p>
+</div>
+
+<!-- Key Financial Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Assets -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
             <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">System Overview</h4>
-                <p style="margin:5px 0 0 0; font-size:12px; opacity:0.8;">Complete SACCO performance metrics</p>
+                <p class="text-sm font-medium text-gray-600">Total Assets</p>
+                <p class="text-2xl font-bold text-gray-900">KES {{ number_format($metrics['total_deposits'] + $metrics['total_loan_repayments'], 2) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Deposits + Repayments</p>
+            </div>
+            <div class="bg-blue-100 rounded-full p-3">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
             </div>
         </div>
     </div>
 
-    <!-- Quick Stats -->
-    <div style="background:linear-gradient(135deg, #ec4899 0%, #0ea5e9 100%); color:white; padding:25px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-        <div style="display:flex; align-items:center; margin-bottom:10px;">
-            <span style="font-size:28px; margin-right:15px;">📈</span>
+    <!-- Total Liabilities -->
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
             <div>
-                <h4 style="margin:0; font-size:14px; opacity:0.9;">Quick Stats</h4>
-                <p style="margin:5px 0 0 0; font-size:12px; opacity:0.8;">Key performance indicators</p>
+                <p class="text-sm font-medium text-gray-600">Total Liabilities</p>
+                <p class="text-2xl font-bold text-gray-900">KES {{ number_format($metrics['outstanding_loan_balance'], 2) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Outstanding Loans</p>
+            </div>
+            <div class="bg-red-100 rounded-full p-3">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            Member Reports
+    </h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Monthly Deposits</h4>
+            <div class="space-y-2">
+                @forelse($monthlyTrends['deposits'] as $deposit)
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Month {{ $deposit->month }}</span>
+                        <span class="font-semibold">KES {{ number_format($deposit->total, 2) }}</span>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-500">No deposit data available</p>
+                @endforelse
+            </div>
+        </div>
+        <div>
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Monthly Loan Disbursements</h4>
+            <div class="space-y-2">
+                @forelse($monthlyTrends['loans'] as $loan)
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Month {{ $loan->month }}</span>
+                        <span class="font-semibold">KES {{ number_format($loan->total, 2) }}</span>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-500">No loan data available</p>
+                @endforelse
             </div>
         </div>
     </div>
 </div>
 
-<!-- Report Categories -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-bottom:30px;">
-    <h3 style="margin:0 0 20px 0; color:#1f2937; display:flex; align-items:center;">
-        <span style="margin-right:10px;">📋</span>
-        Available Reports
+<!-- Quick Actions -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Quick Actions
     </h3>
-    
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
-        
-        <!-- Financial Reports -->
-        <div style="background:#f8fafc; border:2px solid #e5e7eb; border-radius:8px; padding:20px; transition:all 0.3s ease;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span style="font-size:24px; margin-right:10px;">💰</span>
-                <h4 style="margin:0; color:#1f2937;">Financial Reports</h4>
-            </div>
-            <ul style="margin:0; padding-left:20px; color:#374151;">
-                <li style="margin-bottom:8px;">Income Statement</li>
-                <li style="margin-bottom:8px;">Expense Report</li>
-                <li style="margin-bottom:8px;">Balance Sheet</li>
-                <li style="margin-bottom:8px;">Cash Flow Statement</li>
-            </ul>
-        </div>
-
-        <!-- Member Reports -->
-        <div style="background:#f0fdf4; border:2px solid #bbf7d0; border-radius:8px; padding:20px; transition:all 0.3s ease;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span style="font-size:24px; margin-right:10px;">👥</span>
-                <h4 style="margin:0; color:#166534;">Member Reports</h4>
-            </div>
-            <ul style="margin:0; padding-left:20px; color:#166534;">
-                <li style="margin-bottom:8px;">Member Register</li>
-                <li style="margin-bottom:8px;">Active Members</li>
-                <li style="margin-bottom:8px;">Member Contributions</li>
-                <li style="margin-bottom:8px;">Membership Status</li>
-            </ul>
-        </div>
-
-        <!-- Loan Reports -->
-        <div style="background:#fef3c7; border:2px solid #fbbf24; border-radius:8px; padding:20px; transition:all 0.3s ease;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span style="font-size:24px; margin-right:10px;">💳</span>
-                <h4 style="margin:0; color:#92400e;">Loan Reports</h4>
-            </div>
-            <ul style="margin:0; padding-left:20px; color:#92400e;">
-                <li style="margin-bottom:8px;">Loan Portfolio</li>
-                <li style="margin-bottom:8px;">Loan Performance</li>
-                <li style="margin-bottom:8px;">Arrears Report</li>
-                <li style="margin-bottom:8px;">Repayment Schedule</li>
-            </ul>
-        </div>
-
-        <!-- Transaction Reports -->
-        <div style="background:#eff6ff; border:2px solid #bfdbfe; border-radius:8px; padding:20px; transition:all 0.3s ease;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span style="font-size:24px; margin-right:10px;">💸</span>
-                <h4 style="margin:0; color:#1e40af;">Transaction Reports</h4>
-            </div>
-            <ul style="margin:0; padding-left:20px; color:#1e40af;">
-                <li style="margin-bottom:8px;">Daily Transactions</li>
-                <li style="margin-bottom:8px;">Monthly Summary</li>
-                <li style="margin-bottom:8px;">Audit Trail</li>
-                <li style="margin-bottom:8px;">Reconciliation Report</li>
-            </ul>
-        </div>
-
-        <!-- Compliance Reports -->
-        <div style="background:#f3e8ff; border:2px solid #c7d2fa; border-radius:8px; padding:20px; transition:all 0.3s ease;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span style="font-size:24px; margin-right:10px;">🔐</span>
-                <h4 style="margin:0; color:#6366f1;">Compliance Reports</h4>
-            </div>
-            <ul style="margin:0; padding-left:20px; color:#6366f1;">
-                <li style="margin-bottom:8px;">Regulatory Compliance</li>
-                <li style="margin-bottom:8px;">Audit Compliance</li>
-                <li style="margin-bottom:8px;">Risk Assessment</li>
-                <li style="margin-bottom:8px;">Annual Returns</li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-<!-- Report Generation Tools -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-    <h3 style="margin:0 0 20px 0; color:#1f2937; display:flex; align-items:center;">
-        <span style="margin-right:10px;">⚙️</span>
-        Report Generation Tools
-    </h3>
-    
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
-        <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:20px; text-align:center;">
-            <span style="font-size:32px; margin-bottom:10px; display:block;">📅</span>
-            <h4 style="margin:0 0 10px 0; color:#374151;">Monthly Reports</h4>
-            <p style="color:#6b7280; margin-bottom:15px;">Generate comprehensive monthly SACCO reports</p>
-            <button style="background:#3b82f6; color:white; padding:12px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Generate Monthly Report</button>
-        </div>
-        
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:20px; text-align:center;">
-            <span style="font-size:32px; margin-bottom:10px; display:block;">📊</span>
-            <h4 style="margin:0 0 10px 0; color:#166534;">Annual Reports</h4>
-            <p style="color:#6b7280; margin-bottom:15px;">Generate annual financial statements and summaries</p>
-            <button style="background:#059669; color:white; padding:12px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Generate Annual Report</button>
-        </div>
-        
-        <div style="background:#fef3c7; border:1px solid #fbbf24; border-radius:8px; padding:20px; text-align:center;">
-            <span style="font-size:32px; margin-bottom:10px; display:block;">🎯</span>
-            <h4 style="margin:0 0 10px 0; color:#92400e;">Custom Reports</h4>
-            <p style="color:#6b7280; margin-bottom:15px;">Create custom reports with specific parameters</p>
-            <button style="background:#dc2626; color:white; padding:12px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Create Custom Report</button>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Activity -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-    <h3 style="margin:0 0 20px 0; color:#1f2937; display:flex; align-items:center;">
-        <span style="margin-right:10px;">🕐</span>
-        Recent Report Activity
-    </h3>
-    
-    <div style="text-align:center; padding:40px; color:#6b7280;">
-        <div style="font-size:48px; margin-bottom:15px;">📄</div>
-        <h4 style="margin:0; color:#374151;">No Recent Reports Generated</h4>
-        <p style="margin:10px 0 0 0; color:#6b7280;">Start generating reports to see your activity history here.</p>
-        <div style="margin-top:20px;">
-            <a href="{{ route('admin.financials.index') }}" style="background:#3b82f6; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; display:inline-block;">Go to Financial Data</a>
-        </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="{{ route('admin.reports.members') }}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-4 rounded-lg text-center transition-colors">
+            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span class="text-sm font-medium">Member Reports</span>
+        </a>
+        <a href="{{ route('admin.reports.savings') }}" class="bg-green-50 hover:bg-green-100 text-green-700 p-4 rounded-lg text-center transition-colors">
+            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-sm font-medium">Savings Reports</span>
+        </a>
+        <a href="{{ route('admin.reports.loans') }}" class="bg-purple-50 hover:bg-purple-100 text-purple-700 p-4 rounded-lg text-center transition-colors">
+            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+            <span class="text-sm font-medium">Loan Reports</span>
+        </a>
+        <a href="{{ route('admin.reports.cashflow') }}" class="bg-orange-50 hover:bg-orange-100 text-orange-700 p-4 rounded-lg text-center transition-colors">
+            <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+            </svg>
+            <span class="text-sm font-medium">Cash Flow Reports</span>
+        </a>
     </div>
 </div>
 

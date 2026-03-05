@@ -9,13 +9,21 @@ use App\Models\MemberAccount;
 use App\Models\Loan;
 use App\Models\Transaction;
 use App\Models\FiscalYear;
+use App\Models\Fine;
+use App\Models\Investment;
+use App\Models\Deposit;
+use App\Models\GroupSaving;
+use App\Services\MemberFinancialSummaryService;
 
 class MemberDashboardController extends Controller
 {
-    public function __construct()
+    protected $memberFinancialService;
+
+    public function __construct(MemberFinancialSummaryService $memberFinancialService)
     {
         $this->middleware('auth');
         $this->middleware('member');
+        $this->memberFinancialService = $memberFinancialService;
     }
 
     /**
@@ -54,16 +62,81 @@ class MemberDashboardController extends Controller
 
         // Get recent transactions
         $recentTransactions = Transaction::where('member_id', $member->id)
-            ->with(['cashflowTransaction'])
             ->latest()
             ->take(10)
             ->get();
 
-        // Calculate totals
-        $totalSavings = $memberAccount ? $memberAccount->savings_balance : 0;
-        $totalLoans = $activeLoans->sum('balance');
-        $nextPayment = null;
+        // Get comprehensive financial data using the same service as admin
+        $memberFinancialData = $this->memberFinancialService->getMemberFinancialSummary($member);
+        
+        // Extract data from service
+        $totalDeposits = $memberFinancialData['total_deposits'];
+        $totalSavings = $memberFinancialData['total_savings'];
+        $welfare = $memberFinancialData['welfare'];
+        $outstandingFines = $memberFinancialData['outstanding_fines'];
+        $loanBalance = $memberFinancialData['loan_balance'];
+        $availableBalance = $memberFinancialData['available_balance'];
+        $distributedFunds = $memberFinancialData['distributed_funds'];
+        $totalShares = $memberFinancialData['total_shares']; // This is now percentage
+        $sharesOnHold = $memberFinancialData['shares_on_hold'];
+        $netWorth = $memberFinancialData['net_worth'];
+        
+        // Calculate total contributions (all deposits for member) - same as admin
+        $totalContributions = $totalDeposits;
+        
+        // Get member fines using same logic as admin dashboard
+        $totalFines = $outstandingFines;
+        $paidFines = Fine::where('member_id', $member->id)
+            ->where('status', 'paid')
+            ->sum('amount') ?? 0;
 
+        // Get group investments and their inflows with better error handling
+        try {
+            $groupInvestments = Investment::where('created_by', $member->id)
+                ->with(['transactions' => function($query) {
+                    $query->inflow();
+                }])
+                ->get() ?? collect();
+            
+            $totalInvestmentInflows = $groupInvestments->sum(function($investment) {
+                return $investment->transactions->sum('amount') ?? 0;
+            });
+
+            $totalInvestmentPrincipal = $groupInvestments->sum('principal_amount') ?? 0;
+            $totalInvestmentReturns = $groupInvestments->sum('total_returns') ?? 0;
+            
+            // Calculate ROI
+            $roi = 0;
+            if ($totalInvestmentPrincipal > 0) {
+                $roi = (($totalInvestmentReturns - $totalInvestmentPrincipal) / $totalInvestmentPrincipal) * 100;
+            }
+        } catch (\Exception $e) {
+            $groupInvestments = collect();
+            $totalInvestmentInflows = 0;
+            $totalInvestmentPrincipal = 0;
+            $totalInvestmentReturns = 0;
+            $roi = 0;
+        }
+
+        // Calculate monthly savings growth based on deposits
+        $monthlySavingsGrowth = 0;
+        $lastMonthDeposits = Deposit::where('member_id', $member->id)
+            ->whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)
+            ->sum('amount');
+        
+        $thisMonthDeposits = Deposit::where('member_id', $member->id)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('amount');
+        
+        if ($lastMonthDeposits > 0) {
+            $monthlySavingsGrowth = (($thisMonthDeposits - $lastMonthDeposits) / $lastMonthDeposits) * 100;
+        }
+
+        // Get next payment
+        $totalLoans = $loanBalance;
+        $nextPayment = null;
         if ($activeLoans->isNotEmpty()) {
             $nextPaymentSchedule = $activeLoans->first()->repaymentSchedules->first();
             if ($nextPaymentSchedule) {
@@ -82,7 +155,23 @@ class MemberDashboardController extends Controller
             'totalSavings',
             'totalLoans',
             'nextPayment',
-            'currentFiscalYear'
+            'currentFiscalYear',
+            'monthlySavingsGrowth',
+            'totalContributions',
+            'totalShares',
+            'sharesOnHold',
+            'totalFines',
+            'paidFines',
+            'totalDeposits',
+            'groupInvestments',
+            'totalInvestmentInflows',
+            'totalInvestmentPrincipal',
+            'totalInvestmentReturns',
+            'roi',
+            'welfare',
+            'distributedFunds',
+            'availableBalance',
+            'netWorth'
         ));
     }
 
@@ -99,7 +188,6 @@ class MemberDashboardController extends Controller
         }
 
         $transactions = Transaction::where('member_id', $member->id)
-            ->with(['cashflowTransaction'])
             ->when($request->date_from, function($query) use ($request) {
                 $query->whereDate('created_at', '>=', $request->date_from);
             })
@@ -107,7 +195,7 @@ class MemberDashboardController extends Controller
                 $query->whereDate('created_at', '<=', $request->date_to);
             })
             ->when($request->type, function($query) use ($request) {
-                $query->where('transaction_type', $request->type);
+                $query->where('type', $request->type);
             })
             ->latest()
             ->paginate(20);
@@ -145,5 +233,30 @@ class MemberDashboardController extends Controller
             ->get();
 
         return view('member.loans', compact('activeLoans', 'completedLoans'));
+    }
+
+    /**
+     * Download member statement.
+     */
+    public function downloadStatement(Request $request)
+    {
+        $user = auth()->user();
+        $member = $user->member;
+        
+        if (!$member) {
+            abort(403, 'No member account linked to your user account.');
+        }
+
+        // Validate request
+        $request->validate([
+            'type' => 'required|in:full,savings,loans',
+            'format' => 'required|in:pdf,excel',
+            'from_date' => 'required|date',
+            'to_date' => 'required|date|after_or_equal:from_date',
+        ]);
+
+        // For now, return a simple response
+        // In a real implementation, you would generate and return the actual file
+        return redirect()->back()->with('success', 'Statement download functionality will be implemented soon.');
     }
 }

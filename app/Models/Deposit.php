@@ -76,6 +76,33 @@ class Deposit extends Model
         $this->status = $this->balance == 0 ? 'distributed' : 'partial';
         $this->save();
 
+        // Sync member account balance
+        $this->syncMemberAccountBalance();
+
         return $distribution;
+    }
+
+    public function syncMemberAccountBalance()
+    {
+        $memberAccount = MemberAccount::where('member_id', $this->member_id)
+            ->where('fiscal_year_id', $this->fiscal_year_id)
+            ->first();
+
+        if ($memberAccount) {
+            $memberAccount->recalculateBalances();
+        }
+    }
+
+    public function recalculateBalance()
+    {
+        $actualDistributed = $this->distributions()->sum('amount');
+        $expectedBalance = $this->amount - $actualDistributed;
+        
+        if ($this->balance != $expectedBalance) {
+            $this->balance = $expectedBalance;
+            $this->status = $expectedBalance == 0 ? 'distributed' : 
+                           ($expectedBalance < $this->amount ? 'partial' : 'pending');
+            $this->save();
+        }
     }
 }

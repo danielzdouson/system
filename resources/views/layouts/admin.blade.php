@@ -309,6 +309,9 @@
         <a href="{{ route('admin.group-savings.dashboard') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-piggy-bank"></i></span> Group Savings
         </a>
+        <a href="{{ route('admin.fines.index') }}" class="nav-link">
+            <span class="nav-icon"><i class="fas fa-gavel"></i></span> Fines Management
+        </a>
         <a href="{{ route('admin.fiscal-years.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Fiscal Years
         </a>

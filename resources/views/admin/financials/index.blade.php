@@ -81,26 +81,11 @@
         <p>Comprehensive financial overview and member standings</p>
     </div>
 @php
-    // Get real financial data
-    $totalMembers = \App\Models\Member::count();
+    // Get real financial data from service
+    $memberFinancialService = new \App\Services\MemberFinancialSummaryService();
+    $stats = $memberFinancialService->getMembersSummaryStats();
     
-    // Calculate total savings from monthly savings (sum of all month columns)
-    $monthlySavingsTotal = \App\Models\MonthlySaving::sum('jul_25') + 
-                         \App\Models\MonthlySaving::sum('aug_25') + 
-                         \App\Models\MonthlySaving::sum('sep_25') + 
-                         \App\Models\MonthlySaving::sum('oct_25') + 
-                         \App\Models\MonthlySaving::sum('nov_25') + 
-                         \App\Models\MonthlySaving::sum('dec_25') + 
-                         \App\Models\MonthlySaving::sum('jan_26') + 
-                         \App\Models\MonthlySaving::sum('feb_26') + 
-                         \App\Models\MonthlySaving::sum('mar_26') + 
-                         \App\Models\MonthlySaving::sum('apr_26') + 
-                         \App\Models\MonthlySaving::sum('may_26') + 
-                         \App\Models\MonthlySaving::sum('jun_26');
-    
-    $totalSavings = $monthlySavingsTotal + \App\Models\MemberFinancial::sum('savings');
-    $totalLoans = \App\Models\MemberLoanSummary::sum('total') + \App\Models\MemberFinancial::sum('loan_repayments');
-    $totalWelfare = \App\Models\MemberFinancial::sum('welfare');
+    // Calculate cash flow data
     $cashFlowIncome = \App\Models\CashFlow::where('type', 'income')->sum('amount');
     $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')->sum('amount');
     $netCashFlow = $cashFlowIncome - $cashFlowExpenses;
@@ -120,7 +105,7 @@
             <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Member Savings</span>
-                    <span style="color:#059669; font-weight:600;">UGX {{ number_format($monthlySavingsTotal, 2) }}</span>
+                    <span style="color:#059669; font-weight:600;">UGX {{ number_format($stats['total_savings'], 2) }}</span>
                 </div>
             </div>
             <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:10px;">
@@ -132,7 +117,7 @@
             <div style="background:#f0fdf4; padding:15px; border-radius:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Total Income</span>
-                    <span style="color:#059669; font-weight:600; font-size:18px;">UGX {{ number_format($monthlySavingsTotal + $cashFlowIncome, 2) }}</span>
+                    <span style="color:#059669; font-weight:600; font-size:18px;">UGX {{ number_format($stats['total_savings'] + $cashFlowIncome, 2) }}</span>
                 </div>
             </div>
         </div>
@@ -143,7 +128,7 @@
             <div style="background:#fef2f2; padding:15px; border-radius:8px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Loan Disbursements</span>
-                    <span style="color:#dc2626; font-weight:600;">UGX {{ number_format($totalLoans, 2) }}</span>
+                    <span style="color:#dc2626; font-weight:600;">UGX {{ number_format($stats['total_loan_balance'], 2) }}</span>
                 </div>
             </div>
             <div style="background:#fef2f2; padding:15px; border-radius:8px; margin-bottom:10px;">
@@ -155,7 +140,7 @@
             <div style="background:#fef2f2; padding:15px; border-radius:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Total Expenses</span>
-                    <span style="color:#dc2626; font-weight:600; font-size:18px;">UGX {{ number_format($totalLoans + $cashFlowExpenses, 2) }}</span>
+                    <span style="color:#dc2626; font-weight:600; font-size:18px;">UGX {{ number_format($stats['total_loan_balance'] + $cashFlowExpenses, 2) }}</span>
                 </div>
             </div>
         </div>
@@ -197,13 +182,15 @@
                     <th style="min-width: 110px;">Loan Balance</th>
                     <th style="min-width: 130px;">Available Balance</th>
                     <th style="min-width: 130px;">Distributed Funds</th>
+                    <th style="min-width: 100px;">Shares on Hold</th>
+                    <th style="min-width: 100px;">Total Shares</th>
                     <th style="min-width: 100px;">Net Worth</th>
                     <th style="min-width: 80px;">Status</th>
                 </tr>
             </thead>
             <tbody id="membersTableBody">
                 <tr>
-                    <td colspan="12" class="text-center py-4">
+                    <td colspan="13" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -296,21 +283,21 @@ function updateSummaryCards(stats) {
         </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color:white; border:none;">
             <div class="card-body">
-                <h6 class="card-title mb-2">🤝 Total Welfare</h6>
-                <h4 class="mb-1">UGX ${number_format(stats.total_welfare, 0)}</h4>
-                <small>Social Fund</small>
-            </div>
-        </div>
-        <div class="card text-center" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none;">
-            <div class="card-body">
-                <h6 class="card-title mb-2">⚠️ Outstanding Fines</h6>
-                <h4 class="mb-1">UGX ${number_format(stats.total_outstanding_fines, 0)}</h4>
-                <small>Unpaid Penalties</small>
+                <h6 class="card-title mb-2">🔒 Shares on Hold</h6>
+                <h4 class="mb-1">${number_format(stats.total_shares_on_hold, 2)}%</h4>
+                <small>Restricted Share Percentage</small>
             </div>
         </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color:white; border:none;">
             <div class="card-body">
-                <h6 class="card-title mb-2">📊 Total Net Worth</h6>
+                <h6 class="card-title mb-2">📊 Total Shares</h6>
+                <h4 class="mb-1">${number_format(stats.total_shares, 2)}%</h4>
+                <small>Total Share Distribution</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">� Total Net Worth</h6>
                 <h4 class="mb-1">UGX ${number_format(stats.total_net_worth, 0)}</h4>
                 <small>Assets - Liabilities</small>
             </div>
@@ -344,6 +331,8 @@ function updateMembersTable(members) {
                 <td class="text-danger">UGX ${number_format(member.loan_balance, 0)}</td>
                 <td class="text-primary fw-bold">UGX ${number_format(member.available_balance, 0)}</td>
                 <td class="text-warning">UGX ${number_format(member.distributed_funds, 0)}</td>
+                <td class="text-warning">${number_format(member.shares_on_hold, 2)}%</td>
+                <td class="text-info">${number_format(member.total_shares, 2)}%</td>
                 <td class="${netWorthClass} fw-bold">UGX ${number_format(member.net_worth, 0)}</td>
                 <td>${statusBadge}</td>
             </tr>
@@ -351,7 +340,7 @@ function updateMembersTable(members) {
     });
     
     if (members.data.length === 0) {
-        tbodyHtml = '<tr><td colspan="12" class="text-center py-4">No members found</td></tr>';
+        tbodyHtml = '<tr><td colspan="13" class="text-center py-4">No members found</td></tr>';
     }
     
     document.getElementById('membersTableBody').innerHTML = tbodyHtml;

@@ -569,13 +569,6 @@ class GroupSavingsController extends Controller
 
     public function storeDeposit(Request $request)
     {
-        // Check for duplicate submission using session token
-        $sessionKey = 'deposit_form_submitted_' . $request->member_id . '_' . $request->month;
-        if (session($sessionKey)) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'Deposit already submitted for this member and month.');
-        }
-
         $request->validate([
             'member_id' => 'required|exists:members,id',
             'month' => 'required|integer|min:1|max:12',
@@ -590,8 +583,18 @@ class GroupSavingsController extends Controller
             return redirect()->back()->with('error', 'No active fiscal year found');
         }
 
-        // Mark this form as submitted in session
-        session([$sessionKey => true]);
+        // Check for actual duplicate deposit (same member, month, amount, and date)
+        $existingDeposit = Deposit::where('member_id', $request->member_id)
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $request->month)
+            ->where('amount', $request->amount)
+            ->where('deposit_date', $request->deposit_date)
+            ->first();
+
+        if ($existingDeposit) {
+            return redirect()->route('admin.group-savings.dashboard')
+                ->with('error', 'This exact deposit already exists. Deposit ID: ' . $existingDeposit->id);
+        }
 
         $deposit = Deposit::create([
             'member_id' => $request->member_id,
@@ -650,6 +653,11 @@ class GroupSavingsController extends Controller
 
     public function storeDistribution(Request $request, $depositId)
     {
+        // Debug logging
+        \Log::info('=== DISTRIBUTION SUBMISSION START ===');
+        \Log::info('Deposit ID: ' . $depositId);
+        \Log::info('Request data: ' . json_encode($request->all()));
+        
         $request->validate([
             'savings_amount' => 'required|numeric|min:0',
             'welfare_amount' => 'required|numeric|min:0',
@@ -659,28 +667,44 @@ class GroupSavingsController extends Controller
             'distribution_note' => 'nullable|string|max:255',
         ]);
 
+        \Log::info('Validation passed');
+
         $deposit = Deposit::findOrFail($depositId);
+        \Log::info('Deposit found: ' . $deposit->id);
+        
         $totalDistribution = $request->savings_amount + $request->welfare_amount + 
                            $request->fines_amount + $request->other_amount;
 
-        // Check member account balance instead of deposit balance
+        \Log::info('Total distribution: ' . $totalDistribution);
+
+        // Enhanced validation: Check both member account and deposit balance
         $memberAccount = MemberAccount::where('member_id', $deposit->member_id)
             ->where('fiscal_year_id', $deposit->fiscal_year_id)
             ->first();
 
-        if (!$memberAccount || $totalDistribution > $memberAccount->current_balance) {
-            return redirect()->back()->with('error', 'Total distribution exceeds available account balance');
+        if (!$memberAccount) {
+            \Log::error('Member account not found for member ' . $deposit->member_id);
+            return redirect()->back()->with('error', 'Member account not found');
         }
 
-        // Clear the session token to allow future deposits
-        $sessionKey = 'deposit_form_submitted_' . $deposit->member_id . '_' . $deposit->month;
-        session()->forget($sessionKey);
+        \Log::info('Member account found with balance: ' . $memberAccount->current_balance);
+
+        // Validate against member account balance only (single source of truth)
+        if ($totalDistribution > $memberAccount->current_balance) {
+            \Log::error('Insufficient account balance');
+            return redirect()->back()->with('error', 
+                'Insufficient account balance. Available: UGX ' . 
+                number_format($memberAccount->current_balance, 0) . 
+                ', Requested: UGX ' . number_format($totalDistribution, 0));
+        }
 
         // Get the target month for distribution
         $targetMonth = (int) $request->distribution_month;
         $distributionNote = $request->distribution_note ?? 'Distribution from deposit #' . $deposit->id;
 
-        // Distribute from member account
+        \Log::info('Target month: ' . $targetMonth);
+
+        // Distribute from member account (using account balance as single source of truth)
         $memberAccount->distributeFunds(
             $request->savings_amount,
             $request->welfare_amount,
@@ -688,20 +712,26 @@ class GroupSavingsController extends Controller
             $request->other_amount
         );
 
+        \Log::info('Funds distributed from member account');
+
         // Update deposit balance for tracking purposes
-        $totalDistribution = $request->savings_amount + $request->welfare_amount + 
-                           $request->fines_amount + $request->other_amount;
-        
-        // Only update deposit balance if it has sufficient funds
         if ($deposit->balance >= $totalDistribution) {
             $deposit->balance -= $totalDistribution;
             $deposit->status = $deposit->balance == 0 ? 'distributed' : 'partial';
             $deposit->save();
+            \Log::info('Deposit balance updated: ' . $deposit->balance);
+        } else {
+            // Log warning if deposit balance is insufficient but member account had funds
+            \Log::warning('Deposit balance insufficient during distribution', [
+                'deposit_id' => $deposit->id,
+                'deposit_balance' => $deposit->balance,
+                'distribution_amount' => $totalDistribution,
+                'member_account_balance' => $memberAccount->current_balance
+            ]);
         }
 
-        // Create distributions with target month using member account balance
+        // Create distributions with target month
         if ($request->savings_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'savings',
@@ -712,10 +742,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->updateGroupSaving($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->savings_amount);
+            \Log::info('Savings distribution created: ' . $request->savings_amount);
         }
 
         if ($request->welfare_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'welfare',
@@ -726,10 +756,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->updateWelfareFund($deposit->fiscal_year_id, $targetMonth, $request->welfare_amount);
+            \Log::info('Welfare distribution created: ' . $request->welfare_amount);
         }
 
         if ($request->fines_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'fines',
@@ -740,10 +770,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->payFinesFromDistribution($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->fines_amount);
+            \Log::info('Fines distribution created: ' . $request->fines_amount);
         }
 
         if ($request->other_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'other',
@@ -753,7 +783,10 @@ class GroupSavingsController extends Controller
                 'month' => $targetMonth,
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
+            \Log::info('Other distribution created: ' . $request->other_amount);
         }
+
+        \Log::info('=== DISTRIBUTION SUBMISSION SUCCESS ===');
 
         return redirect()->route('admin.group-savings.dashboard')
             ->with('success', 'Deposit distributed successfully to ' . \Carbon\Carbon::create()->month($targetMonth)->format('F'));

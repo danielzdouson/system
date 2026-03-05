@@ -22,6 +22,9 @@
                         <x-nav-link :href="route('admin.group-savings.dashboard')" :active="request()->routeIs('admin.group-savings.*')">
                             {{ __('Monthly Savings') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.fines.index')" :active="request()->routeIs('admin.fines.*')">
+                            {{ __('Fines Management') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.cashflow.index')" :active="request()->routeIs('admin.cashflow.*')">
                             {{ __('Cash Flow') }}
                         </x-nav-link>
@@ -89,6 +92,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.group-savings.dashboard')" :active="request()->routeIs('admin.group-savings.*')">
                 {{ __('Monthly Savings') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.fines.index')" :active="request()->routeIs('admin.fines.*')">
+                {{ __('Fines Management') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.cashflow.index')" :active="request()->routeIs('admin.cashflow.*')">
                 {{ __('Cash Flow') }}

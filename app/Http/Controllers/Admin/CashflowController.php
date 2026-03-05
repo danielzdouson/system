@@ -815,6 +815,160 @@ class CashflowController extends Controller
     }
 
     /**
+     * Display the specified cashflow transaction.
+     */
+    public function show($id): View
+    {
+        // Find the transaction across all possible sources
+        $transaction = $this->findTransactionById($id);
+        
+        if (!$transaction) {
+            abort(404, 'Transaction not found');
+        }
+
+        // Ensure transaction has required properties for the view
+        $this->normalizeTransactionForView($transaction);
+
+        return view('admin.cashflow.show', compact('transaction'));
+    }
+
+    /**
+     * Find transaction by ID across all sources
+     */
+    private function findTransactionById($id)
+    {
+        // Try CashFlow first
+        $transaction = CashFlow::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'CashFlow';
+            $transaction->transaction_source = 'Manual Entry';
+            return $transaction;
+        }
+
+        // Try CashflowTransaction
+        $transaction = CashflowTransaction::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'CashflowTransaction';
+            $transaction->transaction_source = 'Cashflow Transaction';
+            return $transaction;
+        }
+
+        // Try Deposit
+        $transaction = Deposit::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'Deposit';
+            $transaction->transaction_source = 'Member Deposits';
+            $transaction->transaction_date = $transaction->deposit_date;
+            return $transaction;
+        }
+
+        // Try Distribution
+        $transaction = Distribution::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'Distribution';
+            $transaction->transaction_source = 'Savings Distribution';
+            $transaction->transaction_date = $transaction->created_at;
+            return $transaction;
+        }
+
+        // Try Loan
+        $transaction = Loan::find($id);
+        if ($transaction && $transaction->disbursement_date) {
+            $transaction->source_model = 'Loan';
+            $transaction->transaction_source = 'Loan Disbursement';
+            $transaction->transaction_date = $transaction->disbursement_date;
+            $transaction->amount = $transaction->principal_amount;
+            return $transaction;
+        }
+
+        // Try LoanRepayment
+        $transaction = LoanRepayment::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'LoanRepayment';
+            $transaction->transaction_source = 'Loan Repayment';
+            $transaction->transaction_date = $transaction->paid_at;
+            return $transaction;
+        }
+
+        // Try Fine
+        $transaction = Fine::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'Fine';
+            $transaction->transaction_source = 'Member Fine';
+            $transaction->transaction_date = $transaction->updated_at;
+            return $transaction;
+        }
+
+        // Try WelfareFund
+        $transaction = WelfareFund::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'WelfareFund';
+            $transaction->transaction_source = 'Welfare Distribution';
+            $transaction->transaction_date = $transaction->created_at;
+            return $transaction;
+        }
+
+        // Try LoanPenalty
+        $transaction = LoanPenalty::find($id);
+        if ($transaction && $transaction->paid_date) {
+            $transaction->source_model = 'LoanPenalty';
+            $transaction->transaction_source = 'Loan Penalty';
+            $transaction->transaction_date = $transaction->paid_date;
+            $transaction->amount = $transaction->penalty_amount;
+            return $transaction;
+        }
+
+        // Try InvestmentTransaction
+        $transaction = InvestmentTransaction::find($id);
+        if ($transaction) {
+            $transaction->source_model = 'InvestmentTransaction';
+            $transaction->transaction_source = 'Investment Transaction';
+            return $transaction;
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize transaction properties for view compatibility
+     */
+    private function normalizeTransactionForView($transaction)
+    {
+        // Set default values for missing properties
+        $transaction->type_badge = $transaction->type_badge ?? 
+            ($transaction->type === 'income' ? 
+                '<span class="badge bg-success">Income</span>' : 
+                '<span class="badge bg-danger">Expense</span>');
+
+        $transaction->category_badge = $transaction->category_badge ?? 
+            '<span class="badge bg-primary">' . ($transaction->category ?? 'N/A') . '</span>';
+
+        $transaction->status_badge = $transaction->status_badge ?? 
+            '<span class="badge bg-info">' . ($transaction->status ?? 'Unknown') . '</span>';
+
+        $transaction->transaction_type = $transaction->transaction_type ?? 
+            ($transaction->type === 'income' ? 'INFLOW' : 'OUTFLOW');
+
+        $transaction->reference_type = $transaction->reference_type ?? 'OTHER';
+        $transaction->notes = $transaction->notes ?? null;
+        $transaction->approved_at = $transaction->approved_at ?? null;
+
+        // Load relationships if they exist
+        if (method_exists($transaction, 'member') && !isset($transaction->member)) {
+            $transaction->load('member');
+        }
+        if (method_exists($transaction, 'creator') && !isset($transaction->creator)) {
+            $transaction->load('creator');
+        }
+        if (method_exists($transaction, 'approver') && !isset($transaction->approver)) {
+            $transaction->load('approver');
+        }
+        if (method_exists($transaction, 'fiscal_year') && !isset($transaction->fiscal_year)) {
+            $transaction->load('fiscal_year');
+        }
+    }
+
+    /**
      * Export cashflow transactions
      */
     public function export(Request $request)

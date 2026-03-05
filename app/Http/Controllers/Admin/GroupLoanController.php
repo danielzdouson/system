@@ -187,12 +187,9 @@ class GroupLoanController extends Controller
             'maturity_date' => now()->addMonths($loanTermMonths),
             'monthly_installment' => $monthlyPayment,
             'total_interest' => $totalInterest,
-            'total_repayment' => $totalRepayment,
             'total_repayable' => $totalRepayment,
             'balance' => $totalRepayment,
             'paid_amount' => 0,
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
         ]);
 
         // Create repayment schedules

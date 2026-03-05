@@ -36,4 +36,10 @@ class Transaction extends Model
     {
         return $this->morphTo();
     }
+
+    // Accessor for description to maintain compatibility
+    public function getDescriptionAttribute()
+    {
+        return $this->notes;
+    }
 }

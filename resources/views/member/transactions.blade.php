@@ -128,7 +128,7 @@
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <h6 class="text-muted mb-1">Total Deposits</h6>
-                            <h5 class="mb-0 text-success">UGX {{ number_format($transactions->where('transaction_type', 'deposit')->sum('amount'), 0) }}</h5>
+                            <h5 class="mb-0 text-success">UGX {{ number_format($transactions->where('type', 'deposit')->sum('amount'), 0) }}</h5>
                         </div>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <h6 class="text-muted mb-1">Total Withdrawals</h6>
-                            <h5 class="mb-0 text-danger">UGX {{ number_format($transactions->where('transaction_type', 'withdrawal')->sum('amount'), 0) }}</h5>
+                            <h5 class="mb-0 text-danger">UGX {{ number_format($transactions->where('type', 'withdrawal')->sum('amount'), 0) }}</h5>
                         </div>
                     </div>
                 </div>
@@ -236,29 +236,27 @@
                                 </thead>
                                 <tbody>
                                     @foreach($transactions as $transaction)
-                                        <tr class="transaction-row" data-type="{{ $transaction->transaction_type }}">
+                                        <tr class="transaction-row" data-type="{{ $transaction->type }}">
                                             <td>
                                                 <div class="fw-medium">{{ $transaction->created_at->format('M j, Y') }}</div>
                                                 <small class="text-muted">{{ $transaction->created_at->format('H:i:s') }}</small>
                                             </td>
                                             <td>
                                                 <div class="fw-medium">{{ $transaction->description ?? 'Transaction' }}</div>
-                                                @if($transaction->cashflowTransaction)
-                                                    <small class="text-muted">{{ $transaction->cashflowTransaction->description }}</small>
-                                                @endif
+                                                <small class="text-muted">{{ $transaction->reference ?? 'No reference' }}</small>
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ getTransactionTypeColor($transaction->transaction_type) }} badge-lg">
-                                                    <i class="fas fa-{{ $transaction->transaction_type == 'deposit' ? 'arrow-down' : 'arrow-up' }} me-1"></i>
-                                                    {{ formatTransactionType($transaction->transaction_type) }}
+                                                <span class="badge bg-{{ getTransactionTypeColor($transaction->type) }} badge-lg">
+                                                    <i class="fas fa-{{ $transaction->type == 'deposit' ? 'arrow-down' : 'arrow-up' }} me-1"></i>
+                                                    {{ formatTransactionType($transaction->type) }}
                                                 </span>
                                             </td>
                                             <td>
                                                 <code class="text-muted">{{ $transaction->reference_number ?? 'TXN' . str_pad($transaction->id, 6, '0', STR_PAD_LEFT) }}</code>
                                             </td>
                                             <td>
-                                                <div class="fw-bold {{ $transaction->transaction_type == 'deposit' ? 'text-success' : 'text-danger' }}">
-                                                    {{ $transaction->transaction_type == 'deposit' ? '+' : '-' }} UGX {{ number_format($transaction->amount, 0) }}
+                                                <div class="fw-bold {{ $transaction->type == 'deposit' ? 'text-success' : 'text-danger' }}">
+                                                    {{ $transaction->type == 'deposit' ? '+' : '-' }} UGX {{ number_format($transaction->amount, 0) }}
                                                 </div>
                                             </td>
                                             <td>
@@ -339,13 +337,13 @@ function exportTransactions(format) {
 }
 
 function viewTransaction(id) {
-    // Implement modal or redirect to transaction details
-    alert('Transaction details for ID: ' + id);
+    // Redirect to transaction details page
+    window.location.href = '/member/transactions/' + id;
 }
 
 function downloadReceipt(id) {
-    // Implement receipt download
-    alert('Download receipt for transaction ID: ' + id);
+    // Trigger receipt download
+    window.open('/member/transactions/' + id + '/receipt', '_blank');
 }
 
 function sortTable(column) {

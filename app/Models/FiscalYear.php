@@ -45,30 +45,48 @@ class FiscalYear extends Model
 
     public function getTotalDepositsAttribute()
     {
-        // Count deposits from deposits table
-        $depositsSum = $this->deposits()->sum('amount');
-        
-        // Count deposits from cashflow_transactions table
-        $cashflowDepositsSum = \App\Models\CashflowTransaction::where('fiscal_year_id', $this->id)
-            ->where('reference_type', 'DEPOSIT')
-            ->sum('amount');
-        
-        return $depositsSum + $cashflowDepositsSum;
+        // Count all deposits including virtual deposits to get complete picture
+        return $this->deposits()->sum('amount');
     }
 
     public function getTotalSavingsAttribute()
     {
-        return $this->savings()->sum('amount');
+        // Calculate from distributions to get actual savings amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'savings')->sum('amount');
     }
 
     public function getTotalWelfareAttribute()
     {
-        return $this->welfareFunds()->sum('amount');
+        // Calculate from distributions to get actual welfare amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'welfare')->sum('amount');
     }
 
     public function getTotalFinesAttribute()
     {
-        return $this->fines()->sum('amount');
+        // Calculate from distributions to get actual fine payments
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'fines')->sum('amount');
+    }
+
+    public function getTotalOtherAttribute()
+    {
+        // Calculate from distributions to get actual other amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'other')->sum('amount');
+    }
+
+    public function getTotalDistributedAttribute()
+    {
+        // Calculate total distributed funds
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->sum('amount');
     }
 
     public function getPendingMonthsCountAttribute()
