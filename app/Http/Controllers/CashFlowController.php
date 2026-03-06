@@ -7,6 +7,7 @@ use App\Models\Deposit;
 use App\Models\Loan;
 use App\Models\LoanRepayment;
 use App\Models\Fine;
+use App\Models\FinePayment;
 use App\Models\Distribution;
 use App\Models\FiscalYear;
 use Illuminate\Http\Request;
@@ -136,10 +137,12 @@ class CashFlowController extends Controller
             })
             ->sum('paid_amount');
 
-        $monthlyFines = Fine::whereMonth('created_at', $month)
-            ->whereYear('created_at', $year)
+        $monthlyFines = FinePayment::whereMonth('payment_date', $month)
+            ->whereYear('payment_date', $year)
             ->when($activeFiscalYear, function($query) use ($activeFiscalYear) {
-                $query->where('fiscal_year_id', $activeFiscalYear->id);
+                $query->whereHas('fine', function($subQuery) use ($activeFiscalYear) {
+                    $subQuery->where('fiscal_year_id', $activeFiscalYear->id);
+                });
             })
             ->sum('amount');
 
@@ -199,9 +202,11 @@ class CashFlowController extends Controller
             })
             ->sum('paid_amount');
 
-        $ytdFines = Fine::whereYear('created_at', $year)
+        $ytdFines = FinePayment::whereYear('payment_date', $year)
             ->when($activeFiscalYear, function($query) use ($activeFiscalYear) {
-                $query->where('fiscal_year_id', $activeFiscalYear->id);
+                $query->whereHas('fine', function($subQuery) use ($activeFiscalYear) {
+                    $subQuery->where('fiscal_year_id', $activeFiscalYear->id);
+                });
             })
             ->sum('amount');
 

@@ -34,6 +34,81 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Session Messages -->
+                    @if(session('show_fine_confirmation') || (session('warning') && $document->requires_fine && !$hasDownloaded))
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Fine Confirmation Required
+                            </h6>
+                            <p class="mb-2">
+                                This document requires a fine of <strong>{{ number_format($document->fine_amount, 2) }} UGX</strong> to download.
+                            </p>
+                            <p class="mb-3">
+                                The fine will be automatically charged to your account upon confirmation.
+                            </p>
+                            <form action="{{ route('member.documents.download', $document) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" name="confirm_fine" value="1" class="btn btn-warning me-2">
+                                    <i class="fas fa-coins me-2"></i>Confirm & Pay Fine
+                                </button>
+                                <a href="{{ route('member.documents.index') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </form>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if(session('warning') && $document->requires_fine && !$hasDownloaded && !session('show_fine_confirmation'))
+                        <!-- Fallback confirmation form - always show when warning exists -->
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert" style="border: 2px solid red !important;">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Fine Confirmation Required (Fallback)
+                            </h6>
+                            <p class="mb-2">
+                                This document requires a fine of <strong>{{ number_format($document->fine_amount, 2) }} UGX</strong> to download.
+                            </p>
+                            <p class="mb-3">
+                                The fine will be automatically charged to your account upon confirmation.
+                            </p>
+                            <form action="{{ route('member.documents.download', $document) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" name="confirm_fine" value="1" class="btn btn-warning me-2" style="visibility: visible !important; display: inline-block !important;">
+                                    <i class="fas fa-coins me-2"></i>Confirm & Pay Fine
+                                </button>
+                                <a href="{{ route('member.documents.index') }}" class="btn btn-secondary" style="visibility: visible !important; display: inline-block !important;">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </form>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    @if(session('download_ready') && session('success'))
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-download me-2"></i>Download Ready
+                            </h6>
+                            <p class="mb-2">
+                                Your fine has been processed. You can now download the document.
+                            </p>
+                            <form action="{{ route('member.documents.download', $document) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-download me-2"></i>Download Document Now
+                                </button>
+                            </form>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
                     <div class="row">
                         <div class="col-md-8">
                             <h6 class="text-muted mb-3">Document Information</h6>
@@ -83,7 +158,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    @if($document->requires_fine)
+                    @if($document->requires_fine && !$hasDownloaded && !session('show_fine_confirmation') && !session('download_ready') && !session('warning'))
                         <div class="alert alert-warning">
                             <h6 class="alert-heading">
                                 <i class="fas fa-coins me-2"></i>Fine Required
@@ -97,6 +172,7 @@
                         </div>
                     @endif
 
+                    @if(!$hasDownloaded && !session('show_fine_confirmation') && !session('download_ready') && !session('warning'))
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="mb-1">{{ $document->original_filename }}</h6>
@@ -106,8 +182,7 @@
                             @csrf
                             @if($document->requires_fine && !$hasDownloaded)
                                 <button type="submit" name="confirm_fine" value="1" 
-                                        class="btn btn-warning"
-                                        onclick="return confirm('Are you sure you want to download this document? A fine of {{ number_format($document->fine_amount, 2) }} UGX will be charged to your account.')">
+                                        class="btn btn-warning">
                                     <i class="fas fa-download me-2"></i>Download & Pay Fine
                                 </button>
                             @else
@@ -117,6 +192,27 @@
                             @endif
                         </form>
                     </div>
+                    @endif
+
+                    @if($hasDownloaded)
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ $document->original_filename }}</h6>
+                            <small class="text-muted">{{ $document->getFormattedFileSize() }}</small>
+                            <div class="mt-1">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>Already Downloaded
+                                </span>
+                            </div>
+                        </div>
+                        <form action="{{ route('member.documents.download', $document) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-download me-2"></i>Download Again
+                            </button>
+                        </form>
+                    </div>
+                    @endif
 
                     @if($document->document_type === 'loan_form')
                     <div class="mt-3">

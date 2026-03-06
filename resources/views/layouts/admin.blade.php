@@ -346,9 +346,22 @@
         <a href="{{ route('admin.accounts.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-wallet"></i></span> Accounts
         </a>
-        <a href="{{ route('admin.documents.index') }}" class="nav-link">
-            <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Documents
-        </a>
+        <div class="nav-dropdown" id="documentsDropdown">
+            <div class="nav-link nav-dropdown-toggle" onclick="toggleDropdown('documentsDropdown')">
+                <div>
+                    <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Documents
+                </div>
+                <span class="nav-dropdown-icon">▼</span>
+            </div>
+            <div class="nav-submenu" id="documentsSubmenu">
+                <a href="{{ route('admin.documents.index') }}" class="nav-sublink">
+                    <span class="nav-icon"><i class="fas fa-upload"></i></span> Upload Documents
+                </a>
+                <a href="{{ route('admin.documents.uploaded-forms') }}" class="nav-sublink">
+                    <span class="nav-icon"><i class="fas fa-file-contract"></i></span> Uploaded Forms
+                </a>
+            </div>
+        </div>
         <a href="{{ route('admin.financials.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Financials
         </a>

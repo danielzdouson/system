@@ -39,6 +39,11 @@ class Fine extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(FinePayment::class);
+    }
+
     public function markAsPaid()
     {
         $this->update([

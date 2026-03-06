@@ -159,4 +159,44 @@ class UploadedForm extends Model
             return 3;
         }
     }
+
+    public function getGuaranteedPercentage(): int
+    {
+        return (int) $this->confirmedGuarantors()->sum('guarantee_percentage');
+    }
+
+    public function getGuaranteeProgressColor(): string
+    {
+        $percentage = $this->getGuaranteedPercentage();
+        
+        if ($percentage >= 100) {
+            return 'bg-success';
+        } elseif ($percentage >= 50) {
+            return 'bg-warning';
+        } else {
+            return 'bg-danger';
+        }
+    }
+
+    public function getStatusLabel(): string
+    {
+        return match($this->status) {
+            'pending_guarantors' => 'Pending Guarantors',
+            'ready_for_review' => 'Ready for Review',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            default => 'Unknown',
+        };
+    }
+
+    public function getStatusColor(): string
+    {
+        return match($this->status) {
+            'pending_guarantors' => 'warning',
+            'ready_for_review' => 'info',
+            'approved' => 'success',
+            'rejected' => 'danger',
+            default => 'secondary',
+        };
+    }
 }

@@ -77,6 +77,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     // Enhanced Fines Management Routes (Dedicated System)
     Route::prefix('fines')->name('fines.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\FineController::class, 'index'])->name('index');
+        Route::get('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'show'])->name('show');
         Route::get('/create', [App\Http\Controllers\Admin\FineController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\FineController::class, 'store'])->name('store');
         Route::get('/{fine}/edit', [App\Http\Controllers\Admin\FineController::class, 'edit'])->name('edit');

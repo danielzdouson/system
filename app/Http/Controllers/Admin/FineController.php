@@ -50,19 +50,14 @@ class FineController extends Controller
             $query->where('status', $request->status);
         }
         
-        if ($request->filled('reason')) {
-            $query->where('reason', $request->reason);
-        }
-        
         if ($request->filled('member_id')) {
             $query->where('member_id', $request->member_id);
         }
         
-        if ($request->filled('month')) {
-            $query->where('month', $request->month);
+        if ($request->filled('reason')) {
+            $query->where('reason', $request->reason);
         }
         
-        // Search by member name
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('member', function($q) use ($search) {
@@ -72,15 +67,25 @@ class FineController extends Controller
             });
         }
         
-        $fines = $query->orderBy('created_at', 'desc')->paginate(50);
-        $statistics = $this->calculateStatistics($activeFiscalYear->id, $request->all());
+        $fines = $query->latest()->paginate(20);
         
-        return view('admin.fines.index', compact(
-            'activeFiscalYear',
-            'allFiscalYears', 
-            'fines',
-            'statistics'
-        ));
+        // Get statistics
+        $statistics = $this->getFineStatistics($activeFiscalYear->id);
+        
+        return view('admin.fines.index', [
+            'activeFiscalYear' => $activeFiscalYear,
+            'allFiscalYears' => $allFiscalYears,
+            'fines' => $fines,
+            'statistics' => $statistics,
+            'members' => Member::orderBy('first_name')->get()
+        ]);
+    }
+    
+    public function show(Fine $fine)
+    {
+        $fine->load(['member', 'fiscalYear', 'creator', 'payments']);
+        
+        return view('admin.fines.show', compact('fine'));
     }
     
     public function create()
@@ -348,6 +353,11 @@ class FineController extends Controller
         }
         
         return $this->exportCSV($fines, $fiscalYear);
+    }
+    
+    private function getFineStatistics($fiscalYearId)
+    {
+        return $this->calculateStatistics($fiscalYearId);
     }
     
     private function calculateStatistics($fiscalYearId, $filters = [])

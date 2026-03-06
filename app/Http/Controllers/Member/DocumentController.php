@@ -49,32 +49,46 @@ class DocumentController extends Controller
                 ->with('error', 'This document is not available for download.');
         }
 
-        // Check if already downloaded
+        // Check if already downloaded - but allow multiple downloads with fines
         $existingDownload = DocumentDownload::where('document_id', $document->id)
             ->where('member_id', $member->id)
             ->first();
 
+        // For loan forms, always require fine and create new download record
+        if ($document->document_type === 'loan_form') {
+            return $this->handleLoanFormDownload($request, $document, $member);
+        }
+
+        // For other documents, check if already downloaded
         if ($existingDownload) {
             return $this->performDownload($document, $existingDownload);
         }
 
-        // Create download record
-        $download = DocumentDownload::create([
-            'document_id' => $document->id,
-            'member_id' => $member->id,
-            'downloaded_at' => now(),
-            'ip_address' => $request->ip(),
-        ]);
-
-        // Apply fine if required
+        // Handle fine requirement for non-loan forms
         if ($document->requires_fine) {
-            if ($request->boolean('confirm_fine')) {
+            if ($request->has('confirm_fine') && $request->input('confirm_fine') == '1') {
+                // Create download record without upload window for non-loan forms
+                $download = DocumentDownload::create([
+                    'document_id' => $document->id,
+                    'member_id' => $member->id,
+                    'downloaded_at' => now(),
+                    'ip_address' => $request->ip(),
+                    'used_for_upload' => false,
+                    'download_purpose' => 'general',
+                ]);
+
+                // Apply fine
                 $fine = $download->applyFine();
+                
+                // Update the download record with fine amount
+                $download->update(['fine_amount' => $fine->amount]);
+                
                 return redirect()
                     ->back()
                     ->with('success', 'Fine of UGX ' . number_format($fine->amount, 2) . ' has been applied. You can now download the document.')
                     ->with('download_ready', true);
             } else {
+                // Don't create download record yet - ask for fine confirmation first
                 return redirect()
                     ->back()
                     ->with('warning', 'This document requires a fine of UGX ' . number_format($document->fine_amount, 2) . '. Please confirm to proceed.')
@@ -82,7 +96,50 @@ class DocumentController extends Controller
             }
         }
 
+        // For documents without fines, create download record and proceed
+        $download = DocumentDownload::create([
+            'document_id' => $document->id,
+            'member_id' => $member->id,
+            'downloaded_at' => now(),
+            'ip_address' => $request->ip(),
+            'download_purpose' => 'general',
+        ]);
+
         return $this->performDownload($document, $download);
+    }
+
+    private function handleLoanFormDownload(Request $request, Document $document, \App\Models\Member $member): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        // Always require fine for loan forms
+        if ($request->has('confirm_fine') && $request->input('confirm_fine') == '1') {
+            // Create new download record with upload window for each download
+            $download = DocumentDownload::create([
+                'document_id' => $document->id,
+                'member_id' => $member->id,
+                'downloaded_at' => now(),
+                'ip_address' => $request->ip(),
+                'upload_window_expires_at' => now()->addDays(10), // 10-day upload window
+                'used_for_upload' => false,
+                'download_purpose' => 'loan_application',
+            ]);
+
+            // Apply fine
+            $fine = $download->applyFine();
+            
+            // Update the download record with fine amount
+            $download->update(['fine_amount' => $fine->amount]);
+            
+            return redirect()
+                ->back()
+                ->with('success', 'Fine of UGX ' . number_format($fine->amount, 2) . ' has been applied. You can now download the loan form. You have 10 days to upload the completed form.')
+                ->with('download_ready', true);
+        } else {
+            // Ask for fine confirmation
+            return redirect()
+                ->back()
+                ->with('warning', 'This loan form requires a fine of UGX ' . number_format($document->fine_amount, 2) . '. Please confirm to proceed.')
+                ->with('show_fine_confirmation', true);
+        }
     }
 
     private function performDownload(Document $document, DocumentDownload $download): \Symfony\Component\HttpFoundation\StreamedResponse
@@ -117,6 +174,16 @@ class DocumentController extends Controller
         ]);
 
         $member = Auth::user()->member;
+
+        // Check if member has a valid download record for this document
+        $validDownload = DocumentDownload::getValidDownloadForUpload($member->id, $document->id);
+        
+        if (!$validDownload) {
+            return redirect()
+                ->route('member.documents.show', $document)
+                ->with('error', 'You must download a fresh loan form first. Your previous download window has expired or has already been used.');
+        }
+
         $file = $request->file('file');
         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
         
@@ -131,7 +198,12 @@ class DocumentController extends Controller
             'loan_amount' => $request->loan_amount,
             'guarantors_required' => 0, // Will be calculated
             'status' => 'pending_guarantors',
+            'document_download_id' => $validDownload->id, // Link to the download record
+            'form_download_date' => $validDownload->downloaded_at,
         ]);
+
+        // Mark the download record as used
+        $validDownload->markAsUsedForUpload();
 
         // Calculate required guarantors based on loan amount
         $guarantorsRequired = $uploadedForm->calculateGuarantorsRequired();

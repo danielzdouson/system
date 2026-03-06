@@ -13,6 +13,7 @@ use App\Models\Fine;
 use App\Models\Investment;
 use App\Models\Deposit;
 use App\Models\GroupSaving;
+use App\Models\Distribution;
 use App\Services\MemberFinancialSummaryService;
 
 class MemberDashboardController extends Controller
@@ -187,6 +188,7 @@ class MemberDashboardController extends Controller
             abort(403, 'No member account linked to your user account.');
         }
 
+        // Get regular transactions
         $transactions = Transaction::where('member_id', $member->id)
             ->when($request->date_from, function($query) use ($request) {
                 $query->whereDate('created_at', '>=', $request->date_from);
@@ -200,7 +202,38 @@ class MemberDashboardController extends Controller
             ->latest()
             ->paginate(20);
 
-        return view('member.transactions', compact('transactions'));
+        // Get member's distributions through their deposits
+        $distributions = Distribution::whereHas('deposit', function($query) use ($member) {
+            $query->where('member_id', $member->id);
+        })
+        ->with(['deposit', 'creator'])
+        ->when($request->date_from, function($query) use ($request) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        })
+        ->when($request->date_to, function($query) use ($request) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        })
+        ->when($request->type, function($query) use ($request) {
+            if ($request->type === 'distribution') {
+                // Only show distributions when this type is selected
+            } else {
+                // If filtering by other types, exclude distributions
+                $query->whereRaw('1=0'); // This will exclude all distributions
+            }
+        })
+        ->latest()
+        ->paginate(20);
+
+        // Calculate distribution statistics
+        $totalDistributed = Distribution::whereHas('deposit', function($query) use ($member) {
+            $query->where('member_id', $member->id);
+        })->sum('amount');
+
+        $distributionCount = Distribution::whereHas('deposit', function($query) use ($member) {
+            $query->where('member_id', $member->id);
+        })->count();
+
+        return view('member.transactions', compact('transactions', 'distributions', 'totalDistributed', 'distributionCount'));
     }
 
     /**

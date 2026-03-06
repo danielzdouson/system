@@ -138,6 +138,17 @@ class LoanGuarantor extends Model
         };
     }
 
+    public function getStatusColor(): string
+    {
+        return match($this->guarantee_status) {
+            'pending' => 'warning',
+            'confirmed' => 'success',
+            'withdrawn' => 'secondary',
+            'called_upon' => 'danger',
+            default => 'secondary',
+        };
+    }
+
     public function getFormattedGuaranteePercentage(): string
     {
         return number_format($this->guarantee_percentage, 2) . '%';
