@@ -233,7 +233,28 @@ class MemberDashboardController extends Controller
             $query->where('member_id', $member->id);
         })->count();
 
-        return view('member.transactions', compact('transactions', 'distributions', 'totalDistributed', 'distributionCount'));
+        // Calculate comprehensive transaction statistics
+        $totalDeposits = $transactions->where('type', 'deposit')->sum('amount');
+        $totalWithdrawals = $transactions->where('type', 'withdrawal')->sum('amount');
+        
+        // Get available balance from member account (same as admin financials)
+        $currentAccount = \App\Models\MemberAccount::where('member_id', $member->id)
+            ->orderBy('fiscal_year_id', 'desc')
+            ->first();
+        $availableBalance = $currentAccount ? $currentAccount->current_balance : 0;
+        
+        // Use available balance as net balance (matches admin financials)
+        $netBalance = $availableBalance;
+
+        return view('member.transactions', compact(
+            'transactions', 
+            'distributions', 
+            'totalDistributed', 
+            'distributionCount',
+            'totalDeposits',
+            'totalWithdrawals', 
+            'netBalance'
+        ));
     }
 
     /**

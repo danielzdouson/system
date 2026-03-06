@@ -129,7 +129,7 @@
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <h6 class="text-muted mb-1">Total Deposits</h6>
-                            <h5 class="mb-0 text-success">UGX {{ number_format($transactions->where('type', 'deposit')->sum('amount'), 0) }}</h5>
+                            <h5 class="mb-0 text-success">UGX {{ number_format($totalDeposits ?? 0, 0) }}</h5>
                         </div>
                     </div>
                 </div>
@@ -147,7 +147,7 @@
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <h6 class="text-muted mb-1">Total Withdrawals</h6>
-                            <h5 class="mb-0 text-danger">UGX {{ number_format($transactions->where('type', 'withdrawal')->sum('amount'), 0) }}</h5>
+                            <h5 class="mb-0 text-danger">UGX {{ number_format($totalWithdrawals ?? 0, 0) }}</h5>
                         </div>
                     </div>
                 </div>
@@ -182,10 +182,134 @@
                             </div>
                         </div>
                         <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1">Net Balance</h6>
-                            <h5 class="mb-0 text-warning">UGX {{ number_format($transactions->sum('amount'), 0) }}</h5>
+                            <h6 class="text-muted mb-1">Available Balance</h6>
+                            <h5 class="mb-0 text-warning">UGX {{ number_format($netBalance ?? 0, 0) }}</h5>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regular Transactions Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm animate__animated animate__fadeInUp">
+                <div class="card-header bg-white border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exchange-alt text-primary me-2"></i>
+                            Regular Transactions ({{ $transactions ? $transactions->total() : 0 }} records)
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm" style="width: auto;" onchange="changePerPageTransactions(this.value)">
+                                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 per page</option>
+                                <option value="25" {{ request('per_page', 10) == 25 ? 'selected' : '' }}>25 per page</option>
+                                <option value="50" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50 per page</option>
+                                <option value="100" {{ request('per_page', 10) == 100 ? 'selected' : '' }}>100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if($transactions && $transactions->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="transactionsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th onclick="sortTransactions('date')" style="cursor: pointer;">
+                                            <i class="fas fa-calendar me-1"></i>Date 
+                                            <i class="fas fa-sort text-muted fa-sm"></i>
+                                        </th>
+                                        <th onclick="sortTransactions('description')" style="cursor: pointer;">
+                                            Description <i class="fas fa-sort text-muted fa-sm"></i>
+                                        </th>
+                                        <th onclick="sortTransactions('type')" style="cursor: pointer;">
+                                            Type <i class="fas fa-sort text-muted fa-sm"></i>
+                                        </th>
+                                        <th onclick="sortTransactions('amount')" style="cursor: pointer;">
+                                            Amount <i class="fas fa-sort text-muted fa-sm"></i>
+                                        </th>
+                                        <th>Reference</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($transactions as $transaction)
+                                        <tr class="transaction-row" data-type="{{ $transaction->type }}">
+                                            <td>
+                                                <div class="fw-medium">{{ $transaction->created_at->format('M j, Y') }}</div>
+                                                <small class="text-muted">{{ $transaction->created_at->format('H:i:s') }}</small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-medium">{{ $transaction->description ?? 'Transaction' }}</div>
+                                                <small class="text-muted">ID: {{ str_pad($transaction->id, 6, '0', STR_PAD_LEFT) }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $transaction->type === 'deposit' ? 'success' : ($transaction->type === 'withdrawal' ? 'danger' : 'primary') }}">
+                                                    <i class="fas fa-{{ $transaction->type === 'deposit' ? 'arrow-down' : ($transaction->type === 'withdrawal' ? 'arrow-up' : 'exchange-alt') }} me-1"></i>
+                                                    {{ ucfirst($transaction->type) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold {{ $transaction->type === 'deposit' ? 'text-success' : 'text-danger' }}">
+                                                    {{ $transaction->type === 'deposit' ? '+' : '-' }} UGX {{ number_format($transaction->amount, 0) }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <code class="text-muted">TRX{{ str_pad($transaction->id, 6, '0', STR_PAD_LEFT) }}</code>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $transaction->status === 'completed' ? 'success' : 'warning' }}">
+                                                    {{ ucfirst($transaction->status ?? 'pending') }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button type="button" class="btn btn-outline-primary" onclick="viewTransaction({{ $transaction->id }})" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="downloadTransactionReceipt({{ $transaction->id }})" title="Download Receipt">
+                                                        <i class="fas fa-download"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Enhanced Pagination -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div class="text-muted">
+                                Showing {{ $transactions->firstItem() }} to {{ $transactions->lastItem() }} of {{ $transactions->total() }} entries
+                            </div>
+                            <div>
+                                {{ $transactions->links() }}
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <div class="bg-light rounded-circle p-4 d-inline-block mb-3">
+                                <i class="fas fa-exchange-alt fa-4x text-muted"></i>
+                            </div>
+                            <h5 class="text-muted mb-3">No transactions found</h5>
+                            <p class="text-muted mb-4">
+                                @if(request()->hasAny(['date_from', 'date_to', 'type', 'search']))
+                                    No transactions found for the selected filters.
+                                @else
+                                    You don't have any transactions yet.
+                                @endif
+                            </p>
+                            @if(request()->hasAny(['date_from', 'date_to', 'type', 'search']))
+                                <a href="{{ route('member.transactions') }}" class="btn btn-primary">
+                                    <i class="fas fa-times me-2"></i>Clear Filters
+                                </a>
+                            @endif
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -381,6 +505,12 @@
     font-size: 0.8em;
     padding: 0.4em 0.6em;
 }
+
+/* Transaction row hover effects */
+.transaction-row:hover {
+    background-color: #e8f4fd !important;
+    cursor: pointer;
+}
 </style>
 
 <script>
@@ -393,6 +523,12 @@ function resetFilters() {
     window.location.href = '{{ route('member.transactions') }}';
 }
 
+function changePerPageTransactions(perPage) {
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', perPage);
+    window.location.href = url.toString();
+}
+
 function changePerPage(perPage) {
     const url = new URL(window.location);
     url.searchParams.set('per_page', perPage);
@@ -403,6 +539,31 @@ function exportTransactions(format) {
     const url = new URL(window.location);
     url.searchParams.set('export', format);
     window.open(url.toString(), '_blank');
+}
+
+function viewTransaction(id) {
+    // Redirect to transaction details page
+    window.location.href = '/member/transactions/' + id;
+}
+
+function downloadTransactionReceipt(id) {
+    // Trigger transaction receipt download
+    window.open('/member/transactions/' + id + '/receipt', '_blank');
+}
+
+function sortTransactions(column) {
+    const url = new URL(window.location);
+    const currentSort = url.searchParams.get('sort');
+    const currentOrder = url.searchParams.get('order', 'asc');
+    
+    if (currentSort === column) {
+        url.searchParams.set('order', currentOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+        url.searchParams.set('sort', column);
+        url.searchParams.set('order', 'asc');
+    }
+    
+    window.location.href = url.toString();
 }
 
 function viewDistribution(id) {
