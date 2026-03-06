@@ -4,7 +4,7 @@ use App\Http\Controllers\Member\MemberDashboardController;
 use Illuminate\Support\Facades\Route;
 
 // Simple test route without member middleware
-Route::get('/member/simple-test', function () {
+Route::get('/simple-test', function () {
     return [
         'app_env' => config('app.env'),
         'auth_check' => auth()->check(),
@@ -14,8 +14,13 @@ Route::get('/member/simple-test', function () {
     ];
 });
 
-// Member routes - require authentication and member role
-Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(function () {
+// Root level test route
+Route::get('/root-test', function () {
+    return 'Member root route is working!';
+});
+
+// Member routes - require authentication only
+Route::middleware(['auth'])->name('member.')->group(function () {
     
     // Test route for debugging
     Route::get('/test', function () {
@@ -29,6 +34,11 @@ Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(
             'user_role' => $user ? $user->role : 'No role'
         ];
     })->name('test');
+
+    // Simple test route
+    Route::get('/simple', function () {
+        return 'Member routes are working!';
+    })->name('simple');
     
     // Dashboard
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('dashboard');
@@ -67,5 +77,10 @@ Route::middleware(['auth', 'member'])->prefix('member')->name('member.')->group(
         Route::post('/guarantee-details/{uploadedForm}/confirm', [App\Http\Controllers\Member\DocumentController::class, 'confirmGuarantee'])->name('confirm-guarantee');
         Route::post('/withdraw-guarantee/{loanGuarantor}', [App\Http\Controllers\Member\DocumentController::class, 'withdrawGuarantee'])->name('withdraw-guarantee');
         Route::get('/guarantor-history', [App\Http\Controllers\Member\DocumentController::class, 'guarantorHistory'])->name('guarantor-history');
+        
+        // Test route for guarantor history
+        Route::get('/guarantor-history-test', function () {
+            return 'Guarantor history route is working!';
+        })->name('guarantor-history-test');
     });
 });

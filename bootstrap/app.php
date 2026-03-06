@@ -14,7 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware('web')
                 ->group(base_path('routes/auth.php'));
             
-            Route::middleware('web')
+            // Load member routes with web middleware and prefix
+            Route::middleware(['web'])
+                ->prefix('member')
                 ->group(base_path('routes/member.php'));
         },
     )

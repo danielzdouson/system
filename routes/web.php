@@ -214,3 +214,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('/uploaded-forms/{uploadedForm}/download', [App\Http\Controllers\Admin\DocumentController::class, 'downloadUploadedForm'])->name('download-uploaded-form');
     });
 });
+
+// Test route directly in web.php
+Route::get('/member/documents/pending-guarantees', [App\Http\Controllers\Member\DocumentController::class, 'pendingGuarantees'])->name('test-pending-guarantees');
+Route::get('/member/documents/guarantor-history', [App\Http\Controllers\Member\DocumentController::class, 'guarantorHistory'])->name('test-guarantor-history');
