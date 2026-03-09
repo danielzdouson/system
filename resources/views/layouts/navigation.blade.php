@@ -46,12 +46,12 @@
                         <x-nav-link :href="route('admin.fiscal-years.index')" :active="request()->routeIs('admin.fiscal-years.*')">
                             {{ __('Fiscal Years') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                        {{-- <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                             {{ __('Reports') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
+                        </x-nav-link> --}}
+                        {{-- <x-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
                             {{ __('Import') }}
-                        </x-nav-link>
+                        </x-nav-link> --}}
                     @endauth
                 </div>
             </div>
@@ -138,12 +138,12 @@
             <x-responsive-nav-link :href="route('admin.fiscal-years.index')" :active="request()->routeIs('admin.fiscal-years.*')">
                 {{ __('Fiscal Years') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+            {{-- <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                 {{ __('Reports') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
+            </x-responsive-nav-link> --}}
+            {{-- <x-responsive-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
                 {{ __('Import') }}
-            </x-responsive-nav-link>
+            </x-responsive-nav-link> --}}
         </div>
 
         <!-- Responsive Settings Options -->

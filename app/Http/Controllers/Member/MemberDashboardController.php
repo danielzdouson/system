@@ -93,10 +93,10 @@ class MemberDashboardController extends Controller
 
         // Get group investments and their inflows with better error handling
         try {
-            $groupInvestments = Investment::where('created_by', $member->id)
-                ->with(['transactions' => function($query) {
+            $groupInvestments = Investment::with(['transactions' => function($query) {
                     $query->inflow();
                 }])
+                ->active()
                 ->get() ?? collect();
             
             $totalInvestmentInflows = $groupInvestments->sum(function($investment) {

@@ -352,12 +352,12 @@
                     </div>
 
                     <!-- Investment Details -->
-                    @if($groupInvestments->isNotEmpty())
-                        <div class="mt-4">
-                            <h6 class="mb-3">
-                                <i class="fas fa-briefcase me-2"></i>
-                                Investment Portfolio Details
-                            </h6>
+                    <div class="mt-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-briefcase me-2"></i>
+                            Investment Portfolio Details
+                        </h6>
+                        @if($groupInvestments->isNotEmpty())
                             <div class="table-responsive">
                                 <table class="table table-sm">
                                     <thead>
@@ -399,12 +399,16 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    @else
-                        <div class="mt-3 text-center text-muted">
-                            <small>No group investments found</small>
-                        </div>
-                    @endif
+                        @else
+                            <div class="text-center py-4">
+                                <div class="bg-light rounded-circle p-3 d-inline-block mb-3">
+                                    <i class="fas fa-briefcase fa-2x text-muted"></i>
+                                </div>
+                                <h6 class="text-muted">No investments found</h6>
+                                <p class="text-muted small">Your investment portfolio will appear here once you start investing.</p>
+                            </div>
+                        @endif
+                    </div>
 
                     <!-- Debug Information (remove in production) -->
                     <div class="mt-4">

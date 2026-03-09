@@ -74,6 +74,12 @@ class DocumentController extends Controller
                 // Create a proper Member object for testing
                 $dummyMember = new \App\Models\Member();
                 $dummyMember->id = 999;
+                
+                // Ensure we have a proper Member object
+                if (!($dummyMember instanceof \App\Models\Member)) {
+                    throw new \Exception('Failed to create Member object');
+                }
+                
                 return $this->handleLoanFormDownload($request, $document, $dummyMember);
             }
 
@@ -136,6 +142,15 @@ class DocumentController extends Controller
 
     private function handleLoanFormDownload(Request $request, Document $document, \App\Models\Member $member): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
     {
+        // Validate member parameter
+        if (!($member instanceof \App\Models\Member)) {
+            \Log::error('Invalid member parameter passed to handleLoanFormDownload', [
+                'member_type' => gettype($member),
+                'member_data' => is_object($member) ? get_class($member) : $member
+            ]);
+            throw new \InvalidArgumentException('Member parameter must be a Member model instance');
+        }
+        
         // Always require fine for loan forms
         if ($request->has('confirm_fine') && $request->input('confirm_fine') == '1') {
             // Create new download record with upload window for each download

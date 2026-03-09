@@ -273,14 +273,14 @@ class GroupLoanController extends Controller
         // Create payment record using correct database fields from first migration
         $payment = LoanRepayment::create([
             'loan_id' => $loan->id,
-            'payment_amount' => $totalPaid,
-            'payment_date' => $request->payment_date,
-            'payment_method' => $request->payment_method,
-            'interest_portion' => $interestPaid,
-            'principal_portion' => $principalPaid,
-            'balance_after_payment' => $loan->balance,
+            'member_id' => $loan->member_id,
+            'amount' => $totalPaid,
+            'paid_at' => $request->payment_date,
+            'method' => $request->payment_method,
+            'interest_component' => $interestPaid,
+            'principal_component' => $principalPaid,
             'notes' => $request->notes,
-            'created_by' => auth()->id(),
+            'received_by' => auth()->id(),
         ]);
 
         return back()->with('success', 'Payment recorded successfully!');
@@ -503,11 +503,11 @@ class GroupLoanController extends Controller
 
         $repayment = LoanRepayment::create([
             'loan_id' => $loan->id,
+            'member_id' => $loan->member_id,
             'amount' => $request->amount,
-            'payment_date' => $request->payment_date,
-            'payment_method' => $request->payment_method,
+            'paid_at' => $request->payment_date,
+            'method' => $request->payment_method,
             'notes' => $request->notes,
-            'fiscal_year_id' => $activeFiscalYear->id,
             'received_by' => auth()->id(),
         ]);
 
