@@ -35,6 +35,9 @@ class CashflowController extends Controller
      */
     public function index(Request $request): View
     {
+        // Handle date range parsing
+        $this->parseDateRange($request);
+        
         $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
         $activeFiscalYear = FiscalYear::where('status', 'active')->first();
         
@@ -62,10 +65,36 @@ class CashflowController extends Controller
     }
 
     /**
+     * Parse date range from request
+     */
+    private function parseDateRange($request)
+    {
+        if ($request->filled('date_range') && !$request->filled('date_from') && !$request->filled('date_to')) {
+            $dateRange = $request->date_range;
+            if (strpos($dateRange, ' to ') !== false) {
+                [$dateFrom, $dateTo] = explode(' to ', $dateRange);
+                $request->merge([
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo
+                ]);
+            } elseif (strpos($dateRange, ' - ') !== false) {
+                [$dateFrom, $dateTo] = explode(' - ', $dateRange);
+                $request->merge([
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo
+                ]);
+            }
+        }
+    }
+
+    /**
      * Load transactions via AJAX for lazy loading
      */
     public function loadTransactionsAjax(Request $request)
     {
+        // Handle date range parsing for AJAX requests
+        $this->parseDateRange($request);
+        
         $transactions = $this->getAllTransactions($request);
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 20);
@@ -89,6 +118,9 @@ class CashflowController extends Controller
      */
     private function getInitialTransactions($request = null)
     {
+        // Handle date range parsing for initial load
+        $this->parseDateRange($request);
+        
         $transactions = $this->getAllTransactions($request);
         return $transactions->paginate(20);
     }
@@ -371,8 +403,8 @@ class CashflowController extends Controller
             ]);
         }
 
-        // Union all queries and order by date
-        $allTransactions = $cashFlowQuery
+        // Union all queries
+        $unionQuery = $cashFlowQuery
             ->unionAll($cashflowTransactionQuery)
             ->unionAll($depositQuery)
             ->unionAll($distributionQuery)
@@ -381,59 +413,55 @@ class CashflowController extends Controller
             ->unionAll($fineQuery)
             ->unionAll($welfareQuery)
             ->unionAll($loanPenaltyQuery)
-            ->unionAll($investmentTransactionQuery)
-            ->orderBy('transaction_date', 'desc')
+            ->unionAll($investmentTransactionQuery);
+
+        // Wrap in subquery and apply remaining filters
+        $allTransactions = DB::table(DB::raw("({$unionQuery->toSql()}) as combined_transactions"))
+            ->setBindings($unionQuery->getBindings())
+            ->select([
+                'id',
+                'transaction_date',
+                'description',
+                'reference_number',
+                'type',
+                'category',
+                'amount',
+                'payment_method',
+                'status',
+                'member_id',
+                'created_at',
+                'source_model',
+                'transaction_source'
+            ]);
+
+        // Apply post-UNION filters for type and category
+        $allTransactions = $this->applyPostUnionFilters($request, $allTransactions);
+
+        // Order final result
+        $allTransactions = $allTransactions->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc');
 
         return $allTransactions;
     }
 
     /**
-     * Apply filters to all transaction queries
-     */
-    private function applyFiltersToQueries($request, $queries)
-    {
-        foreach ($queries as &$query) {
-            // Date filters
-            if ($request->filled('date_from')) {
-                $dateField = $this->getDateFieldForQuery($query);
-                if ($dateField) {
-                    $query->where($dateField, '>=', $request->date_from);
-                }
-            }
-
-            if ($request->filled('date_to')) {
-                $dateField = $this->getDateFieldForQuery($query);
-                if ($dateField) {
-                    $query->where($dateField, '<=', $request->date_to);
-                }
-            }
-
-            // Transaction type filter
-            if ($request->filled('transaction_type')) {
-                $type = $request->transaction_type === 'INFLOW' ? 'income' : 'expense';
-                $query->whereRaw("type = ?", [$type]);
-            }
-
-            // Category filter
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
-            }
-
-            // Status filter
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
-
-            // Search filter
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('description', 'like', "%{$search}%")
-                      ->orWhere('reference_number', 'like', "%{$search}%");
-                });
-            }
         }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('reference_number', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 
     /**
@@ -441,6 +469,34 @@ class CashflowController extends Controller
      */
     private function getDateFieldForQuery($query)
     {
+        // Since all queries alias their date fields as 'transaction_date' in the SELECT,
+        // and we're filtering before UNION, we need to use the actual field names
+        // Let's determine the table from the query class
+        $queryClass = get_class($query);
+        
+        // Extract table name from class name
+        if (strpos($queryClass, 'CashFlow') !== false) {
+            return 'transaction_date';
+        } elseif (strpos($queryClass, 'CashflowTransaction') !== false) {
+            return 'transaction_date';
+        } elseif (strpos($queryClass, 'Deposit') !== false) {
+            return 'deposit_date';
+        } elseif (strpos($queryClass, 'Distribution') !== false) {
+            return 'created_at';
+        } elseif (strpos($queryClass, 'Loan') !== false) {
+            return 'disbursement_date';
+        } elseif (strpos($queryClass, 'LoanRepayment') !== false) {
+            return 'paid_at';
+        } elseif (strpos($queryClass, 'Fine') !== false) {
+            return 'updated_at';
+        } elseif (strpos($queryClass, 'LoanPenalty') !== false) {
+            return 'paid_date';
+        } elseif (strpos($queryClass, 'InvestmentTransaction') !== false) {
+            return 'transaction_date';
+        } elseif (strpos($queryClass, 'WelfareFund') !== false) {
+            return 'created_at';
+        }
+        
         return 'transaction_date';
     }
 
@@ -969,8 +1025,62 @@ class CashflowController extends Controller
     }
 
     /**
-     * Export cashflow transactions
+     * Apply filters to all transaction queries
      */
+    private function applyFiltersToQueries($request, $queries)
+    {
+        foreach ($queries as &$query) {
+            // Status filter - handle different status values across models
+            if ($request->filled('status')) {
+                $status = $request->status;
+                if ($status === 'cleared') {
+                    $query->where(function($q) {
+                        $q->where('status', 'cleared')
+                          ->orWhere('status', 'CLEARED')
+                          ->orWhere('status', 'distributed')
+                          ->orWhere('status', 'disbursed')
+                          ->orWhere('status', 'received')
+                          ->orWhere('status', 'paid');
+                    });
+                } elseif ($status === 'pending') {
+                    $query->where(function($q) {
+                        $q->where('status', 'pending')
+                          ->orWhere('status', 'PENDING');
+                    });
+                } else {
+                    $query->where('status', $status);
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply post-UNION filters that need to be applied to the combined result
+     */
+    private function applyPostUnionFilters($request, $query)
+    {
+        // Transaction type filter
+        if ($request->filled('transaction_type')) {
+            $type = $request->transaction_type === 'INFLOW' ? 'income' : 'expense';
+            $query->where('type', $type);
+        }
+
+        // Category filter
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('reference_number', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
+    }
     public function export(Request $request)
     {
         return redirect()->back()->with('success', 'Export functionality coming soon!');

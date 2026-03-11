@@ -1066,55 +1066,44 @@
                         Apply Filters
                     </button>
                 </div>
-            </form>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-section mb-4">
-            <div class="action-header">
-                <i class="fas fa-rocket"></i>
-                Quick Actions
             </div>
-            <div class="action-buttons">
-                <a href="{{ route('admin.cashflow.monthly-statement') }}" class="action-btn primary">
-                    <i class="fas fa-chart-line"></i>
-                    Monthly Statement
-                </a>
-                <a href="{{ route('admin.cashflow.fiscal-year-statement') }}" class="action-btn success">
-                    <i class="fas fa-calendar-alt"></i>
-                    Fiscal Year Statement
-                </a>
-                <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
-                    <i class="fas fa-plus-circle"></i>
-                    Add Transaction
-                </a>
-                <button type="button" class="action-btn warning" onclick="bulkApprovePending()">
-                    <i class="fas fa-check-double"></i>
-                    Bulk Approve Pending
-                </button>
-                <div class="dropdown">
-                    <button class="action-btn secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-download"></i>
-                        Export
-                        <i class="fas fa-chevron-down ms-2"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="{{ route('admin.cashflow.export', request()->query()) }}" class="dropdown-item">
-                                <i class="fas fa-file-excel"></i>
-                                Export Current View to Excel
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
-                                <i class="fas fa-file-excel"></i>
-                                Export Current Month to Excel
-                            </a>
-                        </li>
-                    </ul>
+            
+            <!-- Action Buttons -->
+            <div class="action-section mb-4">
+                <div class="action-header">
+                    <i class="fas fa-rocket"></i>
+                    Quick Actions
+                </div>
+                <div class="action-buttons">
+                    <a href="{{ route('admin.cashflow.monthly-statement') }}" class="action-btn primary">
+                        <i class="fas fa-chart-line"></i>
+                        Monthly Statement
+                    </a>
+                    <a href="{{ route('admin.cashflow.fiscal-year-statement') }}" class="action-btn success">
+                        <i class="fas fa-calendar-alt"></i>
+                        Fiscal Year Statement
+                    </a>
+                    <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
+                        <i class="fas fa-plus-circle"></i>
+                        Add Transaction
+                    </a>
+                    <div class="dropdown">
+                        <button class="action-btn secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download"></i>
+                            Export
+                            <i class="fas fa-chevron-down ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
+                                    <i class="fas fa-file-excel"></i>
+                                    Export Current Month to Excel
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
 
         <!-- Transactions Table -->
         <div class="table-section">
@@ -1197,6 +1186,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize date range picker
     initializeDateRangePicker();
+    
+    // Initialize filter form
+    initializeFilterForm();
     
     // Initialize lazy loading
     initializeLazyLoading();
@@ -1352,6 +1344,50 @@ function initializeDateRangePicker() {
     });
 }
 
+// Initialize Filter Form
+function initializeFilterForm() {
+    const filterForm = document.querySelector('.filter-form');
+    
+    // Handle form submission
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Get all form data
+        const formData = new FormData(this);
+        const params = new URLSearchParams(formData);
+        
+        // Redirect to filtered URL
+        window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+    });
+    
+    // Handle filter changes for real-time updates
+    const filterInputs = filterForm.querySelectorAll('select, input');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Auto-submit on change (except search input)
+            if (this.type !== 'text' || this.name !== 'search') {
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+            }
+        });
+    });
+    
+    // Handle search input with debounce
+    const searchInput = filterForm.querySelector('input[name="search"]');
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+            }, 800); // 800ms debounce
+        });
+    }
+}
+
 // Initialize Filter Presets
 function initializeFilterPresets() {
     const presetButtons = document.querySelectorAll('.preset-btn');
@@ -1397,6 +1433,12 @@ function initializeFilterPresets() {
             dateFromInput.value = fromDate.toISOString().split('T')[0];
             dateToInput.value = toDate.toISOString().split('T')[0];
             dateRangeInput.value = fromDate.toISOString().split('T')[0] + ' to ' + toDate.toISOString().split('T')[0];
+            
+            // Submit the form after setting the dates
+            const filterForm = document.querySelector('.filter-form');
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
         });
     });
 }

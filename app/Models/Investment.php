@@ -16,6 +16,7 @@ class Investment extends Model
 
     protected $fillable = [
         'name',
+        'fiscal_year_id',
         'investment_type',
         'institution',
         'principal_amount',
@@ -25,6 +26,8 @@ class Investment extends Model
         'status',
         'current_value',
         'total_returns',
+        'is_long_term_investment',
+        'carry_forward_notes',
         'reference_number',
         'account_number',
         'notes',
@@ -41,6 +44,7 @@ class Investment extends Model
         'investment_date' => 'date',
         'maturity_date' => 'date',
         'approved_at' => 'datetime',
+        'is_long_term_investment' => 'boolean',
     ];
 
     // Relationships
@@ -52,6 +56,11 @@ class Investment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function fiscalYear(): BelongsTo
+    {
+        return $this->belongsTo(FiscalYear::class);
     }
 
     public function approver(): BelongsTo
@@ -84,6 +93,24 @@ class Investment extends Model
     {
         return $query->where('maturity_date', '<=', now()->addDays($days))
                     ->where('status', 'ACTIVE');
+    }
+
+    public function scopeLongTerm($query)
+    {
+        return $query->where('is_long_term_investment', true);
+    }
+
+    public function scopeNotLongTerm($query)
+    {
+        return $query->where('is_long_term_investment', false);
+    }
+
+    public function scopeSpansMultipleFiscalYears($query, FiscalYear $fiscalYear)
+    {
+        return $query->where(function ($q) use ($fiscalYear) {
+            $q->whereNull('maturity_date')
+              ->orWhere('maturity_date', '>', $fiscalYear->end_date);
+        });
     }
 
     // Helper methods
@@ -246,5 +273,38 @@ class Investment extends Model
             self::STATUS_CLOSED => 'Closed',
             self::STATUS_DEFAULTED => 'Defaulted'
         ];
+    }
+
+    // Carry-forward helper methods
+    public function isLongTerm(): bool
+    {
+        return $this->is_long_term_investment;
+    }
+
+    public function spansMultipleFiscalYears(): bool
+    {
+        if (!$this->maturity_date || $this->status !== self::STATUS_ACTIVE) {
+            return false;
+        }
+
+        // If maturity date is more than a year from investment date, it's likely long-term
+        return $this->investment_date->diffInDays($this->maturity_date) > 365;
+    }
+
+    public function getCarryForwardStatusBadgeAttribute(): string
+    {
+        if (!$this->is_long_term_investment) {
+            return '<span class="badge bg-secondary">Standard</span>';
+        }
+
+        return '<span class="badge bg-info">Long-Term</span>';
+    }
+
+    public function getFullStatusBadgeAttribute(): string
+    {
+        $statusBadge = $this->getStatusBadgeAttribute();
+        $carryForwardBadge = $this->getCarryForwardStatusBadgeAttribute();
+        
+        return $statusBadge . ' ' . $carryForwardBadge;
     }
 }

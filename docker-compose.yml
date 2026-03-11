@@ -10,16 +10,24 @@ services:
       - "3306:3306"       # optional if you want to connect outside Docker
     volumes:
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pdouglasben"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
 
   php:
     image: php:8.3-apache
     container_name: saco_system_php
+    restart: always
     ports:
       - "8080:80"
     volumes:
       - ./:/var/www/html
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - APACHE_DOCUMENT_ROOT=/var/www/html/public
       - DB_CONNECTION=mysql
@@ -28,10 +36,16 @@ services:
       - DB_DATABASE=saco_db
       - DB_USERNAME=root
       - DB_PASSWORD=douglasben
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      timeout: 10s
+      retries: 5
+      interval: 15s
+      start_period: 30s
     command: >
       bash -c "
       apt-get update &&
-      apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev zlib1g-dev libmariadb-dev &&
+      apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev zlib1g-dev libmariadb-dev curl &&
       docker-php-ext-configure gd --with-freetype --with-jpeg &&
       docker-php-ext-install gd pdo pdo_mysql &&
       a2enmod rewrite &&

@@ -60,6 +60,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('fiscal-years/{fiscalYear}/edit', [App\Http\Controllers\Admin\FiscalYearController::class, 'edit'])->name('fiscal-years.edit');
     Route::put('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'update'])->name('fiscal-years.update');
     Route::delete('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'destroy'])->name('fiscal-years.destroy');
+    
+    // Carry Forward Routes
+    Route::get('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForward'])->name('fiscal-years.carry-forward');
+    Route::post('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}/process', [App\Http\Controllers\Admin\FiscalYearController::class, 'processCarryForward'])->name('fiscal-years.carry-forward.process');
+    Route::get('fiscal-years/carry-forward-history/{fiscalYear?}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForwardHistory'])->name('fiscal-years.carry-forward.history');
 
     // Group Savings Routes
     Route::get('group-savings/dashboard', [App\Http\Controllers\Admin\GroupSavingsController::class, 'dashboard'])->name('group-savings.dashboard');

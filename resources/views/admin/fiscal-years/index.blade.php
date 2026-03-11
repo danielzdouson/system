@@ -22,9 +22,13 @@
                                 </p>
                             </div>
                             <div class="text-end">
-                                <a href="{{ route('admin.fiscal-years.create') }}" class="btn btn-success">
+                                <a href="{{ route('admin.fiscal-years.create') }}" class="btn btn-success me-2">
                                     <i class="fas fa-plus-circle me-2"></i>
                                     Create New Fiscal Year
+                                </a>
+                                <a href="{{ route('admin.fiscal-years.carry-forward.history') }}" class="btn btn-info">
+                                    <i class="fas fa-history me-2"></i>
+                                    Carry Forward History
                                 </a>
                             </div>
                         </div>
@@ -91,6 +95,14 @@
                                                                class="btn btn-sm btn-outline-primary" title="Edit">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
+                                                            
+                                                            @if($fiscalYear->status == 'inactive' && $activeFiscalYear)
+                                                                <a href="{{ route('admin.fiscal-years.carry-forward', [$activeFiscalYear->id, $fiscalYear->id]) }}" 
+                                                                   class="btn btn-sm btn-outline-warning" title="Carry Forward from Active">
+                                                                    <i class="fas fa-exchange-alt"></i>
+                                                                </a>
+                                                            @endif
+                                                            
                                                             @if($fiscalYear->status == 'inactive')
                                                                 <form action="{{ route('admin.fiscal-years.destroy', $fiscalYear) }}" 
                                                                       method="POST" style="display: inline-block;">

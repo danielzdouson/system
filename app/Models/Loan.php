@@ -17,6 +17,10 @@ class Loan extends Model
         'loan_request_id',
         'member_id',
         'fiscal_year_id',
+        'carried_forward_from_fiscal_year_id',
+        'original_fiscal_year_id',
+        'is_carried_forward',
+        'carried_forward_at',
         'loan_number',
         'loan_amount',
         'principal_amount',
@@ -60,6 +64,8 @@ class Loan extends Model
         'maturity_date' => 'date',
         'completed_at' => 'datetime',
         'approved_at' => 'datetime',
+        'is_carried_forward' => 'boolean',
+        'carried_forward_at' => 'datetime',
     ];
 
     // Loan statuses
@@ -103,6 +109,16 @@ class Loan extends Model
         return $this->hasMany(LoanPenalty::class);
     }
 
+    public function carriedForwardFromFiscalYear(): BelongsTo
+    {
+        return $this->belongsTo(FiscalYear::class, 'carried_forward_from_fiscal_year_id');
+    }
+
+    public function originalFiscalYear(): BelongsTo
+    {
+        return $this->belongsTo(FiscalYear::class, 'original_fiscal_year_id');
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -122,6 +138,16 @@ class Loan extends Model
     public function scopeByMember($query, $memberId)
     {
         return $query->where('member_id', $memberId);
+    }
+
+    public function scopeCarriedForward($query)
+    {
+        return $query->where('is_carried_forward', true);
+    }
+
+    public function scopeNotCarriedForward($query)
+    {
+        return $query->where('is_carried_forward', false);
     }
 
     // Helper methods
@@ -233,5 +259,33 @@ class Loan extends Model
         $this->completed_at = now();
         $this->balance = 0.0;
         $this->save();
+    }
+
+    // Carry-forward helper methods
+    public function isCarriedForward(): bool
+    {
+        return $this->is_carried_forward;
+    }
+
+    public function getOriginalFiscalYearNameAttribute(): string
+    {
+        return $this->originalFiscalYear?->name ?? $this->fiscalYear?->name ?? 'Unknown';
+    }
+
+    public function getCarryForwardStatusBadgeAttribute(): string
+    {
+        if (!$this->is_carried_forward) {
+            return '<span class="badge bg-secondary">Original</span>';
+        }
+
+        return '<span class="badge bg-warning">Carried Forward</span>';
+    }
+
+    public function getFullStatusBadgeAttribute(): string
+    {
+        $statusBadge = $this->getStatusBadge();
+        $carryForwardBadge = $this->getCarryForwardStatusBadgeAttribute();
+        
+        return $statusBadge . ' ' . $carryForwardBadge;
     }
 }

@@ -12,6 +12,10 @@ class Fine extends Model
     protected $fillable = [
         'member_id',
         'fiscal_year_id',
+        'carried_forward_from_fiscal_year_id',
+        'original_fiscal_year_id',
+        'is_carried_forward',
+        'carried_forward_at',
         'month',
         'amount',
         'reason',
@@ -22,6 +26,8 @@ class Fine extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'is_carried_forward' => 'boolean',
+        'carried_forward_at' => 'datetime',
     ];
 
     public function member()
@@ -32,6 +38,16 @@ class Fine extends Model
     public function fiscalYear()
     {
         return $this->belongsTo(FiscalYear::class);
+    }
+
+    public function carriedForwardFromFiscalYear()
+    {
+        return $this->belongsTo(FiscalYear::class, 'carried_forward_from_fiscal_year_id');
+    }
+
+    public function originalFiscalYear()
+    {
+        return $this->belongsTo(FiscalYear::class, 'original_fiscal_year_id');
     }
 
     public function creator()
@@ -83,5 +99,45 @@ class Fine extends Model
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
         return $months[$month] ?? 'Unknown';
+    }
+
+    // Carry-forward helper methods
+    public function isCarriedForward(): bool
+    {
+        return $this->is_carried_forward;
+    }
+
+    public function getOriginalFiscalYearNameAttribute(): string
+    {
+        return $this->originalFiscalYear?->name ?? $this->fiscalYear?->name ?? 'Unknown';
+    }
+
+    public function getCarryForwardStatusBadgeAttribute(): string
+    {
+        if (!$this->is_carried_forward) {
+            return '<span class="badge bg-secondary">Original</span>';
+        }
+
+        return '<span class="badge bg-warning">Carried Forward</span>';
+    }
+
+    public function getFullStatusBadgeAttribute(): string
+    {
+        $statusBadge = $this->getStatusBadge();
+        $carryForwardBadge = $this->getCarryForwardStatusBadgeAttribute();
+        
+        return $statusBadge . ' ' . $carryForwardBadge;
+    }
+
+    public function getStatusBadge(): string
+    {
+        $colors = [
+            'pending' => 'warning',
+            'paid' => 'success',
+            'waived' => 'info',
+        ];
+
+        $color = $colors[$this->status] ?? 'secondary';
+        return '<span class="badge bg-' . $color . '">' . ucfirst($this->status) . '</span>';
     }
 }
