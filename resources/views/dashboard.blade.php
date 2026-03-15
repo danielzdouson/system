@@ -20,11 +20,11 @@
                         </p>
                     </div>
                     <div class="text-end">
-                        @if($activeFiscalYear)
+                        @if($currentFiscalYear)
                             <div class="fiscal-year-badge">
                                 <span class="badge bg-white text-primary fs-6 px-3 py-2">
                                     <i class="fas fa-calendar-alt me-2"></i>
-                                    {{ $activeFiscalYear->name }}
+                                    {{ $currentFiscalYear->name }}
                                 </span>
                             </div>
                         @endif
@@ -34,7 +34,7 @@
         </div>
     </div>
 
-    @if($activeFiscalYear)
+    @if($currentFiscalYear)
         <!-- Statistics Tiles -->
         <div class="row mb-4 g-3">
             <div class="col-md-3">

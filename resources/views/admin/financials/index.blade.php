@@ -274,6 +274,13 @@ function updateSummaryCards(stats) {
                 <small>Deposits - Distributed</small>
             </div>
         </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #ec4899 0%, #be185d 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">🤝 Total Welfare</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_welfare, 0)}</h4>
+                <small>Welfare Fund Balance</small>
+            </div>
+        </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color:white; border:none;">
             <div class="card-body">
                 <h6 class="card-title mb-2">💳 Total Loans</h6>

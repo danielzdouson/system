@@ -9,6 +9,7 @@ use App\Models\Member;
 use App\Models\FiscalYear;
 use App\Models\GroupSaving;
 use App\Models\Deposit;
+use App\Services\FiscalYearContext;
 use Carbon\Carbon;
 use DB;
 use PDF;
@@ -17,31 +18,21 @@ class FineController extends Controller
 {
     public function index(Request $request)
     {
-        $selectedYear = $request->get('fiscal_year');
-        $currentDate = now();
-        
-        // Auto-detect current fiscal year if none selected
-        if (!$selectedYear) {
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-        } else {
-            $activeFiscalYear = FiscalYear::find($selectedYear);
-        }
-        
-        $allFiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        // Use global fiscal year context
+        $activeFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         
         if (!$activeFiscalYear) {
             return view('admin.fines.index', [
                 'activeFiscalYear' => null,
+                'currentFiscalYear' => null,
                 'allFiscalYears' => $allFiscalYears,
                 'fines' => collect(),
                 'statistics' => $this->getEmptyStatistics()
             ]);
         }
         
-        // Build query with filters
+        // Build query with filters - use global fiscal year
         $query = Fine::with(['member', 'fiscalYear', 'creator'])
             ->where('fiscal_year_id', $activeFiscalYear->id);
         
@@ -74,6 +65,7 @@ class FineController extends Controller
         
         return view('admin.fines.index', [
             'activeFiscalYear' => $activeFiscalYear,
+            'currentFiscalYear' => $activeFiscalYear,
             'allFiscalYears' => $allFiscalYears,
             'fines' => $fines,
             'statistics' => $statistics,
@@ -91,9 +83,10 @@ class FineController extends Controller
     public function create()
     {
         $members = Member::orderBy('first_name')->orderBy('last_name')->get();
-        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        $fiscalYears = FiscalYearContext::getAllForSelector();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
         
-        return view('admin.fines.create', compact('members', 'fiscalYears'));
+        return view('admin.fines.create', compact('members', 'fiscalYears', 'currentFiscalYear'));
     }
     
     public function store(Request $request)
@@ -295,23 +288,14 @@ class FineController extends Controller
     
     public function reports(Request $request)
     {
-        $selectedYear = $request->get('fiscal_year');
-        $currentDate = now();
-        
-        if (!$selectedYear) {
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-        } else {
-            $activeFiscalYear = FiscalYear::find($selectedYear);
-        }
-        
-        $allFiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        // Use global fiscal year context
+        $activeFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         
         if (!$activeFiscalYear) {
             return view('admin.fines.reports', [
                 'activeFiscalYear' => null,
+                'currentFiscalYear' => null,
                 'allFiscalYears' => $allFiscalYears,
                 'reports' => []
             ]);
@@ -319,11 +303,12 @@ class FineController extends Controller
         
         $reports = $this->generateFineReports($activeFiscalYear->id);
         
-        return view('admin.fines.reports', compact(
-            'activeFiscalYear',
-            'allFiscalYears',
-            'reports'
-        ));
+        return view('admin.fines.reports', [
+            'activeFiscalYear' => $activeFiscalYear,
+            'currentFiscalYear' => $activeFiscalYear,
+            'allFiscalYears' => $allFiscalYears,
+            'reports' => $reports
+        ]);
     }
     
     public function export(Request $request)

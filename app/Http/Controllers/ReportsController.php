@@ -9,28 +9,30 @@ use App\Models\Deposit;
 use App\Models\Fine;
 use App\Models\FiscalYear;
 use App\Models\CashFlow;
+use App\Services\FiscalYearContext;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
     public function index()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         
         // Key Financial Metrics
-        $metrics = $this->calculateFinancialMetrics($activeFiscalYear);
+        $metrics = $this->calculateFinancialMetrics($currentFiscalYear);
         
         // Portfolio Performance
-        $portfolioData = $this->getPortfolioPerformance($activeFiscalYear);
+        $portfolioData = $this->getPortfolioPerformance($currentFiscalYear);
         
         // Risk Assessment
-        $riskMetrics = $this->calculateRiskMetrics($activeFiscalYear);
+        $riskMetrics = $this->calculateRiskMetrics($currentFiscalYear);
         
         // Monthly Trends
-        $monthlyTrends = $this->getMonthlyTrends($activeFiscalYear);
+        $monthlyTrends = $this->getMonthlyTrends($currentFiscalYear);
         
         // Top Performers
-        $topPerformers = $this->getTopPerformers($activeFiscalYear);
+        $topPerformers = $this->getTopPerformers($currentFiscalYear);
         
         return view('admin.reports.index', compact(
             'metrics', 
@@ -38,7 +40,8 @@ class ReportsController extends Controller
             'riskMetrics', 
             'monthlyTrends', 
             'topPerformers',
-            'activeFiscalYear'
+            'currentFiscalYear',
+            'allFiscalYears'
         ));
     }
 

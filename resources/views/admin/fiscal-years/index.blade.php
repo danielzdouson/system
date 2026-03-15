@@ -69,11 +69,14 @@
                                         </thead>
                                         <tbody>
                                             @foreach($fiscalYears as $fiscalYear)
-                                                <tr>
+                                                <tr class="{{ session('current_fiscal_year_id') == $fiscalYear->id ? 'table-primary' : '' }}">
                                                     <td>
                                                         <strong>{{ $fiscalYear->name }}</strong>
                                                         @if($fiscalYear->status == 'active')
-                                                            <span class="badge bg-success ms-2">Current</span>
+                                                            <span class="badge bg-success ms-2">Active Status</span>
+                                                        @endif
+                                                        @if(session('current_fiscal_year_id') == $fiscalYear->id)
+                                                            <span class="badge bg-primary ms-2">Viewing</span>
                                                         @endif
                                                     </td>
                                                     <td>{{ \Carbon\Carbon::parse($fiscalYear->start_date)->format('M d, Y') }}</td>
@@ -91,8 +94,22 @@
                                                     </td>
                                                     <td>
                                                         <div class="btn-group" role="group">
+                                                            {{-- Activate/View Button --}}
+                                                            @if(session('current_fiscal_year_id') != $fiscalYear->id)
+                                                                <form action="{{ route('admin.fiscal-years.activate', $fiscalYear) }}" method="POST" style="display: inline-block;">
+                                                                    @csrf
+                                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="View this fiscal year">
+                                                                        <i class="fas fa-eye"></i> View
+                                                                    </button>
+                                                                </form>
+                                                            @else
+                                                                <button class="btn btn-sm btn-primary" title="Currently viewing" disabled>
+                                                                    <i class="fas fa-check"></i> Current
+                                                                </button>
+                                                            @endif
+                                                            
                                                             <a href="{{ route('admin.fiscal-years.edit', $fiscalYear) }}" 
-                                                               class="btn btn-sm btn-outline-primary" title="Edit">
+                                                               class="btn btn-sm btn-outline-secondary" title="Edit">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
                                                             

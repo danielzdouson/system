@@ -985,24 +985,6 @@
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="chart-grid">
-            <div class="chart-container">
-                <div class="chart-title">
-                    <i class="fas fa-chart-line"></i>
-                    Cash Flow Trends (6 Months)
-                </div>
-                <canvas id="trendsChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <div class="chart-title">
-                    <i class="fas fa-chart-pie"></i>
-                    Category Breakdown (Current Month)
-                </div>
-                <canvas id="categoryChart"></canvas>
-            </div>
-        </div>
-
         <!-- Filter Section -->
         <div class="filter-section mb-4">
             <div class="filter-header">
@@ -1019,7 +1001,7 @@
                 </div>
             </div>
             <form method="GET" action="{{ route('admin.cashflow.index') }}" class="filter-form">
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="form-label">Date Range</label>
                     <input type="text" id="dateRange" name="date_range" class="form-control" placeholder="Select date range" value="{{ request('date_range') }}">
                     <input type="hidden" id="dateFrom" name="date_from" value="{{ request('date_from') }}">
@@ -1045,7 +1027,7 @@
                     </select>
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group" style="display: none;">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-control">
                         <option value="">All Status</option>
@@ -1095,6 +1077,12 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li>
+                                <a href="{{ route('admin.cashflow.export', request()->all()) }}" class="dropdown-item">
+                                    <i class="fas fa-file-excel text-success"></i>
+                                    Export All to Excel
+                                </a>
+                            </li>
+                            <li>
                                 <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
                                     <i class="fas fa-file-excel"></i>
                                     Export Current Month to Excel
@@ -1102,6 +1090,10 @@
                             </li>
                         </ul>
                     </div>
+                    <a href="{{ route('dashboard') }}" class="action-btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
                 </div>
             </div>
 
@@ -1161,13 +1153,13 @@
                 @else
                     <div class="empty-state">
                         <div class="empty-state-icon">
-                            <i class="fas fa-inbox"></i>
+                            <i class="fas fa-search"></i>
                         </div>
-                        <div class="empty-state-title">No Transactions Found</div>
-                        <div class="empty-state-text">No cashflow transactions match your current filters.</div>
-                        <a href="{{ route('admin.cashflow.create') }}" class="action-btn primary">
-                            <i class="fas fa-plus-circle"></i>
-                            Add First Transaction
+                        <div class="empty-state-title">Search Results Not Available</div>
+                        <div class="empty-state-text">No transactions found matching your search criteria. Please try different search terms.</div>
+                        <a href="{{ route('admin.cashflow.index') }}" class="action-btn primary">
+                            <i class="fas fa-undo"></i>
+                            Clear Search
                         </a>
                     </div>
                 @endif
@@ -1181,9 +1173,6 @@
 <script>
 // Enhanced JavaScript for better UX
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Chart.js charts
-    initializeCharts();
-    
     // Initialize date range picker
     initializeDateRangePicker();
     
@@ -1202,31 +1191,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
     
-    // Add loading states to buttons
+    // Add loading states to buttons (exclude dropdown toggles, load more, and submit buttons)
     document.querySelectorAll('.action-btn').forEach(button => {
         button.addEventListener('click', function(e) {
-            if (!this.classList.contains('dropdown-toggle') && !this.id.includes('loadMore')) {
-                const originalContent = this.innerHTML;
-                this.innerHTML = '<span class="loading-spinner"></span> Processing...';
-                this.disabled = true;
-                
-                setTimeout(() => {
-                    this.innerHTML = originalContent;
-                    this.disabled = false;
-                }, 2000);
+            // Skip if it's a dropdown toggle, load more button, or form submit button
+            if (this.classList.contains('dropdown-toggle') || 
+                this.id.includes('loadMore') || 
+                this.type === 'submit') {
+                return;
             }
-        });
-    });
-    
-    // Enhance table interactions
-    const tableRows = document.querySelectorAll('.modern-table tbody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.01)';
-        });
-        
-        row.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1)';
+            
+            const originalContent = this.innerHTML;
+            this.innerHTML = '<span class="loading-spinner"></span> Processing...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = originalContent;
+                this.disabled = false;
+            }, 2000);
         });
     });
     
@@ -1234,103 +1216,16 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updatePendingCount, 30000);
 });
 
-// Initialize Charts
-function initializeCharts() {
-    // Trends Chart
-    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
-    const chartData = @json($chartData);
-    
-    new Chart(trendsCtx, {
-        type: 'line',
-        data: {
-            labels: chartData.trends.months,
-            datasets: [{
-                label: 'Inflows',
-                data: chartData.trends.inflows,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                tension: 0.4,
-                fill: true
-            }, {
-                label: 'Outflows',
-                data: chartData.trends.outflows,
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': UGX ' + context.parsed.y.toLocaleString();
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'UGX ' + value.toLocaleString();
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    // Category Chart
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    const categories = chartData.categories;
-    
-    new Chart(categoryCtx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(categories),
-            datasets: [{
-                data: Object.values(categories),
-                backgroundColor: [
-                    '#667eea',
-                    '#10b981',
-                    '#ef4444'
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': UGX ' + context.parsed.toLocaleString();
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
 // Initialize Date Range Picker
 function initializeDateRangePicker() {
     const dateRangeInput = document.getElementById('dateRange');
     const dateFromInput = document.getElementById('dateFrom');
     const dateToInput = document.getElementById('dateTo');
+    
+    // Only initialize if input is visible
+    if (!dateRangeInput || dateRangeInput.offsetParent === null) {
+        return;
+    }
     
     flatpickr(dateRangeInput, {
         mode: 'range',
@@ -1348,42 +1243,27 @@ function initializeDateRangePicker() {
 function initializeFilterForm() {
     const filterForm = document.querySelector('.filter-form');
     
-    // Handle form submission
-    filterForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Get all form data
-        const formData = new FormData(this);
-        const params = new URLSearchParams(formData);
-        
-        // Redirect to filtered URL
-        window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
-    });
-    
-    // Handle filter changes for real-time updates
-    const filterInputs = filterForm.querySelectorAll('select, input');
+    // Handle filter changes for real-time updates (dropdowns only)
+    const filterInputs = filterForm.querySelectorAll('select');
     filterInputs.forEach(input => {
         input.addEventListener('change', function() {
-            // Auto-submit on change (except search input)
-            if (this.type !== 'text' || this.name !== 'search') {
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+        });
+    });
+    
+    // Handle search input - submit only on Enter key
+    const searchInput = filterForm.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
                 const formData = new FormData(filterForm);
                 const params = new URLSearchParams(formData);
                 window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
             }
-        });
-    });
-    
-    // Handle search input with debounce
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    let searchTimeout;
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const formData = new FormData(filterForm);
-                const params = new URLSearchParams(formData);
-                window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
-            }, 800); // 800ms debounce
         });
     }
 }

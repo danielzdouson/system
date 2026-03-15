@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('carry_forward_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('from_fiscal_year_id')->constrained()->onDelete('cascade');
-            $table->foreignId('to_fiscal_year_id')->constrained()->onDelete('cascade');
+            $table->foreignId('from_fiscal_year_id')->constrained('fiscal_years')->onDelete('cascade');
+            $table->foreignId('to_fiscal_year_id')->constrained('fiscal_years')->onDelete('cascade');
             $table->enum('item_type', ['loan', 'fine', 'investment']);
             $table->unsignedBigInteger('item_id');
             $table->text('description')->nullable();
@@ -25,8 +25,8 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
             
-            $table->index(['from_fiscal_year_id', 'to_fiscal_year_id']);
-            $table->index(['item_type', 'item_id']);
+            $table->index(['from_fiscal_year_id', 'to_fiscal_year_id'], 'cf_fiscal_years_index');
+            $table->index(['item_type', 'item_id'], 'cf_item_index');
             $table->index('status');
         });
     }

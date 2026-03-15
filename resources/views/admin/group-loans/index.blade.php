@@ -14,18 +14,18 @@
                             <div>
                                 <h1 class="h2 mb-2 text-white">
                                     <i class="fas fa-hand-holding-usd me-3"></i>
-                                    Loan Management - {{ $activeFiscalYear->name }}
+                                    Loan Management - {{ $currentFiscalYear->name }}
                                 </h1>
                                 <p class="text-white fs-5 mb-0 opacity-90">
                                     <i class="fas fa-chart-line me-2"></i>
-                                    Comprehensive loan management system for {{ $activeFiscalYear->name }}
+                                    Comprehensive loan management system for {{ $currentFiscalYear->name }}
                                 </p>
                             </div>
                             <div class="text-end">
                                 <div class="month-badge">
                                     <span class="badge bg-white text-success fs-6 px-3 py-2">
                                         <i class="fas fa-calendar me-2"></i>
-                                        {{ $activeFiscalYear->name }}
+                                        {{ $currentFiscalYear->name }}
                                     </span>
                                 </div>
                             </div>

@@ -12,37 +12,20 @@ use App\Models\WelfareFund;
 use App\Models\Fine;
 use App\Models\MemberAccount;
 use App\Models\Member;
+use App\Services\FiscalYearContext;
 use Carbon\Carbon;
 
 class GroupSavingsController extends Controller
 {
     public function dashboard(Request $request)
     {
-        // Get selected fiscal year from URL or auto-detect current year
-        $selectedYear = $request->get('fiscal_year');
+        // Use global fiscal year context
+        $activeFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         $currentDate = now();
         
-        // Store selected fiscal year in session for monthly view
-        if ($selectedYear) {
-            session(['selected_fiscal_year' => $selectedYear]);
-        }
-        
-        // Auto-detect current fiscal year if none selected
-        if (!$selectedYear) {
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-            // Store auto-detected fiscal year in session
-            if ($activeFiscalYear) {
-                session(['selected_fiscal_year' => $activeFiscalYear->id]);
-            }
-        } else {
-            $activeFiscalYear = FiscalYear::find($selectedYear);
-        }
-        
         // Get all fiscal years for selector, ordered by start date
-        $allFiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        $selectedYear = $activeFiscalYear ? $activeFiscalYear->id : null;
         
         if (!$activeFiscalYear) {
             return view('admin.group-savings.dashboard', [
@@ -67,6 +50,7 @@ class GroupSavingsController extends Controller
 
         return view('admin.group-savings.dashboard', [
             'activeFiscalYear' => $activeFiscalYear,
+            'currentFiscalYear' => $activeFiscalYear,
             'allFiscalYears' => $allFiscalYears,
             'selectedYear' => $selectedYear,
             'currentDate' => $currentDate,
@@ -476,31 +460,60 @@ class GroupSavingsController extends Controller
         // Apply automatic fines first
         $this->applyAutomaticFines($activeFiscalYear);
 
+        // Determine if we should show only carried forward data
+        $showOnlyCarriedForward = $activeFiscalYear->has_carried_forward_items;
+
         // Get all deposits for this month
-        $deposits = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->with(['member', 'distributions'])
-            ->get();
+        $depositsQuery = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $depositsQuery->where('is_carried_forward', true);
+        }
+        
+        $deposits = $depositsQuery->with(['member', 'distributions'])->get();
 
         // Get all members who have activity for this month (deposits, savings, or fines)
-        $depositMemberIds = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $depositQuery = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $depositQuery->where('is_carried_forward', true);
+        }
+        
+        $depositMemberIds = $depositQuery->pluck('member_id')->toArray();
 
-        $savingMemberIds = GroupSaving::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $savingQuery = GroupSaving::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $savingQuery->whereHas('deposit', function($query) {
+                $query->where('is_carried_forward', true);
+            });
+        }
+        
+        $savingMemberIds = $savingQuery->pluck('member_id')->toArray();
 
-        $fineMemberIds = Fine::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $fineQuery = Fine::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $fineQuery->where('is_carried_forward', true);
+        }
+        
+        $fineMemberIds = $fineQuery->pluck('member_id')->toArray();
 
         // Get members with available balance but no deposit in current month
-        $balanceOnlyMemberIds = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('current_balance', '>', 0)
+        $balanceQuery = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('current_balance', '>', 0);
+        
+        if ($showOnlyCarriedForward) {
+            $balanceQuery->whereHas('deposits', function($query) {
+                $query->where('is_carried_forward', true);
+            });
+        }
+        
+        $balanceOnlyMemberIds = $balanceQuery
             ->whereNotIn('member_id', $depositMemberIds)
             ->pluck('member_id')
             ->toArray();
@@ -548,6 +561,7 @@ class GroupSavingsController extends Controller
             'month' => $month,
             'monthName' => $this->getMonthName($month),
             'monthlyData' => $monthlyData,
+            'showOnlyCarriedForward' => $showOnlyCarriedForward,
         ]);
     }
 

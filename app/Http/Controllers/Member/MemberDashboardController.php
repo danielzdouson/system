@@ -15,6 +15,7 @@ use App\Models\Deposit;
 use App\Models\GroupSaving;
 use App\Models\Distribution;
 use App\Services\MemberFinancialSummaryService;
+use App\Services\FiscalYearContext;
 
 class MemberDashboardController extends Controller
 {
@@ -40,7 +41,7 @@ class MemberDashboardController extends Controller
         }
 
         // Get current fiscal year
-        $currentFiscalYear = FiscalYear::where('status', 'active')->first();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
         
         // Get member account for current fiscal year
         $memberAccount = null;

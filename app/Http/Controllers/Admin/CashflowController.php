@@ -19,6 +19,7 @@ use App\Models\FiscalYear;
 use App\Models\Member;
 use App\Services\CashPositionService;
 use App\Services\CashflowStatementService;
+use App\Services\FiscalYearContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -38,8 +39,9 @@ class CashflowController extends Controller
         // Handle date range parsing
         $this->parseDateRange($request);
         
-        $fiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
-        $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+        // Use global fiscal year context
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         
         // Check if this is an AJAX request for lazy loading
         if ($request->ajax() && $request->has('load_transactions')) {
@@ -57,8 +59,8 @@ class CashflowController extends Controller
         
         return view('admin.cashflow.index', compact(
             'initialTransactions',
-            'fiscalYears',
-            'activeFiscalYear',
+            'allFiscalYears',
+            'currentFiscalYear',
             'totals',
             'chartData'
         ));
@@ -219,8 +221,24 @@ class CashflowController extends Controller
                 DB::raw("'Manual Entry' as transaction_source")
             ]);
 
-        // CashflowTransaction entries
+        // CashflowTransaction entries (manual entries only - exclude observer-generated)
+        // Observer-generated records for DEPOSIT, LOAN_DISBURSEMENT, LOAN_REPAYMENT,
+        // DISTRIBUTION, WELFARE_FUND, FINE_PAYMENT, LOAN_PENALTY, INVESTMENT are
+        // already covered by their respective source table queries below
         $cashflowTransactionQuery = CashflowTransaction::query()
+            ->where(function($q) {
+                $q->whereNotIn('reference_type', [
+                    'DEPOSIT',
+                    'LOAN_DISBURSEMENT',
+                    'LOAN_REPAYMENT',
+                    'DISTRIBUTION',
+                    'WELFARE_FUND',
+                    'FINE_PAYMENT',
+                    'LOAN_PENALTY',
+                    'INVESTMENT'
+                ])
+                ->orWhereNull('reference_type');
+            })
             ->select([
                 'id',
                 'transaction_date',
@@ -546,9 +564,18 @@ class CashflowController extends Controller
             })
             ->sum('amount');
 
-        // From CashflowTransaction (INFLOW)
+        // From CashflowTransaction (INFLOW) - exclude observer-generated records
+        // to avoid double counting (we already count from source tables)
         $total += CashflowTransaction::where('transaction_type', 'INFLOW')
             ->where('status', 'CLEARED')
+            ->whereNotIn('reference_type', [
+                'DEPOSIT',
+                'LOAN_REPAYMENT',
+                'DISTRIBUTION',
+                'WELFARE_FUND',
+                'FINE_PAYMENT',
+                'LOAN_PENALTY'
+            ])
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('transaction_date', '>=', $request->date_from);
             })
@@ -618,9 +645,16 @@ class CashflowController extends Controller
             })
             ->sum('amount');
 
-        // From CashflowTransaction (OUTFLOW)
+        // From CashflowTransaction (OUTFLOW) - exclude observer-generated records
+        // to avoid double counting (we already count from source tables)
         $total += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
+            ->whereNotIn('reference_type', [
+                'LOAN_DISBURSEMENT',
+                'DISTRIBUTION',
+                'WELFARE_FUND',
+                'INVESTMENT'
+            ])
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('transaction_date', '>=', $request->date_from);
             })
@@ -733,6 +767,14 @@ class CashflowController extends Controller
 
         $total += CashflowTransaction::where('transaction_type', 'INFLOW')
             ->where('status', 'CLEARED')
+            ->whereNotIn('reference_type', [
+                'DEPOSIT',
+                'LOAN_REPAYMENT',
+                'DISTRIBUTION',
+                'WELFARE_FUND',
+                'FINE_PAYMENT',
+                'LOAN_PENALTY'
+            ])
             ->whereMonth('transaction_date', $month)
             ->whereYear('transaction_date', $year)
             ->sum('amount');
@@ -775,6 +817,12 @@ class CashflowController extends Controller
 
         $total += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
+            ->whereNotIn('reference_type', [
+                'LOAN_DISBURSEMENT',
+                'DISTRIBUTION',
+                'WELFARE_FUND',
+                'INVESTMENT'
+            ])
             ->whereMonth('transaction_date', $month)
             ->whereYear('transaction_date', $year)
             ->sum('amount');
@@ -832,7 +880,7 @@ class CashflowController extends Controller
             'description' => $request->description,
             'amount' => $request->amount,
             'payment_method' => $request->payment_method,
-            'reference_type' => $request->reference_type,
+            'reference_type' => $request->reference_type ?? 'OTHER',
             'reference_number' => $request->reference_number,
             'fiscal_year_id' => $request->fiscal_year_id,
             'member_id' => $request->member_id,
@@ -1030,6 +1078,17 @@ class CashflowController extends Controller
     private function applyFiltersToQueries($request, $queries)
     {
         foreach ($queries as &$query) {
+            // Date range filter
+            if ($request->filled('date_from')) {
+                $dateField = $this->getDateFieldForQuery($query);
+                $query->where($dateField, '>=', $request->date_from);
+            }
+            
+            if ($request->filled('date_to')) {
+                $dateField = $this->getDateFieldForQuery($query);
+                $query->where($dateField, '<=', $request->date_to);
+            }
+            
             // Status filter - handle different status values across models
             if ($request->filled('status')) {
                 $status = $request->status;
@@ -1046,6 +1105,11 @@ class CashflowController extends Controller
                     $query->where(function($q) {
                         $q->where('status', 'pending')
                           ->orWhere('status', 'PENDING');
+                    });
+                } elseif ($status === 'reconciled') {
+                    $query->where(function($q) {
+                        $q->where('status', 'reconciled')
+                          ->orWhere('status', 'RECONCILED');
                     });
                 } else {
                     $query->where('status', $status);
@@ -1070,6 +1134,33 @@ class CashflowController extends Controller
             $query->where('category', $request->category);
         }
 
+        // Status filter - additional filtering for combined results
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === 'cleared') {
+                $query->where(function($q) {
+                    $q->where('status', 'cleared')
+                      ->orWhere('status', 'CLEARED')
+                      ->orWhere('status', 'distributed')
+                      ->orWhere('status', 'disbursed')
+                      ->orWhere('status', 'received')
+                      ->orWhere('status', 'paid');
+                });
+            } elseif ($status === 'pending') {
+                $query->where(function($q) {
+                    $q->where('status', 'pending')
+                      ->orWhere('status', 'PENDING');
+                });
+            } elseif ($status === 'reconciled') {
+                $query->where(function($q) {
+                    $q->where('status', 'reconciled')
+                      ->orWhere('status', 'RECONCILED');
+                });
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
         // Search filter
         if ($request->filled('search')) {
             $search = $request->search;
@@ -1083,6 +1174,22 @@ class CashflowController extends Controller
     }
     public function export(Request $request)
     {
-        return redirect()->back()->with('success', 'Export functionality coming soon!');
+        // Handle date range parsing
+        $this->parseDateRange($request);
+        
+        // Get all transactions (respecting current filters)
+        $transactions = $this->getAllTransactions($request)->get();
+        
+        // Build filename with date range if provided
+        $filename = 'cashflow_transactions_' . now()->format('Y_m_d_His');
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $filename .= '_' . $request->date_from . '_to_' . $request->date_to;
+        }
+        $filename .= '.xlsx';
+        
+        // Create the export
+        $export = new \App\Exports\CashflowExport($transactions);
+        
+        return Excel::download($export, $filename);
     }
 }

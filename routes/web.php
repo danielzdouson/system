@@ -60,6 +60,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('fiscal-years/{fiscalYear}/edit', [App\Http\Controllers\Admin\FiscalYearController::class, 'edit'])->name('fiscal-years.edit');
     Route::put('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'update'])->name('fiscal-years.update');
     Route::delete('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'destroy'])->name('fiscal-years.destroy');
+    Route::post('fiscal-years/{fiscalYear}/activate', [App\Http\Controllers\Admin\FiscalYearController::class, 'activate'])->name('fiscal-years.activate');
+    Route::post('fiscal-years/clear-session', [App\Http\Controllers\Admin\FiscalYearController::class, 'clearSession'])->name('fiscal-years.clear-session');
     
     // Carry Forward Routes
     Route::get('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForward'])->name('fiscal-years.carry-forward');
@@ -150,6 +152,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('cashflow/dashboard', [App\Http\Controllers\Admin\CashflowController::class, 'dashboard'])->name('cashflow.dashboard');
     Route::get('cashflow/monthly-statement', [App\Http\Controllers\Admin\CashflowController::class, 'monthlyStatement'])->name('cashflow.monthly-statement');
     Route::get('cashflow/fiscal-year-statement', [App\Http\Controllers\Admin\CashflowController::class, 'fiscalYearStatement'])->name('cashflow.fiscal-year-statement');
+    // Export routes must come BEFORE parameterized routes
+    Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
+    Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
+    Route::get('cashflow/comprehensive-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'comprehensiveMonthlyReport'])->name('cashflow.comprehensive-monthly');
+    // Parameterized routes must come AFTER specific routes
     Route::get('cashflow/{transaction}', [App\Http\Controllers\Admin\CashflowController::class, 'show'])->name('cashflow.show');
     Route::get('cashflow/{transaction}/edit', [App\Http\Controllers\Admin\CashflowController::class, 'edit'])->name('cashflow.edit');
     Route::put('cashflow/{transaction}', [App\Http\Controllers\Admin\CashflowController::class, 'update'])->name('cashflow.update');
@@ -157,9 +164,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('cashflow/{transaction}/approve', [App\Http\Controllers\Admin\CashflowController::class, 'approve'])->name('cashflow.approve');
     Route::post('cashflow/reconcile', [App\Http\Controllers\Admin\CashflowController::class, 'reconcile'])->name('cashflow.reconcile');
     Route::post('cashflow/bulk-approve', [App\Http\Controllers\Admin\CashflowController::class, 'bulkApprove'])->name('cashflow.bulk-approve');
-    Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
-    Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
-    Route::get('cashflow/comprehensive-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'comprehensiveMonthlyReport'])->name('cashflow.comprehensive-monthly');
 
     // Cash Flow Dashboard Routes
     Route::get('cashflow-dashboard', [App\Http\Controllers\Admin\CashFlowDashboardController::class, 'index'])->name('admin.cashflow.dashboard');

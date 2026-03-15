@@ -327,6 +327,6 @@ class InvestmentController extends Controller
      */
     private function getCurrentFiscalYear()
     {
-        return \App\Models\FiscalYear::where('status', 'active')->first()?->id;
+        return \App\Services\FiscalYearContext::getCurrent()?->id;
     }
 }

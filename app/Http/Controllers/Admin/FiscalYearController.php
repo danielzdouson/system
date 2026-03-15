@@ -30,17 +30,20 @@ class FiscalYearController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        // If setting as active, deactivate all other fiscal years
-        if ($request->status == 'active') {
-            FiscalYear::where('status', 'active')->update(['status' => 'inactive']);
-        }
-
         $fiscalYear = FiscalYear::create([
             'name' => $request->name,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'status' => $request->status,
         ]);
+
+        // If setting as active, deactivate all others and set as session default
+        if ($request->status == 'active') {
+            FiscalYear::where('status', 'active')->update(['status' => 'inactive']);
+            
+            // Also set as the viewing fiscal year
+            session(['current_fiscal_year_id' => $fiscalYear->id]);
+        }
 
         return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" created successfully!');
@@ -60,11 +63,14 @@ class FiscalYearController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        // If setting as active, deactivate all other fiscal years
+        // If setting as active, deactivate all others and set as session default
         if ($request->status == 'active') {
             FiscalYear::where('id', '!=', $fiscalYear->id)
                 ->where('status', 'active')
                 ->update(['status' => 'inactive']);
+            
+            // Also set as the viewing fiscal year
+            session(['current_fiscal_year_id' => $fiscalYear->id]);
         }
 
         $fiscalYear->update([
@@ -76,6 +82,23 @@ class FiscalYearController extends Controller
 
         return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" updated successfully!');
+    }
+
+    public function activate(FiscalYear $fiscalYear)
+    {
+        // Store in session - this is the global "current viewing fiscal year"
+        session(['current_fiscal_year_id' => $fiscalYear->id]);
+        
+        return redirect()->back()
+            ->with('success', 'Now viewing fiscal year: ' . $fiscalYear->name);
+    }
+
+    public function clearSession()
+    {
+        session()->forget('current_fiscal_year_id');
+        
+        return redirect()->route('admin.fiscal-years.index')
+            ->with('info', 'Fiscal year selection cleared. Please select a fiscal year to view data.');
     }
 
     public function destroy(FiscalYear $fiscalYear)

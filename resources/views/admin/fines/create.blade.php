@@ -37,8 +37,11 @@
                                 <select name="fiscal_year_id" class="form-select @error('fiscal_year_id') is-invalid @enderror" required>
                                     <option value="">Select Fiscal Year</option>
                                     @foreach($fiscalYears as $year)
-                                        <option value="{{ $year->id }}" {{ old('fiscal_year_id') == $year->id ? 'selected' : '' }}>
+                                        <option value="{{ $year->id }}" {{ (old('fiscal_year_id') ?? $currentFiscalYear?->id) == $year->id ? 'selected' : '' }}>
                                             {{ $year->name }}
+                                            @if($currentFiscalYear && $currentFiscalYear->id == $year->id)
+                                                (Current)
+                                            @endif
                                         </option>
                                     @endforeach
                                 </select>

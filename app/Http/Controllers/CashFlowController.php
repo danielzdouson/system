@@ -10,6 +10,7 @@ use App\Models\Fine;
 use App\Models\FinePayment;
 use App\Models\Distribution;
 use App\Models\FiscalYear;
+use App\Services\FiscalYearContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -84,7 +85,7 @@ class CashFlowController extends Controller
 
     public function monthlyDashboard(Request $request)
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         $currentMonth = $request->get('month', Carbon::now()->month);
         $currentYear = $request->get('year', Carbon::now()->year);
         

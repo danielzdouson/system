@@ -94,6 +94,64 @@ class FiscalYear extends Model
         return $this->savings()->where('status', 'pending')->count();
     }
 
+    public function getCarriedForwardDepositsAttribute()
+    {
+        // Count only carried forward deposits
+        return $this->deposits()->where('is_carried_forward', true)->sum('amount');
+    }
+
+    public function getCarriedForwardSavingsAttribute()
+    {
+        // Calculate only carried forward savings amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'savings')->sum('amount');
+    }
+
+    public function getCarriedForwardWelfareAttribute()
+    {
+        // Calculate only carried forward welfare amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'welfare')->sum('amount');
+    }
+
+    public function getCarriedForwardFinesAttribute()
+    {
+        // Calculate only carried forward fine payments
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'fines')->sum('amount');
+    }
+
+    public function getCarriedForwardOtherAttribute()
+    {
+        // Calculate only carried forward other amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'other')->sum('amount');
+    }
+
+    public function hasCarriedForwardItemsAttribute()
+    {
+        // Check if fiscal year has any carried forward items
+        return $this->deposits()->where('is_carried_forward', true)->exists() ||
+               Distribution::whereHas('deposit', function($query) {
+                   $query->where('fiscal_year_id', $this->id)
+                         ->where('is_carried_forward', true);
+               })->exists() ||
+               \App\Models\Loan::where('fiscal_year_id', $this->id)
+                   ->where('is_carried_forward', true)
+                   ->exists() ||
+               \App\Models\Fine::where('fiscal_year_id', $this->id)
+                   ->where('is_carried_forward', true)
+                   ->exists();
+    }
+
     public static function getActive()
     {
         return self::where('status', 'active')->first();
