@@ -167,6 +167,18 @@ class GroupSavingsController extends Controller
         $this->applyAutomaticFines($activeFiscalYear);
 
         $fines = Fine::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where(function($q) use ($activeFiscalYear) {
+                // Only show pending/waived fines, or paid fines from current fiscal year
+                $q->whereIn('status', ['pending', 'waived'])
+                  ->orWhere(function($subQ) use ($activeFiscalYear) {
+                      // Paid fines only if they belong to current fiscal year (not carried forward)
+                      $subQ->where('status', 'paid')
+                           ->where(function($fq) use ($activeFiscalYear) {
+                               $fq->whereNull('original_fiscal_year_id')
+                                  ->orWhere('original_fiscal_year_id', $activeFiscalYear->id);
+                           });
+                  });
+            })
             ->with(['member'])
             ->orderBy('status', 'asc')
             ->orderBy('month', 'asc')
@@ -439,22 +451,17 @@ class GroupSavingsController extends Controller
 
     public function monthlyView($month)
     {
-        // Get selected fiscal year from session or auto-detect current
-        $selectedYearId = session('selected_fiscal_year');
-        if ($selectedYearId) {
-            $activeFiscalYear = FiscalYear::find($selectedYearId);
-        } else {
-            // Auto-detect current fiscal year
-            $currentDate = now();
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-        }
+        // Use global fiscal year context - STRICT MODE
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No fiscal year found');
+            return view('admin.group-savings.monthly', [
+                'activeFiscalYear' => null,
+                'month' => $month,
+                'monthName' => $this->getMonthName($month),
+                'monthlyData' => [],
+                'showOnlyCarriedForward' => false,
+            ]);
         }
 
         // Apply automatic fines first
@@ -567,7 +574,7 @@ class GroupSavingsController extends Controller
 
     public function createDeposit()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         $members = Member::all();
 
         $response = view('admin.group-savings.create-deposit', [
@@ -591,10 +598,10 @@ class GroupSavingsController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No active fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         // Check for actual duplicate deposit (same member, month, amount, and date)
@@ -836,11 +843,13 @@ class GroupSavingsController extends Controller
 
     public function pendingMonths()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No active fiscal year found');
+            return view('admin.group-savings.pending', [
+                'activeFiscalYear' => null,
+                'pendingSavings' => collect(),
+            ]);
         }
 
         // Get all pending savings
@@ -866,10 +875,10 @@ class GroupSavingsController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No active fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $fine = Fine::create([
@@ -919,17 +928,16 @@ class GroupSavingsController extends Controller
 
     public function distributeBalance($memberId, $month, $fiscalYearId = null)
     {
-        // Get fiscal year from parameter or session
+        // Get fiscal year from parameter or use global context
         if ($fiscalYearId) {
             $activeFiscalYear = FiscalYear::find($fiscalYearId);
         } else {
-            $selectedYearId = session('selected_fiscal_year');
-            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+            $activeFiscalYear = FiscalYearContext::getCurrent();
         }
 
         if (!$activeFiscalYear) {
             return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No fiscal year found');
+                ->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $member = Member::findOrFail($memberId);
@@ -976,12 +984,11 @@ class GroupSavingsController extends Controller
         if ($fiscalYearId) {
             $activeFiscalYear = FiscalYear::find($fiscalYearId);
         } else {
-            $selectedYearId = session('selected_fiscal_year');
-            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+            $activeFiscalYear = FiscalYearContext::getCurrent();
         }
 
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $member = Member::findOrFail($memberId);

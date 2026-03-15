@@ -143,23 +143,43 @@ class MemberFinancialSummaryService
     /**
      * Get summary statistics for all members
      */
-    public function getMembersSummaryStats()
+    public function getMembersSummaryStats($fiscalYear = null)
     {
         $members = Member::count();
         
+        // Build queries with optional fiscal year filtering
+        $depositQuery = Deposit::query();
+        $memberAccountQuery = MemberAccount::query();
+        $fineQuery = Fine::where('status', 'pending');
+        $loanQuery = \App\Models\Loan::whereNotIn('status', ['completed', 'paid']);
+        
+        if ($fiscalYear) {
+            // Filter deposits by date range
+            $depositQuery->whereBetween('deposit_date', [$fiscalYear->start_date, $fiscalYear->end_date]);
+            
+            // Filter member accounts by fiscal year
+            $memberAccountQuery->where('fiscal_year_id', $fiscalYear->id);
+            
+            // Filter fines by fiscal year
+            $fineQuery->where('fiscal_year_id', $fiscalYear->id);
+            
+            // Filter loans by fiscal year
+            $loanQuery->where('fiscal_year_id', $fiscalYear->id);
+        }
+        
         $stats = [
             'total_members' => $members,
-            'total_deposits' => Deposit::sum('amount'),
-            'total_savings' => MemberAccount::sum('savings_balance'),
-            'total_welfare' => MemberAccount::sum('welfare_balance'),
-            'total_outstanding_fines' => Fine::where('status', 'pending')->sum('amount'),
-            'total_loan_balance' => \App\Models\Loan::whereNotIn('status', ['completed', 'paid'])->sum('balance'),
-            'total_available_balance' => MemberAccount::sum('current_balance'),
-            'total_distributed_funds' => MemberAccount::sum('total_distributed'),
+            'total_deposits' => $depositQuery->sum('amount'),
+            'total_savings' => (clone $memberAccountQuery)->sum('savings_balance'),
+            'total_welfare' => (clone $memberAccountQuery)->sum('welfare_balance'),
+            'total_outstanding_fines' => $fineQuery->sum('amount'),
+            'total_loan_balance' => $loanQuery->sum('balance'),
+            'total_available_balance' => (clone $memberAccountQuery)->sum('current_balance'),
+            'total_distributed_funds' => (clone $memberAccountQuery)->sum('total_distributed'),
         ];
 
         // Handle shares calculation - total should be 100% (sum of all member percentages)
-        $totalGroupSavings = MemberAccount::sum('savings_balance');
+        $totalGroupSavings = (clone $memberAccountQuery)->sum('savings_balance');
         $stats['total_shares_on_hold'] = 0; // Can be calculated based on business rules
         $stats['total_shares'] = ($totalGroupSavings > 0) ? 100 : 0; // Total percentage should be 100%
 

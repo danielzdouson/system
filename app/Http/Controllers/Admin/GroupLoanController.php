@@ -319,7 +319,17 @@ class GroupLoanController extends Controller
     {
         $currentFiscalYear = FiscalYearContext::getCurrent();
         
-        $loans = Loan::with(['member', 'repaymentSchedules'])
+        $loansQuery = Loan::with(['member', 'repaymentSchedules']);
+        
+        // Filter by fiscal year if selected
+        if ($currentFiscalYear) {
+            $loansQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            // Show no data if no fiscal year selected
+            $loansQuery->whereRaw('1 = 0');
+        }
+        
+        $loans = $loansQuery
             ->when(request('status'), function($query, $status) {
                 $query->where('status', $status);
             })

@@ -21,7 +21,7 @@ class WelfareFundObserver
                 'subcategory' => 'Welfare Fund Distribution',
                 'description' => $welfareFund->description ?: "Welfare fund allocation for month {$welfareFund->month}",
                 'amount' => $welfareFund->amount,
-                'reference_type' => 'WELFARE_FUND',
+                'reference_type' => 'WELFARE_PAYMENT',
                 'reference_id' => $welfareFund->id,
                 'reference_number' => 'WELFARE-' . str_pad($welfareFund->id, 6, '0', STR_PAD_LEFT),
                 'payment_method' => 'internal_transfer',
@@ -41,7 +41,7 @@ class WelfareFundObserver
     {
         // Update corresponding cashflow transaction if amount changed
         if ($welfareFund->wasChanged('amount')) {
-            $cashflow = CashflowTransaction::where('reference_type', 'WELFARE_FUND')
+            $cashflow = CashflowTransaction::where('reference_type', 'WELFARE_PAYMENT')
                 ->where('reference_id', $welfareFund->id)
                 ->first();
 
@@ -69,7 +69,7 @@ class WelfareFundObserver
     public function deleted(WelfareFund $welfareFund): void
     {
         // Delete corresponding cashflow transaction
-        CashflowTransaction::where('reference_type', 'WELFARE_FUND')
+        CashflowTransaction::where('reference_type', 'WELFARE_PAYMENT')
             ->where('reference_id', $welfareFund->id)
             ->delete();
     }

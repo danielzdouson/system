@@ -28,7 +28,7 @@ class LoanPenaltyObserver
                 'subcategory' => 'Loan Penalty Payment',
                 'description' => "Loan penalty payment from {$memberName} - Loan {$loanNumber} ({$loanPenalty->penalty_type})",
                 'amount' => $loanPenalty->penalty_amount,
-                'reference_type' => 'LOAN_PENALTY',
+                'reference_type' => 'OTHER',
                 'reference_id' => $loanPenalty->id,
                 'reference_number' => 'PENALTY-' . str_pad($loanPenalty->id, 6, '0', STR_PAD_LEFT),
                 'payment_method' => 'cash',
@@ -47,7 +47,7 @@ class LoanPenaltyObserver
     public function deleted(LoanPenalty $loanPenalty): void
     {
         // Delete corresponding cashflow transactions
-        CashflowTransaction::where('reference_type', 'LOAN_PENALTY')
+        CashflowTransaction::where('reference_type', 'OTHER')
             ->where('reference_id', $loanPenalty->id)
             ->delete();
     }

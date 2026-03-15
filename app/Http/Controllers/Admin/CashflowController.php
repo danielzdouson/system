@@ -203,19 +203,31 @@ class CashflowController extends Controller
      */
     private function getAllTransactions($request = null)
     {
+        // Get current fiscal year for filtering
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
         // Manual CashFlow entries
-        $cashFlowQuery = CashFlow::query()
-            ->select([
+        $cashFlowQuery = CashFlow::query();
+        
+        // Filter by fiscal year if selected
+        if ($currentFiscalYear) {
+            $cashFlowQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            // Show no data if no fiscal year selected
+            $cashFlowQuery->whereRaw('1 = 0');
+        }
+        
+        $cashFlowQuery->select([
                 'id',
                 'transaction_date',
                 'description',
                 'reference_number',
-                DB::raw("'income' as type"),
+                'type',
                 'category',
                 'amount',
                 'payment_method',
                 'status',
-                'user_id as member_id',
+                DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'CashFlow' as source_model"),
                 DB::raw("'Manual Entry' as transaction_source")
@@ -225,8 +237,13 @@ class CashflowController extends Controller
         // Observer-generated records for DEPOSIT, LOAN_DISBURSEMENT, LOAN_REPAYMENT,
         // DISTRIBUTION, WELFARE_FUND, FINE_PAYMENT, LOAN_PENALTY, INVESTMENT are
         // already covered by their respective source table queries below
-        $cashflowTransactionQuery = CashflowTransaction::query()
-            ->where(function($q) {
+        $cashflowTransactionQuery = CashflowTransaction::query();
+        
+        // First, exclude observer-generated records (before any other filters)
+        // Observer-generated records for DEPOSIT, LOAN_DISBURSEMENT, LOAN_REPAYMENT,
+        // DISTRIBUTION, WELFARE_FUND, FINE_PAYMENT, LOAN_PENALTY, INVESTMENT are
+        // already covered by their respective source table queries below
+        $cashflowTransactionQuery->where(function($q) {
                 $q->whereNotIn('reference_type', [
                     'DEPOSIT',
                     'LOAN_DISBURSEMENT',
@@ -238,8 +255,16 @@ class CashflowController extends Controller
                     'INVESTMENT'
                 ])
                 ->orWhereNull('reference_type');
-            })
-            ->select([
+            });
+        
+        // Filter by fiscal year if selected
+        if ($currentFiscalYear) {
+            $cashflowTransactionQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $cashflowTransactionQuery->whereRaw('1 = 0');
+        }
+        
+        $cashflowTransactionQuery->select([
                 'id',
                 'transaction_date',
                 'description',
@@ -256,8 +281,14 @@ class CashflowController extends Controller
             ]);
 
         // Member Deposits (INFLOW)
-        $depositQuery = Deposit::query()
-            ->select([
+        $depositQuery = Deposit::query();
+        if ($currentFiscalYear) {
+            // Deposits have fiscal_year_id, use it for filtering
+            $depositQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $depositQuery->whereRaw('1 = 0');
+        }
+        $depositQuery->select([
                 'id',
                 'deposit_date as transaction_date',
                 DB::raw("'Member Savings Deposit' as description"),
@@ -274,8 +305,14 @@ class CashflowController extends Controller
             ]);
 
         // Savings Distributions (OUTFLOW)
-        $distributionQuery = Distribution::query()
-            ->select([
+        $distributionQuery = Distribution::query();
+        if ($currentFiscalYear) {
+            // Distributions have fiscal_year_id, use it for filtering
+            $distributionQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $distributionQuery->whereRaw('1 = 0');
+        }
+        $distributionQuery->select([
                 'id',
                 'created_at as transaction_date',
                 'description',
@@ -292,8 +329,13 @@ class CashflowController extends Controller
             ]);
 
         // Loan Disbursements (OUTFLOW)
-        $loanQuery = Loan::query()
-            ->whereNotNull('disbursement_date')
+        $loanQuery = Loan::query();
+        if ($currentFiscalYear) {
+            $loanQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $loanQuery->whereRaw('1 = 0');
+        }
+        $loanQuery->whereNotNull('disbursement_date')
             ->select([
                 'id',
                 'disbursement_date as transaction_date',
@@ -311,8 +353,14 @@ class CashflowController extends Controller
             ]);
 
         // Loan Repayments (INFLOW)
-        $loanRepaymentQuery = LoanRepayment::query()
-            ->select([
+        $loanRepaymentQuery = LoanRepayment::query();
+        if ($currentFiscalYear) {
+            // LoanRepayments don't have fiscal_year_id, filter by date range
+            $loanRepaymentQuery->whereBetween('paid_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date]);
+        } else {
+            $loanRepaymentQuery->whereRaw('1 = 0');
+        }
+        $loanRepaymentQuery->select([
                 'id',
                 'paid_at as transaction_date',
                 DB::raw("CONCAT('Loan Repayment - ', reference) as description"),
@@ -329,8 +377,13 @@ class CashflowController extends Controller
             ]);
 
         // Fines (INFLOW - when paid)
-        $fineQuery = Fine::query()
-            ->where('status', 'paid')
+        $fineQuery = Fine::query();
+        if ($currentFiscalYear) {
+            $fineQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $fineQuery->whereRaw('1 = 0');
+        }
+        $fineQuery->where('status', 'paid')
             ->select([
                 'id',
                 'updated_at as transaction_date',
@@ -348,8 +401,14 @@ class CashflowController extends Controller
             ]);
 
         // Welfare Fund Distributions (OUTFLOW)
-        $welfareQuery = WelfareFund::query()
-            ->select([
+        $welfareQuery = WelfareFund::query();
+        if ($currentFiscalYear) {
+            // WelfareFunds don't have fiscal_year_id, filter by date range
+            $welfareQuery->whereBetween('created_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date]);
+        } else {
+            $welfareQuery->whereRaw('1 = 0');
+        }
+        $welfareQuery->select([
                 'id',
                 'created_at as transaction_date',
                 DB::raw("'Welfare Fund Distribution' as description"),
@@ -366,8 +425,14 @@ class CashflowController extends Controller
             ]);
 
         // Loan Penalties (INFLOW - when paid)
-        $loanPenaltyQuery = LoanPenalty::query()
-            ->where('status', 'paid')
+        $loanPenaltyQuery = LoanPenalty::query();
+        if ($currentFiscalYear) {
+            // LoanPenalties don't have fiscal_year_id, filter by date range
+            $loanPenaltyQuery->whereBetween('paid_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date]);
+        } else {
+            $loanPenaltyQuery->whereRaw('1 = 0');
+        }
+        $loanPenaltyQuery->where('status', 'paid')
             ->whereNotNull('paid_date')
             ->select([
                 'id',
@@ -386,8 +451,14 @@ class CashflowController extends Controller
             ]);
 
         // Investment Transactions (both inflows and outflows)
-        $investmentTransactionQuery = InvestmentTransaction::query()
-            ->with('investment')
+        $investmentTransactionQuery = InvestmentTransaction::query();
+        if ($currentFiscalYear) {
+            // InvestmentTransactions don't have fiscal_year_id, filter by date range
+            $investmentTransactionQuery->whereBetween('investment_transactions.transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date]);
+        } else {
+            $investmentTransactionQuery->whereRaw('1 = 0');
+        }
+        $investmentTransactionQuery->with('investment')
             ->select([
                 'investment_transactions.id',
                 'investment_transactions.transaction_date',
@@ -552,10 +623,17 @@ class CashflowController extends Controller
     private function calculateTotalInflows($request = null)
     {
         $total = 0;
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        // If no fiscal year selected, return 0
+        if (!$currentFiscalYear) {
+            return 0;
+        }
 
         // From CashFlow (income)
         $total += CashFlow::where('type', 'income')
             ->where('status', 'cleared')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('transaction_date', '>=', $request->date_from);
             })
@@ -568,6 +646,7 @@ class CashflowController extends Controller
         // to avoid double counting (we already count from source tables)
         $total += CashflowTransaction::where('transaction_type', 'INFLOW')
             ->where('status', 'CLEARED')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->whereNotIn('reference_type', [
                 'DEPOSIT',
                 'LOAN_REPAYMENT',
@@ -586,6 +665,7 @@ class CashflowController extends Controller
 
         // From Deposits
         $total += Deposit::where('status', 'cleared')
+            ->whereBetween('deposit_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('deposit_date', '>=', $request->date_from);
             })
@@ -595,7 +675,8 @@ class CashflowController extends Controller
             ->sum('amount');
 
         // From Loan Repayments
-        $total += LoanRepayment::when($request && $request->filled('date_from'), function($q) use ($request) {
+        $total += LoanRepayment::whereBetween('paid_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('paid_at', '>=', $request->date_from);
             })
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
@@ -605,6 +686,7 @@ class CashflowController extends Controller
 
         // From Fines (paid)
         $total += Fine::where('status', 'paid')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('updated_at', '>=', $request->date_from);
             })
@@ -616,6 +698,7 @@ class CashflowController extends Controller
         // From Loan Penalties (paid)
         $total += LoanPenalty::where('status', 'paid')
             ->whereNotNull('paid_date')
+            ->whereBetween('paid_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('paid_date', '>=', $request->date_from);
             })
@@ -633,10 +716,17 @@ class CashflowController extends Controller
     private function calculateTotalOutflows($request = null)
     {
         $total = 0;
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        // If no fiscal year selected, return 0
+        if (!$currentFiscalYear) {
+            return 0;
+        }
 
         // From CashFlow (expense)
         $total += CashFlow::where('type', 'expense')
             ->where('status', 'cleared')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('transaction_date', '>=', $request->date_from);
             })
@@ -649,6 +739,7 @@ class CashflowController extends Controller
         // to avoid double counting (we already count from source tables)
         $total += CashflowTransaction::where('transaction_type', 'OUTFLOW')
             ->where('status', 'CLEARED')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->whereNotIn('reference_type', [
                 'LOAN_DISBURSEMENT',
                 'DISTRIBUTION',
@@ -664,7 +755,8 @@ class CashflowController extends Controller
             ->sum('amount');
 
         // From Distributions
-        $total += Distribution::when($request && $request->filled('date_from'), function($q) use ($request) {
+        $total += Distribution::whereBetween('created_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('created_at', '>=', $request->date_from);
             })
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
@@ -674,6 +766,7 @@ class CashflowController extends Controller
 
         // From Loan Disbursements
         $total += Loan::whereNotNull('disbursement_date')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('disbursement_date', '>=', $request->date_from);
             })
@@ -683,7 +776,8 @@ class CashflowController extends Controller
             ->sum('principal_amount');
 
         // From Welfare Funds
-        $total += WelfareFund::when($request && $request->filled('date_from'), function($q) use ($request) {
+        $total += WelfareFund::whereBetween('created_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('created_at', '>=', $request->date_from);
             })
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
@@ -699,9 +793,21 @@ class CashflowController extends Controller
      */
     private function calculatePendingCount()
     {
-        return CashflowTransaction::where('status', 'PENDING')->count() +
-               CashFlow::where('status', 'pending')->count() +
-               Fine::where('status', 'pending')->count();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        if (!$currentFiscalYear) {
+            return 0;
+        }
+        
+        return CashflowTransaction::where('status', 'PENDING')
+                   ->where('fiscal_year_id', $currentFiscalYear->id)
+                   ->count() +
+               CashFlow::where('status', 'pending')
+                   ->where('fiscal_year_id', $currentFiscalYear->id)
+                   ->count() +
+               Fine::where('status', 'pending')
+                   ->where('fiscal_year_id', $currentFiscalYear->id)
+                   ->count();
     }
 
     /**

@@ -81,13 +81,19 @@
         <p>Comprehensive financial overview and member standings</p>
     </div>
 @php
-    // Get real financial data from service
-    $memberFinancialService = new \App\Services\MemberFinancialSummaryService();
-    $stats = $memberFinancialService->getMembersSummaryStats();
-    
-    // Calculate cash flow data
-    $cashFlowIncome = \App\Models\CashFlow::where('type', 'income')->sum('amount');
-    $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')->sum('amount');
+    // Stats are now passed from controller, already filtered by fiscal year
+    // Calculate cash flow data - filter by current fiscal year
+    if ($currentFiscalYear) {
+        $cashFlowIncome = \App\Models\CashFlow::where('type', 'income')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('amount');
+        $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('amount');
+    } else {
+        $cashFlowIncome = 0;
+        $cashFlowExpenses = 0;
+    }
     $netCashFlow = $cashFlowIncome - $cashFlowExpenses;
     
     @endphp

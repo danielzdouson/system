@@ -34,7 +34,19 @@ class FineController extends Controller
         
         // Build query with filters - use global fiscal year
         $query = Fine::with(['member', 'fiscalYear', 'creator'])
-            ->where('fiscal_year_id', $activeFiscalYear->id);
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->where(function($q) use ($activeFiscalYear) {
+                // Only show pending/waived fines, or paid fines from current fiscal year
+                $q->whereIn('status', ['pending', 'waived'])
+                  ->orWhere(function($subQ) use ($activeFiscalYear) {
+                      // Paid fines only if they belong to current fiscal year (not carried forward)
+                      $subQ->where('status', 'paid')
+                           ->where(function($fq) use ($activeFiscalYear) {
+                               $fq->whereNull('original_fiscal_year_id')
+                                  ->orWhere('original_fiscal_year_id', $activeFiscalYear->id);
+                           });
+                  });
+            });
         
         // Apply filters
         if ($request->filled('status')) {

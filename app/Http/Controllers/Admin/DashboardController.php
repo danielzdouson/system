@@ -37,17 +37,10 @@ class DashboardController
     {
         if (!$currentFiscalYear) return 0;
         
-        return GroupSaving::where('fiscal_year_id', $currentFiscalYear->id)
-            ->sum('amount') + 
-            Deposit::where('fiscal_year_id', $currentFiscalYear->id)
-                ->whereHas('distributions', function($query) {
-                    $query->where('type', 'savings');
-                })
-                ->with('distributions')
-                ->get()
-                ->sum(function($deposit) {
-                    return $deposit->distributions->where('type', 'savings')->sum('amount');
-                });
+        // Use MemberAccount savings_balance as the single source of truth
+        // This represents the actual current savings for each member in this fiscal year
+        return \App\Models\MemberAccount::where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('savings_balance');
     }
 
     private function getActiveLoans($currentFiscalYear)

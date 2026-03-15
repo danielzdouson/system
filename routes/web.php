@@ -84,18 +84,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     // Enhanced Fines Management Routes (Dedicated System)
     Route::prefix('fines')->name('fines.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\FineController::class, 'index'])->name('index');
-        Route::get('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'show'])->name('show');
         Route::get('/create', [App\Http\Controllers\Admin\FineController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\FineController::class, 'store'])->name('store');
+        Route::get('/reports', [App\Http\Controllers\Admin\FineController::class, 'reports'])->name('reports');
+        Route::get('/export', [App\Http\Controllers\Admin\FineController::class, 'export'])->name('export');
+        Route::post('/bulk-apply', [App\Http\Controllers\Admin\FineController::class, 'bulkApply'])->name('bulk-apply');
+        Route::post('/auto-apply', [App\Http\Controllers\Admin\FineController::class, 'autoApply'])->name('auto-apply');
+        Route::get('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'show'])->name('show');
         Route::get('/{fine}/edit', [App\Http\Controllers\Admin\FineController::class, 'edit'])->name('edit');
         Route::put('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'update'])->name('update');
         Route::delete('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'destroy'])->name('destroy');
         Route::post('/{fine}/pay', [App\Http\Controllers\Admin\FineController::class, 'pay'])->name('pay');
         Route::post('/{fine}/waive', [App\Http\Controllers\Admin\FineController::class, 'waive'])->name('waive');
-        Route::post('/bulk-apply', [App\Http\Controllers\Admin\FineController::class, 'bulkApply'])->name('bulk-apply');
-        Route::post('/auto-apply', [App\Http\Controllers\Admin\FineController::class, 'autoApply'])->name('auto-apply');
-        Route::get('/reports', [App\Http\Controllers\Admin\FineController::class, 'reports'])->name('reports');
-        Route::get('/export', [App\Http\Controllers\Admin\FineController::class, 'export'])->name('export');
     });
 
     // Legacy Group Savings Fines Routes (Keep for backward compatibility)
@@ -129,9 +129,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('group-loans/reports', [App\Http\Controllers\Admin\GroupLoanController::class, 'reports'])->name('group-loans.reports');
 
     // Financials Routes
-    Route::get('financials', function() {
-        return view('admin.financials.index');
-    })->name('financials.index');
+    Route::get('financials', [App\Http\Controllers\Admin\FinancialController::class, 'index'])->name('financials.index');
     
     Route::get('financials/create', function() {
         $members = \App\Models\Member::latest()->get();

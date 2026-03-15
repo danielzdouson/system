@@ -48,7 +48,7 @@ class DistributionObserver
             'subcategory' => $mapping['subcategory'],
             'description' => $distribution->description ?: $mapping['description'],
             'amount' => $distribution->amount,
-            'reference_type' => 'DISTRIBUTION',
+            'reference_type' => 'OTHER',
             'reference_id' => $distribution->id,
             'reference_number' => 'DIST-' . str_pad($distribution->id, 6, '0', STR_PAD_LEFT),
             'payment_method' => 'internal_transfer',
@@ -67,7 +67,7 @@ class DistributionObserver
     {
         // Update corresponding cashflow transaction if amount changed
         if ($distribution->wasChanged('amount')) {
-            $cashflow = CashflowTransaction::where('reference_type', 'DISTRIBUTION')
+            $cashflow = CashflowTransaction::where('reference_type', 'OTHER')
                 ->where('reference_id', $distribution->id)
                 ->first();
 
@@ -86,7 +86,7 @@ class DistributionObserver
     public function deleted(Distribution $distribution): void
     {
         // Delete corresponding cashflow transaction
-        CashflowTransaction::where('reference_type', 'DISTRIBUTION')
+        CashflowTransaction::where('reference_type', 'OTHER')
             ->where('reference_id', $distribution->id)
             ->delete();
     }
