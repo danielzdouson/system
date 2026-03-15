@@ -239,43 +239,44 @@ class CashflowController extends Controller
         // already covered by their respective source table queries below
         $cashflowTransactionQuery = CashflowTransaction::query();
         
-        // First, exclude observer-generated records (before any other filters)
-        // Observer-generated records for DEPOSIT, LOAN_DISBURSEMENT, LOAN_REPAYMENT,
-        // DISTRIBUTION, WELFARE_FUND, FINE_PAYMENT, LOAN_PENALTY, INVESTMENT are
-        // already covered by their respective source table queries below
-        $cashflowTransactionQuery->where(function($q) {
-                $q->whereNotIn('reference_type', [
-                    'DEPOSIT',
-                    'LOAN_DISBURSEMENT',
-                    'LOAN_REPAYMENT',
-                    'DISTRIBUTION',
-                    'WELFARE_FUND',
-                    'FINE_PAYMENT',
-                    'LOAN_PENALTY',
-                    'INVESTMENT'
-                ])
-                ->orWhereNull('reference_type');
-            });
+        // Exclude observer-generated records to prevent duplicates
+        // These transactions are already included from their source tables
+        $cashflowTransactionQuery->whereNotIn('reference_type', [
+                'DEPOSIT',
+                'LOAN_DISBURSEMENT',
+                'LOAN_REPAYMENT',
+                'DISTRIBUTION',
+                'WELFARE_FUND',
+                'FINE_PAYMENT',
+                'LOAN_PENALTY',
+                'INVESTMENT',
+                'OTHER'  // DistributionObserver uses 'OTHER' for distributions
+            ]);
         
         // Filter by fiscal year if selected
         if ($currentFiscalYear) {
-            $cashflowTransactionQuery->where('fiscal_year_id', $currentFiscalYear->id);
+            $cashflowTransactionQuery->where('cashflow_transactions.fiscal_year_id', $currentFiscalYear->id);
         } else {
             $cashflowTransactionQuery->whereRaw('1 = 0');
         }
         
-        $cashflowTransactionQuery->select([
-                'id',
-                'transaction_date',
-                'description',
-                'reference_number',
-                DB::raw("CASE WHEN transaction_type = 'INFLOW' THEN 'income' ELSE 'expense' END as type"),
-                'category',
-                'amount',
-                'payment_method',
-                'status',
-                'member_id',
-                'created_at',
+        // Left join with members to add names when member_id exists
+        $cashflowTransactionQuery->leftJoin('members', 'cashflow_transactions.member_id', '=', 'members.id')
+            ->select([
+                'cashflow_transactions.id',
+                'cashflow_transactions.transaction_date',
+                DB::raw("CASE 
+                    WHEN cashflow_transactions.member_id IS NOT NULL THEN CONCAT(cashflow_transactions.description, ' - ', members.first_name, ' ', members.last_name)
+                    ELSE cashflow_transactions.description
+                END as description"),
+                'cashflow_transactions.reference_number',
+                DB::raw("CASE WHEN cashflow_transactions.transaction_type = 'INFLOW' THEN 'income' ELSE 'expense' END as type"),
+                'cashflow_transactions.category',
+                'cashflow_transactions.amount',
+                'cashflow_transactions.payment_method',
+                'cashflow_transactions.status',
+                'cashflow_transactions.member_id',
+                'cashflow_transactions.created_at',
                 DB::raw("'CashflowTransaction' as source_model"),
                 DB::raw("'Cashflow Transaction' as transaction_source")
             ]);
@@ -288,20 +289,21 @@ class CashflowController extends Controller
         } else {
             $depositQuery->whereRaw('1 = 0');
         }
-        $depositQuery->select([
-                'id',
+        $depositQuery->join('members', 'deposits.member_id', '=', 'members.id')
+            ->select([
+                'deposits.id',
                 'deposit_date as transaction_date',
-                DB::raw("'Member Savings Deposit' as description"),
-                DB::raw("CONCAT('DEP-', id) as reference_number"),
+                DB::raw("CONCAT('Savings Deposit - ', members.first_name, ' ', members.last_name) as description"),
+                DB::raw("CONCAT('DEP-', deposits.id) as reference_number"),
                 DB::raw("'income' as type"),
                 DB::raw("'OPERATING' as category"),
-                'amount',
-                DB::raw("'savings' as payment_method"),
-                'status',
-                'member_id',
-                'created_at',
+                'deposits.amount',
+                DB::raw("'Cash' as payment_method"),
+                'deposits.status',
+                'deposits.member_id',
+                'deposits.created_at',
                 DB::raw("'Deposit' as source_model"),
-                DB::raw("'Member Deposits' as transaction_source")
+                DB::raw("'Deposit' as transaction_source")
             ]);
 
         // Savings Distributions (OUTFLOW)
@@ -315,17 +317,17 @@ class CashflowController extends Controller
         $distributionQuery->select([
                 'id',
                 'created_at as transaction_date',
-                'description',
+                DB::raw("CONCAT('Distribution - ', type) as description"),
                 DB::raw("CONCAT('DIST-', id) as reference_number"),
                 DB::raw("'expense' as type"),
                 DB::raw("'OPERATING' as category"),
                 'amount',
-                DB::raw("'distribution' as payment_method"),
+                DB::raw("'Transfer' as payment_method"),
                 DB::raw("'distributed' as status"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'Distribution' as source_model"),
-                DB::raw("'Savings Distribution' as transaction_source")
+                DB::raw("'Distribution' as transaction_source")
             ]);
 
         // Loan Disbursements (OUTFLOW)
@@ -336,20 +338,21 @@ class CashflowController extends Controller
             $loanQuery->whereRaw('1 = 0');
         }
         $loanQuery->whereNotNull('disbursement_date')
+            ->join('members', 'loans.member_id', '=', 'members.id')
             ->select([
-                'id',
+                'loans.id',
                 'disbursement_date as transaction_date',
-                DB::raw("CONCAT('Loan Disbursement - ', loan_number) as description"),
+                DB::raw("CONCAT('Loan Disbursement - ', members.first_name, ' ', members.last_name) as description"),
                 'loan_number as reference_number',
                 DB::raw("'expense' as type"),
                 DB::raw("'FINANCING' as category"),
                 'principal_amount as amount',
-                DB::raw("'loan_disbursement' as payment_method"),
+                DB::raw("'Bank Transfer' as payment_method"),
                 DB::raw("'disbursed' as status"),
-                'member_id',
-                'created_at',
+                'loans.member_id',
+                'loans.created_at',
                 DB::raw("'Loan' as source_model"),
-                DB::raw("'Loan Disbursement' as transaction_source")
+                DB::raw("'Loan' as transaction_source")
             ]);
 
         // Loan Repayments (INFLOW)
@@ -363,7 +366,7 @@ class CashflowController extends Controller
         $loanRepaymentQuery->select([
                 'id',
                 'paid_at as transaction_date',
-                DB::raw("CONCAT('Loan Repayment - ', reference) as description"),
+                DB::raw("'Loan Repayment' as description"),
                 'reference as reference_number',
                 DB::raw("'income' as type"),
                 DB::raw("'FINANCING' as category"),
@@ -373,7 +376,7 @@ class CashflowController extends Controller
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'LoanRepayment' as source_model"),
-                DB::raw("'Loan Repayment' as transaction_source")
+                DB::raw("'Repayment' as transaction_source")
             ]);
 
         // Fines (INFLOW - when paid)
@@ -383,21 +386,22 @@ class CashflowController extends Controller
         } else {
             $fineQuery->whereRaw('1 = 0');
         }
-        $fineQuery->where('status', 'paid')
+        $fineQuery->where('fines.status', 'paid')
+            ->join('members', 'fines.member_id', '=', 'members.id')
             ->select([
-                'id',
-                'updated_at as transaction_date',
-                DB::raw("CONCAT('Fine Payment - ', reason) as description"),
-                DB::raw("CONCAT('FINE-', id) as reference_number"),
+                'fines.id',
+                'fines.updated_at as transaction_date',
+                DB::raw("CONCAT('Fine Payment - ', members.first_name, ' ', members.last_name) as description"),
+                DB::raw("CONCAT('FINE-', fines.id) as reference_number"),
                 DB::raw("'income' as type"),
                 DB::raw("'OPERATING' as category"),
-                'amount',
-                DB::raw("'fine_payment' as payment_method"),
-                'status',
-                'member_id',
-                'created_at',
+                'fines.amount',
+                DB::raw("'Cash' as payment_method"),
+                'fines.status',
+                'fines.member_id',
+                'fines.created_at',
                 DB::raw("'Fine' as source_model"),
-                DB::raw("'Member Fine' as transaction_source")
+                DB::raw("'Fine' as transaction_source")
             ]);
 
         // Welfare Fund Distributions (OUTFLOW)
@@ -411,17 +415,17 @@ class CashflowController extends Controller
         $welfareQuery->select([
                 'id',
                 'created_at as transaction_date',
-                DB::raw("'Welfare Fund Distribution' as description"),
+                DB::raw("'Welfare Payment' as description"),
                 DB::raw("CONCAT('WELFARE-', id) as reference_number"),
                 DB::raw("'expense' as type"),
                 DB::raw("'OPERATING' as category"),
                 'amount',
-                DB::raw("'welfare' as payment_method"),
+                DB::raw("'Cash' as payment_method"),
                 DB::raw("'distributed' as status"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'WelfareFund' as source_model"),
-                DB::raw("'Welfare Distribution' as transaction_source")
+                DB::raw("'Welfare' as transaction_source")
             ]);
 
         // Loan Penalties (INFLOW - when paid)
@@ -432,22 +436,23 @@ class CashflowController extends Controller
         } else {
             $loanPenaltyQuery->whereRaw('1 = 0');
         }
-        $loanPenaltyQuery->where('status', 'paid')
+        $loanPenaltyQuery->where('loan_penalties.status', 'paid')
             ->whereNotNull('paid_date')
+            ->join('members', 'loan_penalties.member_id', '=', 'members.id')
             ->select([
-                'id',
+                'loan_penalties.id',
                 'paid_date as transaction_date',
-                DB::raw("CONCAT('Loan Penalty - ', penalty_type) as description"),
-                DB::raw("CONCAT('PENALTY-', id) as reference_number"),
+                DB::raw("CONCAT('Penalty Payment - ', members.first_name, ' ', members.last_name) as description"),
+                DB::raw("CONCAT('PENALTY-', loan_penalties.id) as reference_number"),
                 DB::raw("'income' as type"),
                 DB::raw("'FINANCING' as category"),
                 'penalty_amount as amount',
-                DB::raw("'penalty_payment' as payment_method"),
-                'status',
-                'member_id',
-                'created_at',
+                DB::raw("'Cash' as payment_method"),
+                'loan_penalties.status',
+                'loan_penalties.member_id',
+                'loan_penalties.created_at',
                 DB::raw("'LoanPenalty' as source_model"),
-                DB::raw("'Loan Penalty' as transaction_source")
+                DB::raw("'Penalty' as transaction_source")
             ]);
 
         // Investment Transactions (both inflows and outflows)
@@ -458,21 +463,33 @@ class CashflowController extends Controller
         } else {
             $investmentTransactionQuery->whereRaw('1 = 0');
         }
-        $investmentTransactionQuery->with('investment')
-            ->select([
+        $investmentTransactionQuery->select([
                 'investment_transactions.id',
                 'investment_transactions.transaction_date',
-                DB::raw("CONCAT(investment_portfolios.name, ' - ', investment_transactions.transaction_type) as description"),
+                DB::raw("CONCAT(
+                    CASE 
+                        WHEN investment_transactions.transaction_type = 'INITIAL_INVESTMENT' THEN 'Investment'
+                        WHEN investment_transactions.transaction_type = 'ADDITIONAL_INVESTMENT' THEN 'Investment'
+                        WHEN investment_transactions.transaction_type = 'INTEREST_INCOME' THEN 'Investment Interest'
+                        WHEN investment_transactions.transaction_type = 'DIVIDEND_INCOME' THEN 'Investment Dividend'
+                        WHEN investment_transactions.transaction_type = 'CAPITAL_GAIN' THEN 'Investment Gain'
+                        WHEN investment_transactions.transaction_type = 'PRINCIPAL_RETURN' THEN 'Investment Return'
+                        WHEN investment_transactions.transaction_type = 'WITHDRAWAL' THEN 'Investment Withdrawal'
+                        ELSE 'Investment'
+                    END,
+                    ' - ',
+                    investment_portfolios.name
+                ) as description"),
                 'investment_transactions.reference_number',
                 DB::raw("CASE WHEN investment_transactions.transaction_type IN ('INTEREST_INCOME', 'DIVIDEND_INCOME', 'CAPITAL_GAIN', 'PRINCIPAL_RETURN') THEN 'income' ELSE 'expense' END as type"),
                 DB::raw("'INVESTING' as category"),
                 'investment_transactions.amount',
-                'investment_transactions.payment_method',
+                DB::raw("'Bank Transfer' as payment_method"),
                 DB::raw("'CLEARED' as status"),
                 DB::raw("NULL as member_id"),
                 'investment_transactions.created_at',
                 DB::raw("'InvestmentTransaction' as source_model"),
-                DB::raw("'Investment Transaction' as transaction_source")
+                DB::raw("'Investment' as transaction_source")
             ])
             ->join('investment_portfolios', 'investment_transactions.investment_portfolio_id', '=', 'investment_portfolios.id');
 
@@ -492,9 +509,10 @@ class CashflowController extends Controller
             ]);
         }
 
-        // Union all queries
-        $unionQuery = $cashFlowQuery
-            ->unionAll($cashflowTransactionQuery)
+        // Union all queries - EXCLUDING CashFlow to prevent duplicates
+        // CashFlow table may contain manual duplicates of transactions that are already
+        // in their source tables (Deposits, Loans, Fines, etc.)
+        $unionQuery = $cashflowTransactionQuery
             ->unionAll($depositQuery)
             ->unionAll($distributionQuery)
             ->unionAll($loanQuery)
