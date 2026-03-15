@@ -56,6 +56,14 @@ Route::middleware(['auth'])->name('member.')->group(function () {
     
     // Loans
     Route::get('/loans', [MemberDashboardController::class, 'loans'])->name('loans');
+    Route::get('/loans/{id}/payment', [App\Http\Controllers\Member\MemberLoanController::class, 'payment'])->name('loans.payment');
+    Route::get('/loans/{id}/details', [App\Http\Controllers\Member\MemberLoanController::class, 'details'])->name('loans.details');
+    Route::get('/loans/{id}/statement', [App\Http\Controllers\Member\MemberLoanController::class, 'statement'])->name('loans.statement');
+    Route::get('/loans/{id}/certificate', [App\Http\Controllers\Member\MemberLoanController::class, 'certificate'])->name('loans.certificate');
+    Route::get('/loans/{id}/schedule', [App\Http\Controllers\Member\MemberLoanController::class, 'schedule'])->name('loans.schedule');
+    Route::get('/loans/export', [App\Http\Controllers\Member\MemberLoanController::class, 'export'])->name('loans.export');
+    Route::get('/loans/apply', [App\Http\Controllers\Member\MemberLoanController::class, 'apply'])->name('loans.apply');
+    Route::get('/loans/info', [App\Http\Controllers\Member\MemberLoanController::class, 'info'])->name('loans.info');
     
     // Profile route
     Route::get('/profile', function() {

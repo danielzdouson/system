@@ -725,6 +725,22 @@ class CashflowController extends Controller
             })
             ->sum('penalty_amount');
 
+        // From Investment Income (interest, dividends, capital gains, returns)
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INTEREST_INCOME',
+                'DIVIDEND_INCOME',
+                'CAPITAL_GAIN',
+                'PRINCIPAL_RETURN'
+            ])
+            ->whereBetween('transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
         return $total;
     }
 
@@ -800,6 +816,21 @@ class CashflowController extends Controller
             })
             ->when($request && $request->filled('date_to'), function($q) use ($request) {
                 $q->where('created_at', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Investment Outflows (initial investments, additional investments, withdrawals)
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INITIAL_INVESTMENT',
+                'ADDITIONAL_INVESTMENT',
+                'WITHDRAWAL'
+            ])
+            ->whereBetween('transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
             })
             ->sum('amount');
 
@@ -923,6 +954,16 @@ class CashflowController extends Controller
             ->whereYear('paid_date', $year)
             ->sum('penalty_amount');
 
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INTEREST_INCOME',
+                'DIVIDEND_INCOME',
+                'CAPITAL_GAIN',
+                'PRINCIPAL_RETURN'
+            ])
+            ->whereMonth('transaction_date', $month)
+            ->whereYear('transaction_date', $year)
+            ->sum('amount');
+
         return $total;
     }
 
@@ -962,6 +1003,15 @@ class CashflowController extends Controller
 
         $total += WelfareFund::whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
+            ->sum('amount');
+
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INITIAL_INVESTMENT',
+                'ADDITIONAL_INVESTMENT',
+                'WITHDRAWAL'
+            ])
+            ->whereMonth('transaction_date', $month)
+            ->whereYear('transaction_date', $year)
             ->sum('amount');
 
         return $total;

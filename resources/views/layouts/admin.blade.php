@@ -415,10 +415,10 @@
         <a href="{{ route('admin.financials.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Financials
         </a>
-        <a href="{{ route('admin.reports.index') }}" class="nav-link">
+        <a href="{{ route('admin.reports.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Reports
         </a>
-        <a href="{{ route('admin.import.index') }}" class="nav-link">
+        <a href="{{ route('admin.import.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-import"></i></span> Data Import
         </a>
     </div>

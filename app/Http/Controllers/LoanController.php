@@ -67,14 +67,11 @@ class LoanController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        // Calculate loan details
-        $monthlyRate = $validated['interest_rate'] / 100 / 12;
-        $monthlyPayment = $validated['loan_amount'] * 
-            ($monthlyRate * pow(1 + $monthlyRate, $validated['loan_term'])) / 
-            (pow(1 + $monthlyRate, $validated['loan_term']) - 1);
-        
-        $totalRepayment = $monthlyPayment * $validated['loan_term'];
-        $totalInterest = $totalRepayment - $validated['loan_amount'];
+        // Calculate loan details using simple interest
+        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
+        $totalInterest = ($validated['loan_amount'] * $validated['interest_rate'] * $validated['loan_term']) / (12 * 100);
+        $totalRepayment = $validated['loan_amount'] + $totalInterest;
+        $monthlyPayment = $totalRepayment / $validated['loan_term'];
 
         $validated['monthly_payment'] = $monthlyPayment;
         $validated['total_interest'] = $totalInterest;

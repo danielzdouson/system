@@ -167,22 +167,11 @@ class GroupLoanController extends Controller
         $interestRate = (float) $request->interest_rate;
         $loanTermMonths = (int) $request->loan_term_months;
         
-        // Calculate loan details using proper amortization
-        $monthlyRate = $interestRate / 12 / 100; // Monthly interest rate as decimal
-        
-        if ($monthlyRate == 0) {
-            // If no interest, simple division
-            $monthlyPayment = $principalAmount / $loanTermMonths;
-            $totalInterest = 0;
-            $totalRepayment = $principalAmount;
-        } else {
-            // Use amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
-            $r = $monthlyRate;
-            $n = $loanTermMonths;
-            $monthlyPayment = $principalAmount * ($r * pow(1 + $r, $n)) / (pow(1 + $r, $n) - 1);
-            $totalRepayment = $monthlyPayment * $loanTermMonths;
-            $totalInterest = $totalRepayment - $principalAmount;
-        }
+        // Calculate loan details using simple interest
+        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
+        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / (12 * 100);
+        $totalRepayment = $principalAmount + $totalInterest;
+        $monthlyPayment = $totalRepayment / $loanTermMonths;
         
         // Generate unique loan number
         $loanNumber = 'LN-' . date('Y') . '-' . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
@@ -414,22 +403,11 @@ class GroupLoanController extends Controller
         $interestRate = (float) $loanRequest->interest_rate;
         $loanTermMonths = (int) $loanRequest->loan_term_months;
         
-        // Calculate loan details using proper amortization
-        $monthlyRate = $interestRate / 12 / 100; // Monthly interest rate as decimal
-        
-        if ($monthlyRate == 0) {
-            // If no interest, simple division
-            $monthlyPayment = $principalAmount / $loanTermMonths;
-            $totalInterest = 0;
-            $totalRepayment = $principalAmount;
-        } else {
-            // Use amortization formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
-            $r = $monthlyRate;
-            $n = $loanTermMonths;
-            $monthlyPayment = $principalAmount * ($r * pow(1 + $r, $n)) / (pow(1 + $r, $n) - 1);
-            $totalRepayment = $monthlyPayment * $loanTermMonths;
-            $totalInterest = $totalRepayment - $principalAmount;
-        }
+        // Calculate loan details using simple interest
+        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
+        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / (12 * 100);
+        $totalRepayment = $principalAmount + $totalInterest;
+        $monthlyPayment = $totalRepayment / $loanTermMonths;
         
         // Generate unique loan number
         $loanNumber = 'LN-' . date('Y') . '-' . str_pad(Loan::count() + 1, 4, '0', STR_PAD_LEFT);
@@ -535,12 +513,23 @@ class GroupLoanController extends Controller
             'received_by' => auth()->id(),
         ]);
 
-        // Update loan paid amount
+        // Update loan paid amount and total repayment
         $loan->increment('paid_amount', $request->amount);
+        $loan->increment('total_repayment', $request->amount);
+        
+        // Recalculate balance
+        $newBalance = $loan->total_repayable - $loan->total_repayment;
+        $loan->balance = max(0, $newBalance);
+        $loan->save();
 
         // Check if loan is fully paid
-        if ($loan->paid_amount >= $loan->total_amount) {
-            $loan->update(['status' => 'completed']);
+        if ($loan->total_repayment >= $loan->total_repayable || $loan->balance <= 0) {
+            $loan->update([
+                'status' => 'completed',
+                'loan_status' => 'completed',
+                'completed_at' => now(),
+                'balance' => 0
+            ]);
         }
 
         return back()->with('success', 'Repayment recorded successfully!');

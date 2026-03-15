@@ -340,13 +340,13 @@
                                     <i class="fas fa-file-alt me-2"></i>Documents
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" style="display: none;">
                                 <a class="nav-link {{ request()->routeIs('member.documents.pending-guarantees') ? 'active' : '' }}" 
                                    href="{{ route('member.documents.pending-guarantees') }}">
                                     <i class="fas fa-handshake me-2"></i>Pending Guarantees
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" style="display: none;">
                                 <a class="nav-link {{ request()->routeIs('member.documents.guarantor-history') ? 'active' : '' }}" 
                                    href="{{ route('member.documents.guarantor-history') }}">
                                     <i class="fas fa-history me-2"></i>Guarantor History

@@ -206,42 +206,37 @@ class Loan extends Model
 
     public function calculateMonthlyInstallment(): float
     {
-        if ($this->interest_type === 'flat') {
-            // Flat rate calculation
-            $totalInterest = $this->principal_amount * ($this->interest_rate / 100) * ($this->duration_months / 12);
-            return ($this->principal_amount + $totalInterest) / $this->duration_months;
-        } else {
-            // Reducing balance calculation (simplified)
-            $monthlyRate = $this->interest_rate / 100 / 12;
-            $numerator = $this->principal_amount * $monthlyRate * pow(1 + $monthlyRate, $this->duration_months);
-            $denominator = pow(1 + $monthlyRate, $this->duration_months) - 1;
-            return $denominator != 0 ? $numerator / $denominator : $this->principal_amount / $this->duration_months;
-        }
+        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
+        $totalInterest = ($this->principal_amount * $this->interest_rate * $this->duration_months) / (12 * 100);
+        $totalRepayment = $this->principal_amount + $totalInterest;
+        return $totalRepayment / $this->duration_months;
     }
 
     public function createRepaymentSchedule(): void
     {
         $schedules = [];
-        $remainingBalance = $this->principal_amount;
         $paymentDate = Carbon::parse($this->first_payment_date);
+        
+        // Simple interest: divide principal and interest equally across all months
+        $totalInterest = ($this->principal_amount * $this->interest_rate * $this->duration_months) / (12 * 100);
+        $principalPerMonth = $this->principal_amount / $this->duration_months;
+        $interestPerMonth = $totalInterest / $this->duration_months;
+        $remainingBalance = $this->principal_amount;
 
         for ($i = 1; $i <= $this->duration_months; $i++) {
-            $interestComponent = $remainingBalance * ($this->interest_rate / 100 / 12);
-            $principalComponent = $this->monthly_installment - $interestComponent;
-            
             $schedules[] = [
                 'loan_id' => $this->id,
                 'installment_number' => $i,
                 'due_date' => $paymentDate->copy(),
-                'principal_due' => $principalComponent,
-                'interest_due' => $interestComponent,
+                'principal_due' => $principalPerMonth,
+                'interest_due' => $interestPerMonth,
                 'total_due' => $this->monthly_installment,
-                'outstanding_balance' => $remainingBalance - $principalComponent,
+                'outstanding_balance' => $remainingBalance - $principalPerMonth,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
 
-            $remainingBalance -= $principalComponent;
+            $remainingBalance -= $principalPerMonth;
             $paymentDate->addMonth();
         }
 

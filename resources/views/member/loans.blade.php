@@ -101,7 +101,7 @@
                             <h6 class="text-muted mb-1">Next Payment</h6>
                             <h4 class="mb-0 text-warning">
                                 @if($activeLoans->isNotEmpty() && $activeLoans->first()->repaymentSchedules->isNotEmpty())
-                                    UGX {{ number_format($activeLoans->first()->repaymentSchedules->where('status', 'pending')->first()->amount ?? 0, 0) }}
+                                    UGX {{ number_format($activeLoans->first()->repaymentSchedules->where('status', 'pending')->first()->total_due ?? 0, 0) }}
                                 @else
                                     -
                                 @endif
@@ -263,7 +263,7 @@
                                                                         <small class="text-muted">{{ $schedule->due_date->format('Y') }}</small>
                                                                     </td>
                                                                     <td class="text-end">
-                                                                        <strong>UGX {{ number_format($schedule->amount, 0) }}</strong>
+                                                                        <strong>UGX {{ number_format($schedule->total_due, 0) }}</strong>
                                                                     </td>
                                                                     <td>
                                                                         <span class="badge bg-{{ getScheduleStatusColor($schedule) }} badge-sm">
