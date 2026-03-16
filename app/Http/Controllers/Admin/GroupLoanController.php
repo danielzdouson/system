@@ -127,8 +127,9 @@ class GroupLoanController extends Controller
 
         $currentFiscalYear = FiscalYearContext::getCurrent();
         
-        // Calculate monthly payment for loan request
-        $totalInterest = ($request->principal_amount * $request->interest_rate * $request->loan_term_months) / 100;
+        // Calculate monthly payment for loan request using simple interest
+        // Simple Interest Formula: Interest = Principal × Rate / 100
+        $totalInterest = ($request->principal_amount * $request->interest_rate) / 100;
         $totalRepayment = $request->principal_amount + $totalInterest;
         $monthlyPayment = $totalRepayment / $request->loan_term_months;
         
@@ -168,8 +169,8 @@ class GroupLoanController extends Controller
         $loanTermMonths = (int) $request->loan_term_months;
         
         // Calculate loan details using simple interest
-        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
-        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / (12 * 100);
+        // Simple Interest Formula: Interest = Principal × Rate / 100
+        $totalInterest = ($principalAmount * $interestRate) / 100;
         $totalRepayment = $principalAmount + $totalInterest;
         $monthlyPayment = $totalRepayment / $loanTermMonths;
         
@@ -404,8 +405,8 @@ class GroupLoanController extends Controller
         $loanTermMonths = (int) $loanRequest->loan_term_months;
         
         // Calculate loan details using simple interest
-        // Simple Interest Formula: Total Interest = Principal × Rate × Time / 100
-        $totalInterest = ($principalAmount * $interestRate * $loanTermMonths) / (12 * 100);
+        // Simple Interest Formula: Interest = Principal × Rate / 100
+        $totalInterest = ($principalAmount * $interestRate) / 100;
         $totalRepayment = $principalAmount + $totalInterest;
         $monthlyPayment = $totalRepayment / $loanTermMonths;
         
