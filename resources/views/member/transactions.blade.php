@@ -28,8 +28,8 @@
             </div>
         </div>
     </div>
-
-    <!-- Enhanced Filters -->
+{{--  
+     <!-- Enhanced Filters -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-0 shadow-sm animate__animated animate__fadeInUp">
@@ -313,7 +313,8 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> 
+--}}
 
     <!-- Distribution Summary Card -->
     <div class="row mb-4">

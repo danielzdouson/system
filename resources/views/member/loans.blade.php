@@ -226,9 +226,6 @@
 
                                         <!-- Action Buttons -->
                                         <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-primary btn-sm" onclick="makePayment({{ $loan->id }})">
-                                                <i class="fas fa-money-bill-wave me-2"></i>Make Payment
-                                            </button>
                                             <button type="button" class="btn btn-outline-info btn-sm" onclick="viewLoanDetails({{ $loan->id }})">
                                                 <i class="fas fa-eye me-2"></i>View Details
                                             </button>

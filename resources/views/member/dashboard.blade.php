@@ -111,6 +111,27 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100 animate__animated animate__fadeInUp animate__delay-5s">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                                <i class="fas fa-wallet fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1">Available Balance</h6>
+                            <h4 class="mb-0 text-warning">UGX {{ number_format($availableBalance ?? 0, 0) }}</h4>
+                            <small class="text-warning">
+                                <i class="fas fa-check-circle"></i> Available for use
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Quick Actions -->

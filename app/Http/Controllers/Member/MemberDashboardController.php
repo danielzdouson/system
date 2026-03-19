@@ -136,15 +136,32 @@ class MemberDashboardController extends Controller
             $monthlySavingsGrowth = (($thisMonthDeposits - $lastMonthDeposits) / $lastMonthDeposits) * 100;
         }
 
-        // Get next payment
+        // Get next payment - find the next upcoming pending payment across all active loans
         $totalLoans = $loanBalance;
         $nextPayment = null;
         if ($activeLoans->isNotEmpty()) {
-            $nextPaymentSchedule = $activeLoans->first()->repaymentSchedules->first();
-            if ($nextPaymentSchedule) {
+            $nextDueDate = null;
+            $nextAmount = 0;
+            
+            foreach ($activeLoans as $loan) {
+                $nextPending = $loan->repaymentSchedules
+                    ->where('status', 'pending')
+                    ->where('due_date', '>=', now())
+                    ->sortBy('due_date')
+                    ->first();
+                    
+                if ($nextPending) {
+                    if (!$nextDueDate || $nextPending->due_date->isBefore($nextDueDate)) {
+                        $nextDueDate = $nextPending->due_date;
+                        $nextAmount = $nextPending->total_due ?? $nextPending->amount;
+                    }
+                }
+            }
+            
+            if ($nextDueDate) {
                 $nextPayment = [
-                    'amount' => $nextPaymentSchedule->amount,
-                    'due_date' => $nextPaymentSchedule->due_date,
+                    'amount' => $nextAmount,
+                    'due_date' => $nextDueDate,
                 ];
             }
         }
