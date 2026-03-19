@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\FiscalYear;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,14 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Auto-set active fiscal year on login if none in session
+        if (!$request->session()->has('current_fiscal_year_id')) {
+            $activeFiscalYear = FiscalYear::where('status', 'active')->first();
+            if ($activeFiscalYear) {
+                $request->session()->put('current_fiscal_year_id', $activeFiscalYear->id);
+            }
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

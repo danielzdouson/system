@@ -933,9 +933,9 @@
                     <i class="fas fa-wallet"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalBalance'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalBalance'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Current Balance</div>
+                <div class="stat-label">Net Cash Position</div>
                 <div class="stat-change {{ $totals['balanceChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['balanceChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['balanceChange'] >= 0 ? '+' : '' }}{{ number_format($totals['balanceChange'], 1) }}% from last month
@@ -947,9 +947,9 @@
                     <i class="fas fa-arrow-down"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalInflows'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalInflows'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Total Inflows</div>
+                <div class="stat-label">External Inflows</div>
                 <div class="stat-change {{ $totals['inflowChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['inflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['inflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['inflowChange'], 1) }}% from last month
@@ -961,26 +961,12 @@
                     <i class="fas fa-arrow-up"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalOutflows'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalOutflows'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Total Outflows</div>
+                <div class="stat-label">External Outflows</div>
                 <div class="stat-change {{ $totals['outflowChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['outflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['outflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['outflowChange'], 1) }}% from last month
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon pending">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-value">
-                    {{ $totals['pendingCount'] ?? 0 }}
-                </div>
-                <div class="stat-label">Pending Transactions</div>
-                <div class="stat-change">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Requires approval
                 </div>
             </div>
         </div>
@@ -991,13 +977,6 @@
                 <div class="filter-title">
                     <i class="fas fa-filter"></i>
                     Filters & Search
-                </div>
-                <div class="filter-presets">
-                    <button type="button" class="preset-btn" data-preset="today">Today</button>
-                    <button type="button" class="preset-btn" data-preset="week">This Week</button>
-                    <button type="button" class="preset-btn" data-preset="month">This Month</button>
-                    <button type="button" class="preset-btn" data-preset="quarter">This Quarter</button>
-                    <button type="button" class="preset-btn" data-preset="year">This Year</button>
                 </div>
             </div>
             <form method="GET" action="{{ route('admin.cashflow.index') }}" class="filter-form">
@@ -1024,6 +1003,15 @@
                         <option value="OPERATING" {{ request('category') == 'OPERATING' ? 'selected' : '' }}>Operating</option>
                         <option value="INVESTING" {{ request('category') == 'INVESTING' ? 'selected' : '' }}>Investing</option>
                         <option value="FINANCING" {{ request('category') == 'FINANCING' ? 'selected' : '' }}>Financing</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Transaction Scope</label>
+                    <select name="transaction_scope" class="form-control">
+                        <option value="all" {{ request('transaction_scope', 'all') == 'all' ? 'selected' : '' }}>All Transactions</option>
+                        <option value="external" {{ request('transaction_scope') == 'external' ? 'selected' : '' }}>External Only</option>
+                        <option value="reallocation" {{ request('transaction_scope') == 'reallocation' ? 'selected' : '' }}>Reallocation Only</option>
                     </select>
                 </div>
                 
@@ -1057,14 +1045,6 @@
                     Quick Actions
                 </div>
                 <div class="action-buttons">
-                    <a href="{{ route('admin.cashflow.monthly-statement') }}" class="action-btn primary">
-                        <i class="fas fa-chart-line"></i>
-                        Monthly Statement
-                    </a>
-                    <a href="{{ route('admin.cashflow.fiscal-year-statement') }}" class="action-btn success">
-                        <i class="fas fa-calendar-alt"></i>
-                        Fiscal Year Statement
-                    </a>
                     <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
                         <i class="fas fa-plus-circle"></i>
                         Add Transaction
@@ -1118,6 +1098,7 @@
                                     <th><i class="fas fa-calendar me-2"></i> Date</th>
                                     <th><i class="fas fa-exchange-alt me-2"></i> Type</th>
                                     <th><i class="fas fa-tag me-2"></i> Category</th>
+                                    <th><i class="fas fa-layer-group me-2"></i> Scope</th>
                                     <th><i class="fas fa-comment me-2"></i> Description</th>
                                     <th><i class="fas fa-coins me-2"></i> Amount</th>
                                     <th><i class="fas fa-credit-card me-2"></i> Method</th>
@@ -1213,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Auto-refresh pending transactions every 30 seconds
-    setInterval(updatePendingCount, 30000);
+    // setInterval(updatePendingCount, 30000);
 });
 
 // Initialize Date Range Picker
@@ -1396,6 +1377,12 @@ function createTransactionRow(transaction) {
             <span class="category-badge ${transaction.category.toLowerCase()}">
                 ${transaction.category}
             </span>
+        </td>
+        <td>
+            ${transaction.is_reallocation ? 
+                `<span class="badge bg-secondary"><i class="fas fa-exchange-alt me-1"></i>Reallocation</span>` : 
+                `<span class="badge bg-primary"><i class="fas fa-globe me-1"></i>External</span>`
+            }
         </td>
         <td>
             <div>

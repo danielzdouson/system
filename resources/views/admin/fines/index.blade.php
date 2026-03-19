@@ -128,18 +128,10 @@
                                 <i class="fas fa-plus me-2"></i>
                                 New Fine
                             </a>
-                            <button type="button" class="action-btn warning" data-bs-toggle="modal" data-bs-target="#bulkApplyModal">
-                                <i class="fas fa-users me-2"></i>
-                                Bulk Apply
-                            </button>
                             <button type="button" class="action-btn info" data-bs-toggle="modal" data-bs-target="#autoApplyModal">
                                 <i class="fas fa-magic me-2"></i>
                                 Auto Apply
                             </button>
-                            <a href="{{ route('admin.fines.reports') }}" class="action-btn secondary">
-                                <i class="fas fa-chart-pie me-2"></i>
-                                Reports
-                            </a>
                             <a href="{{ route('admin.fines.export') }}?fiscal_year={{ $activeFiscalYear->id }}" class="action-btn success">
                                 <i class="fas fa-download me-2"></i>
                                 Export

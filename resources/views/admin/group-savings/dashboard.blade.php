@@ -326,8 +326,11 @@
 <style>
 /* Enhanced Page Header */
 .container-fluid {
-    padding: 2rem;
-    width: 130%;
+    padding: 1.5rem;
+    width: 98%;
+    max-width: 100%;
+    overflow-x: hidden;
+    margin: 0 auto;
 }
 .page-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

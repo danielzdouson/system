@@ -227,6 +227,7 @@ class CashflowController extends Controller
                 'amount',
                 'payment_method',
                 'status',
+                DB::raw("0 as is_reallocation"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'CashFlow' as source_model"),
@@ -241,6 +242,7 @@ class CashflowController extends Controller
         
         // Exclude observer-generated records to prevent duplicates
         // These transactions are already included from their source tables
+        // NOTE: We now include 'OTHER' to show reallocation transactions from DistributionObserver
         $cashflowTransactionQuery->whereNotIn('reference_type', [
                 'DEPOSIT',
                 'LOAN_DISBURSEMENT',
@@ -249,8 +251,7 @@ class CashflowController extends Controller
                 'WELFARE_FUND',
                 'FINE_PAYMENT',
                 'LOAN_PENALTY',
-                'INVESTMENT',
-                'OTHER'  // DistributionObserver uses 'OTHER' for distributions
+                'INVESTMENT'
             ]);
         
         // Filter by fiscal year if selected
@@ -275,6 +276,7 @@ class CashflowController extends Controller
                 'cashflow_transactions.amount',
                 'cashflow_transactions.payment_method',
                 'cashflow_transactions.status',
+                'cashflow_transactions.is_reallocation',
                 'cashflow_transactions.member_id',
                 'cashflow_transactions.created_at',
                 DB::raw("'CashflowTransaction' as source_model"),
@@ -300,6 +302,7 @@ class CashflowController extends Controller
                 'deposits.amount',
                 DB::raw("'Cash' as payment_method"),
                 'deposits.status',
+                DB::raw("0 as is_reallocation"),
                 'deposits.member_id',
                 'deposits.created_at',
                 DB::raw("'Deposit' as source_model"),
@@ -324,6 +327,7 @@ class CashflowController extends Controller
                 'amount',
                 DB::raw("'Transfer' as payment_method"),
                 DB::raw("'distributed' as status"),
+                DB::raw("1 as is_reallocation"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'Distribution' as source_model"),
@@ -349,6 +353,7 @@ class CashflowController extends Controller
                 'principal_amount as amount',
                 DB::raw("'Bank Transfer' as payment_method"),
                 DB::raw("'disbursed' as status"),
+                DB::raw("0 as is_reallocation"),
                 'loans.member_id',
                 'loans.created_at',
                 DB::raw("'Loan' as source_model"),
@@ -373,6 +378,7 @@ class CashflowController extends Controller
                 'amount as amount',
                 'method as payment_method',
                 DB::raw("'received' as status"),
+                DB::raw("0 as is_reallocation"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'LoanRepayment' as source_model"),
@@ -398,6 +404,7 @@ class CashflowController extends Controller
                 'fines.amount',
                 DB::raw("'Cash' as payment_method"),
                 'fines.status',
+                DB::raw("0 as is_reallocation"),
                 'fines.member_id',
                 'fines.created_at',
                 DB::raw("'Fine' as source_model"),
@@ -422,6 +429,7 @@ class CashflowController extends Controller
                 'amount',
                 DB::raw("'Cash' as payment_method"),
                 DB::raw("'distributed' as status"),
+                DB::raw("0 as is_reallocation"),
                 DB::raw("NULL as member_id"),
                 'created_at',
                 DB::raw("'WelfareFund' as source_model"),
@@ -449,6 +457,7 @@ class CashflowController extends Controller
                 'penalty_amount as amount',
                 DB::raw("'Cash' as payment_method"),
                 'loan_penalties.status',
+                DB::raw("0 as is_reallocation"),
                 'loan_penalties.member_id',
                 'loan_penalties.created_at',
                 DB::raw("'LoanPenalty' as source_model"),
@@ -486,6 +495,7 @@ class CashflowController extends Controller
                 'investment_transactions.amount',
                 DB::raw("'Bank Transfer' as payment_method"),
                 DB::raw("'CLEARED' as status"),
+                DB::raw("0 as is_reallocation"),
                 DB::raw("NULL as member_id"),
                 'investment_transactions.created_at',
                 DB::raw("'InvestmentTransaction' as source_model"),
@@ -509,10 +519,10 @@ class CashflowController extends Controller
             ]);
         }
 
-        // Union all queries - EXCLUDING CashFlow to prevent duplicates
-        // CashFlow table may contain manual duplicates of transactions that are already
-        // in their source tables (Deposits, Loans, Fines, etc.)
-        $unionQuery = $cashflowTransactionQuery
+        // Union all queries
+        // NOTE: CashFlow now included for manual entries that don't exist elsewhere
+        $unionQuery = $cashFlowQuery
+            ->unionAll($cashflowTransactionQuery)
             ->unionAll($depositQuery)
             ->unionAll($distributionQuery)
             ->unionAll($loanQuery)
@@ -535,6 +545,7 @@ class CashflowController extends Controller
                 'amount',
                 'payment_method',
                 'status',
+                'is_reallocation',
                 'member_id',
                 'created_at',
                 'source_model',
@@ -616,6 +627,10 @@ class CashflowController extends Controller
             'totalInflows' => 0,
             'totalOutflows' => 0,
             'totalBalance' => 0,
+            'externalInflows' => 0,
+            'externalOutflows' => 0,
+            'externalBalance' => 0,
+            'reallocationAmount' => 0,
             'pendingCount' => 0,
             'inflowChange' => 0,
             'outflowChange' => 0,
@@ -626,6 +641,15 @@ class CashflowController extends Controller
         $totals['totalInflows'] = $this->calculateTotalInflows($request);
         $totals['totalOutflows'] = $this->calculateTotalOutflows($request);
         $totals['totalBalance'] = $totals['totalInflows'] - $totals['totalOutflows'];
+        
+        // Calculate external cashflow (excluding reallocations)
+        $totals['externalInflows'] = $this->calculateExternalInflows($request);
+        $totals['externalOutflows'] = $this->calculateExternalOutflows($request);
+        $totals['externalBalance'] = $totals['externalInflows'] - $totals['externalOutflows'];
+        
+        // Calculate reallocation amount
+        $totals['reallocationAmount'] = $this->calculateReallocationAmount($request);
+        
         $totals['pendingCount'] = $this->calculatePendingCount();
 
         // Calculate monthly changes
@@ -745,7 +769,7 @@ class CashflowController extends Controller
     }
 
     /**
-     * Calculate total outflows from all sources
+     * Calculate total outflows from all sources (including reallocations for complete picture)
      */
     private function calculateTotalOutflows($request = null)
     {
@@ -826,6 +850,210 @@ class CashflowController extends Controller
                 'WITHDRAWAL'
             ])
             ->whereBetween('transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        return $total;
+    }
+
+    /**
+     * Calculate external outflows only (excluding reallocations)
+     */
+    private function calculateExternalOutflows($request = null)
+    {
+        $total = 0;
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        if (!$currentFiscalYear) {
+            return 0;
+        }
+
+        // From CashFlow (expense)
+        $total += CashFlow::where('type', 'expense')
+            ->where('status', 'cleared')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From CashflowTransaction (OUTFLOW) - exclude observer-generated records
+        $total += CashflowTransaction::where('transaction_type', 'OUTFLOW')
+            ->where('status', 'CLEARED')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->where('is_reallocation', false) // Exclude reallocations
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Loan Disbursements (true cash outflow)
+        $total += Loan::whereNotNull('disbursement_date')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('disbursement_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('disbursement_date', '<=', $request->date_to);
+            })
+            ->sum('principal_amount');
+
+        // From Welfare Funds (true cash outflow)
+        $total += WelfareFund::whereBetween('created_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('created_at', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('created_at', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Investment Outflows (initial investments, additional investments, withdrawals)
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INITIAL_INVESTMENT',
+                'ADDITIONAL_INVESTMENT',
+                'WITHDRAWAL'
+            ])
+            ->whereBetween('transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        return $total;
+    }
+
+    /**
+     * Calculate external inflows only
+     */
+    private function calculateExternalInflows($request = null)
+    {
+        $total = 0;
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        if (!$currentFiscalYear) {
+            return 0;
+        }
+
+        // From CashFlow (income)
+        $total += CashFlow::where('type', 'income')
+            ->where('status', 'cleared')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From CashflowTransaction (INFLOW) - exclude reallocations
+        $total += CashflowTransaction::where('transaction_type', 'INFLOW')
+            ->where('status', 'CLEARED')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->where('is_reallocation', false) // Exclude reallocations
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Deposits
+        $total += Deposit::where('status', 'cleared')
+            ->whereBetween('deposit_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('deposit_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('deposit_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Loan Repayments
+        $total += LoanRepayment::whereBetween('paid_at', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('paid_at', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('paid_at', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Fines (paid)
+        $total += Fine::where('status', 'paid')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('updated_at', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('updated_at', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        // From Loan Penalties (paid)
+        $total += LoanPenalty::where('status', 'paid')
+            ->whereNotNull('paid_date')
+            ->whereBetween('paid_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('paid_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('paid_date', '<=', $request->date_to);
+            })
+            ->sum('penalty_amount');
+
+        // From Investment Income
+        $total += InvestmentTransaction::whereIn('transaction_type', [
+                'INTEREST_INCOME',
+                'DIVIDEND_INCOME',
+                'CAPITAL_GAIN',
+                'PRINCIPAL_RETURN'
+            ])
+            ->whereBetween('transaction_date', [$currentFiscalYear->start_date, $currentFiscalYear->end_date])
+            ->when($request && $request->filled('date_from'), function($q) use ($request) {
+                $q->where('transaction_date', '>=', $request->date_from);
+            })
+            ->when($request && $request->filled('date_to'), function($q) use ($request) {
+                $q->where('transaction_date', '<=', $request->date_to);
+            })
+            ->sum('amount');
+
+        return $total;
+    }
+
+    /**
+     * Calculate reallocation amounts (internal movements, not true cashflow)
+     */
+    private function calculateReallocationAmount($request = null)
+    {
+        $total = 0;
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
+        if (!$currentFiscalYear) {
+            return 0;
+        }
+
+        // From CashflowTransaction where is_reallocation = true
+        $total += CashflowTransaction::where('transaction_type', 'OUTFLOW')
+            ->where('status', 'CLEARED')
+            ->where('is_reallocation', true)
+            ->where('fiscal_year_id', $currentFiscalYear->id)
             ->when($request && $request->filled('date_from'), function($q) use ($request) {
                 $q->where('transaction_date', '>=', $request->date_from);
             })
@@ -1060,7 +1288,7 @@ class CashflowController extends Controller
             'member_id' => $request->member_id,
             'created_by' => auth()->id(),
             'notes' => $request->notes,
-            'status' => CashflowTransaction::STATUS_PENDING
+            'status' => CashflowTransaction::STATUS_CLEARED
         ]);
 
         return redirect()->route('admin.cashflow.index')
@@ -1308,31 +1536,15 @@ class CashflowController extends Controller
             $query->where('category', $request->category);
         }
 
-        // Status filter - additional filtering for combined results
-        if ($request->filled('status')) {
-            $status = $request->status;
-            if ($status === 'cleared') {
-                $query->where(function($q) {
-                    $q->where('status', 'cleared')
-                      ->orWhere('status', 'CLEARED')
-                      ->orWhere('status', 'distributed')
-                      ->orWhere('status', 'disbursed')
-                      ->orWhere('status', 'received')
-                      ->orWhere('status', 'paid');
-                });
-            } elseif ($status === 'pending') {
-                $query->where(function($q) {
-                    $q->where('status', 'pending')
-                      ->orWhere('status', 'PENDING');
-                });
-            } elseif ($status === 'reconciled') {
-                $query->where(function($q) {
-                    $q->where('status', 'reconciled')
-                      ->orWhere('status', 'RECONCILED');
-                });
-            } else {
-                $query->where('status', $status);
+        // Reallocation/External filter
+        if ($request->filled('transaction_scope')) {
+            $scope = $request->transaction_scope;
+            if ($scope === 'reallocation') {
+                $query->where('is_reallocation', true);
+            } elseif ($scope === 'external') {
+                $query->where('is_reallocation', false);
             }
+            // 'all' shows everything, no filter needed
         }
 
         // Search filter

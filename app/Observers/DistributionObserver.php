@@ -53,6 +53,7 @@ class DistributionObserver
             'reference_number' => 'DIST-' . str_pad($distribution->id, 6, '0', STR_PAD_LEFT),
             'payment_method' => 'internal_transfer',
             'status' => CashflowTransaction::STATUS_CLEARED,
+            'is_reallocation' => true, // Mark as reallocation (not true cash outflow)
             'fiscal_year_id' => $distribution->fiscal_year_id,
             'member_id' => $deposit?->member_id,
             'created_by' => $distribution->created_by,

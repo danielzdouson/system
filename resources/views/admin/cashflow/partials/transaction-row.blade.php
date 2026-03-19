@@ -15,6 +15,17 @@
         </span>
     </td>
     <td>
+        @if($transaction->is_reallocation)
+            <span class="badge bg-secondary">
+                <i class="fas fa-exchange-alt me-1"></i> Reallocation
+            </span>
+        @else
+            <span class="badge bg-primary">
+                <i class="fas fa-globe me-1"></i> External
+            </span>
+        @endif
+    </td>
+    <td>
         <div>
             <strong>{{ $transaction->description }}</strong>
             @if($transaction->reference_number)

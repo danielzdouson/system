@@ -23,6 +23,7 @@ class CashflowTransaction extends Model
         'reference_number',
         'payment_method',
         'status',
+        'is_reallocation',
         'fiscal_year_id',
         'member_id',
         'created_by',
@@ -99,6 +100,21 @@ class CashflowTransaction extends Model
         return $query->where('status', 'RECONCILED');
     }
 
+    public function scopeReallocation($query)
+    {
+        return $query->where('is_reallocation', true);
+    }
+
+    public function scopeNonReallocation($query)
+    {
+        return $query->where('is_reallocation', false);
+    }
+
+    public function scopeExternal($query)
+    {
+        return $query->where('is_reallocation', false);
+    }
+
     public function scopeDateRange($query, $startDate, $endDate = null)
     {
         if (!$endDate) {
@@ -173,10 +189,12 @@ class CashflowTransaction extends Model
         $this->save();
     }
 
-    public function reconcile(): void
+    public function getReallocationBadgeAttribute(): string
     {
-        $this->status = 'RECONCILED';
-        $this->save();
+        if ($this->is_reallocation) {
+            return '<span class="badge bg-secondary"><i class="fas fa-exchange-alt me-1"></i>Reallocation</span>';
+        }
+        return '<span class="badge bg-primary"><i class="fas fa-globe me-1"></i>External</span>';
     }
 
     // Constants for reference types
