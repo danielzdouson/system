@@ -220,6 +220,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('/uploaded-forms/{uploadedForm}/guarantors', [App\Http\Controllers\Admin\DocumentController::class, 'viewGuarantors'])->name('view-guarantors');
         Route::get('/uploaded-forms/{uploadedForm}/download', [App\Http\Controllers\Admin\DocumentController::class, 'downloadUploadedForm'])->name('download-uploaded-form');
     });
+
+    // Backup Management Routes
+    Route::prefix('backups')->name('backups.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\BackupController::class, 'index'])->name('index');
+        Route::post('/verify-password', [App\Http\Controllers\Admin\BackupController::class, 'verifyPassword'])->name('verify-password');
+        Route::post('/revoke-access', [App\Http\Controllers\Admin\BackupController::class, 'revokeAccess'])->name('revoke-access');
+        Route::post('/create', [App\Http\Controllers\Admin\BackupController::class, 'create'])->name('create');
+        Route::get('/download/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'download'])->name('download');
+        Route::delete('/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('delete');
+        Route::post('/restore/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('restore');
+    });
 });
 
 // Test route directly in web.php
