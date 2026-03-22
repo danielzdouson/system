@@ -237,6 +237,9 @@
 <!-- Enhanced Styles -->
 <style>
 /* Data Cards */
+.content{
+    width: 900px;
+}
 .data-card {
     background: white;
     border-radius: 20px;

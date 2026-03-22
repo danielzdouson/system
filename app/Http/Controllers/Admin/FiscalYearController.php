@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FiscalYear;
+use App\Services\FiscalYearCarryForwardService;
 use Illuminate\Http\Request;
 
 class FiscalYearController extends Controller
@@ -29,17 +30,20 @@ class FiscalYearController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        // If setting as active, deactivate all other fiscal years
-        if ($request->status == 'active') {
-            FiscalYear::where('status', 'active')->update(['status' => 'inactive']);
-        }
-
         $fiscalYear = FiscalYear::create([
             'name' => $request->name,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'status' => $request->status,
         ]);
+
+        // If setting as active, deactivate all others and set as session default
+        if ($request->status == 'active') {
+            FiscalYear::where('status', 'active')->update(['status' => 'inactive']);
+            
+            // Also set as the viewing fiscal year
+            session(['current_fiscal_year_id' => $fiscalYear->id]);
+        }
 
         return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" created successfully!');
@@ -59,11 +63,14 @@ class FiscalYearController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        // If setting as active, deactivate all other fiscal years
+        // If setting as active, deactivate all others and set as session default
         if ($request->status == 'active') {
             FiscalYear::where('id', '!=', $fiscalYear->id)
                 ->where('status', 'active')
                 ->update(['status' => 'inactive']);
+            
+            // Also set as the viewing fiscal year
+            session(['current_fiscal_year_id' => $fiscalYear->id]);
         }
 
         $fiscalYear->update([
@@ -77,10 +84,89 @@ class FiscalYearController extends Controller
             ->with('success', 'Fiscal year "' . $fiscalYear->name . '" updated successfully!');
     }
 
+    public function activate(FiscalYear $fiscalYear)
+    {
+        // Store in session - this is the global "current viewing fiscal year"
+        session(['current_fiscal_year_id' => $fiscalYear->id]);
+        
+        return redirect()->back()
+            ->with('success', 'Now viewing fiscal year: ' . $fiscalYear->name);
+    }
+
+    public function clearSession()
+    {
+        session()->forget('current_fiscal_year_id');
+        
+        return redirect()->route('admin.fiscal-years.index')
+            ->with('info', 'Fiscal year selection cleared. Please select a fiscal year to view data.');
+    }
+
     public function destroy(FiscalYear $fiscalYear)
     {
         $fiscalYear->delete();
         return redirect()->route('admin.fiscal-years.index')
             ->with('success', 'Fiscal year deleted successfully!');
+    }
+
+    public function carryForward(FiscalYear $fromFiscalYear, FiscalYear $toFiscalYear)
+    {
+        $carryForwardService = new FiscalYearCarryForwardService();
+        
+        // Check if carry forward is needed
+        if (!$carryForwardService->isCarryForwardNeeded($fromFiscalYear, $toFiscalYear)) {
+            return redirect()->back()
+                ->with('info', 'No items need to be carried forward from ' . $fromFiscalYear->name);
+        }
+
+        // Get carry forward summary
+        $summary = $carryForwardService->getCarryForwardSummary($fromFiscalYear, $toFiscalYear);
+
+        return view('admin.fiscal-years.carry-forward', compact('fromFiscalYear', 'toFiscalYear', 'summary'));
+    }
+
+    public function processCarryForward(Request $request, FiscalYear $fromFiscalYear, FiscalYear $toFiscalYear)
+    {
+        $request->validate([
+            'confirm' => 'required|accepted',
+        ]);
+
+        $carryForwardService = new FiscalYearCarryForwardService();
+        
+        try {
+            $results = $carryForwardService->carryForwardAll($fromFiscalYear, $toFiscalYear, auth()->id());
+            
+            $successCount = 0;
+            $failureCount = 0;
+            
+            foreach ($results as $type => $items) {
+                foreach ($items as $result) {
+                    if ($result['success']) {
+                        $successCount++;
+                    } else {
+                        $failureCount++;
+                    }
+                }
+            }
+
+            $message = "Carry forward completed: {$successCount} items successfully carried forward";
+            if ($failureCount > 0) {
+                $message .= ", {$failureCount} items failed";
+            }
+
+            return redirect()->route('admin.fiscal-years.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Carry forward failed: ' . $e->getMessage());
+        }
+    }
+
+    public function carryForwardHistory(FiscalYear $fiscalYear = null)
+    {
+        $carryForwardService = new FiscalYearCarryForwardService();
+        $history = $carryForwardService->getCarryForwardHistory($fiscalYear);
+
+        return view('admin.fiscal-years.carry-forward-history', compact('history', 'fiscalYear'));
     }
 }

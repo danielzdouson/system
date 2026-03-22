@@ -17,7 +17,8 @@ class CashFlow extends Model
         'payment_method',
         'status',
         'notes',
-        'user_id'
+        'user_id',
+        'fiscal_year_id'
     ];
 
     protected $casts = [
@@ -31,7 +32,16 @@ class CashFlow extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function fiscalYear()
+    {
+        return $this->belongsTo(FiscalYear::class);
+    }
+
     // Scopes
+    public function scopeForFiscalYear($query, $fiscalYearId)
+    {
+        return $query->where('fiscal_year_id', $fiscalYearId);
+    }
     public function scopeIncome($query)
     {
         return $query->where('type', 'income');

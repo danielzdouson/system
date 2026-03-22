@@ -72,10 +72,19 @@
                         </div>
                         <div class="col-md-6">
                             <div class="info-item">
-                                <label class="text-muted small">Available Balance</label>
+                                <label class="text-muted small">This Deposit Balance</label>
                                 <p class="fw-bold text-primary mb-2">
                                     <i class="fas fa-wallet text-primary me-1"></i>
                                     UGX {{ number_format($deposit->balance, 0) }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label class="text-muted small">Total Account Balance</label>
+                                <p class="fw-bold text-success mb-2">
+                                    <i class="fas fa-balance-scale text-success me-1"></i>
+                                    UGX {{ number_format($memberAccount ? $memberAccount->current_balance : 0, 0) }}
                                 </p>
                             </div>
                         </div>
@@ -122,7 +131,7 @@
                                             <i class="fas fa-piggy-bank"></i>
                                         </span>
                                         <input type="number" name="savings_amount" id="savings_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $memberAccount ? $memberAccount->current_balance : $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to member's savings</small>
@@ -140,7 +149,7 @@
                                             <i class="fas fa-hands-helping"></i>
                                         </span>
                                         <input type="number" name="welfare_amount" id="welfare_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $memberAccount ? $memberAccount->current_balance : $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to group welfare fund</small>
@@ -160,7 +169,7 @@
                                             <i class="fas fa-gavel"></i>
                                         </span>
                                         <input type="number" name="fines_amount" id="fines_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $memberAccount ? $memberAccount->current_balance : $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to fines payment</small>
@@ -178,7 +187,7 @@
                                             <i class="fas fa-ellipsis-h"></i>
                                         </span>
                                         <input type="number" name="other_amount" id="other_amount" class="form-control" 
-                                               step="0.01" min="0" max="{{ $availableBalance ?? $deposit->balance }}" required>
+                                               step="0.01" min="0" max="{{ $memberAccount ? $memberAccount->current_balance : $deposit->balance }}" required>
                                         <span class="input-group-text">UGX</span>
                                     </div>
                                     <small class="text-muted">Amount allocated to other funds</small>
@@ -206,8 +215,8 @@
                             <div class="row text-center">
                                 <div class="col-md-3">
                                     <div class="summary-item">
-                                        <div class="summary-value text-primary">UGX <span id="total_deposit">{{ number_format($deposit->balance, 0) }}</span></div>
-                                        <div class="summary-label">Total Deposit</div>
+                                        <div class="summary-value text-success">UGX <span id="total_deposit">{{ number_format($memberAccount ? $memberAccount->current_balance : $deposit->balance, 0) }}</span></div>
+                                        <div class="summary-label">Total Available</div>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -461,7 +470,7 @@ window.onpopstate = function () {
 
 document.addEventListener('DOMContentLoaded', function() {
     const totalDeposit = {{ $deposit->balance }};
-    const availableBalance = {{ $availableBalance ?? $deposit->balance }};
+    const availableBalance = {{ $memberAccount ? $memberAccount->current_balance : $deposit->balance }};
     const inputs = ['savings_amount', 'welfare_amount', 'fines_amount', 'other_amount'];
     
     function updateSummary() {
@@ -495,9 +504,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             statusEl.textContent = 'Remaining';
             statusEl.className = 'badge bg-warning';
-            submitBtn.disabled = false;
-            submitBtn.classList.add('btn-warning');
-            submitBtn.classList.remove('btn-primary-gradient');
+            submitBtn.disabled = false; // Allow partial distribution
+            submitBtn.classList.add('btn-primary-gradient');
+            submitBtn.classList.remove('btn-warning');
         }
     }
     
@@ -517,11 +526,67 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateSummary();
     
+    // Form submission debugging
+    document.getElementById('distributionForm').addEventListener('submit', function(e) {
+        console.log('=== FORM SUBMISSION START ===');
+        console.log('Form submitting...');
+        console.log('Savings:', document.getElementById('savings_amount').value);
+        console.log('Welfare:', document.getElementById('welfare_amount').value);
+        console.log('Fines:', document.getElementById('fines_amount').value);
+        console.log('Other:', document.getElementById('other_amount').value);
+        console.log('Month:', document.querySelector('input[name="distribution_month"]').value);
+        console.log('Form action:', this.action);
+        console.log('Form method:', this.method);
+        
+        // Check if all required fields have valid values
+        const savings = parseFloat(document.getElementById('savings_amount').value) || 0;
+        const welfare = parseFloat(document.getElementById('welfare_amount').value) || 0;
+        const fines = parseFloat(document.getElementById('fines_amount').value) || 0;
+        const other = parseFloat(document.getElementById('other_amount').value) || 0;
+        
+        console.log('Parsed values:', { savings, welfare, fines, other });
+        
+        if (savings < 0 || welfare < 0 || fines < 0 || other < 0) {
+            console.log('VALIDATION FAILED: Negative amounts');
+            alert('All amounts must be 0 or greater');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (savings === 0 && welfare === 0 && fines === 0 && other === 0) {
+            console.log('VALIDATION FAILED: All amounts are zero');
+            alert('At least one amount must be greater than 0');
+            e.preventDefault();
+            return false;
+        }
+        
+        // Remove the beforeunload warning since we're actually submitting
+        console.log('Removing beforeunload warning...');
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        
+        // Let the form submit normally - don't prevent default
+        console.log('Validation passed, allowing form submission...');
+        console.log('=== FORM SUBMISSION END ===');
+        return true;
+    });
+    
+    // Add form error handling
+    document.getElementById('distributionForm').addEventListener('error', function(e) {
+        console.error('FORM ERROR:', e);
+    });
+    
+    // Check for network issues
+    window.addEventListener('error', function(e) {
+        console.error('WINDOW ERROR:', e);
+    });
+    
     // Warn before page refresh/close
-    window.addEventListener('beforeunload', function(e) {
+    function beforeUnloadHandler(e) {
         e.preventDefault();
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-    });
+    }
+    
+    window.addEventListener('beforeunload', beforeUnloadHandler);
 });
 </script>
 </body>

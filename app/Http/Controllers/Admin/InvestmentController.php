@@ -12,6 +12,7 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Services\FiscalYearContext;
 
 class InvestmentController extends Controller
 {
@@ -25,7 +26,17 @@ class InvestmentController extends Controller
      */
     public function index(Request $request): View
     {
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        
         $query = Investment::with(['creator', 'approver', 'transactions']);
+        
+        // Filter by fiscal year if selected
+        if ($currentFiscalYear) {
+            $query->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            // Show no data if no fiscal year selected
+            $query->whereRaw('1 = 0');
+        }
 
         // Filters
         if ($request->filled('status')) {
@@ -51,20 +62,27 @@ class InvestmentController extends Controller
 
         $investments = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        // Statistics
+        // Statistics - filtered by fiscal year
+        $statsQuery = Investment::query();
+        if ($currentFiscalYear) {
+            $statsQuery->where('fiscal_year_id', $currentFiscalYear->id);
+        } else {
+            $statsQuery->whereRaw('1 = 0');
+        }
+        
         $stats = [
-            'total_invested' => Investment::sum('principal_amount'),
-            'total_current_value' => Investment::sum(DB::raw('COALESCE(current_value, principal_amount + total_returns)')),
-            'total_returns' => Investment::sum('total_returns'),
-            'active_count' => Investment::where('status', 'ACTIVE')->count(),
-            'matured_count' => Investment::where('status', 'MATURED')->count(),
+            'total_invested' => $statsQuery->sum('principal_amount'),
+            'total_current_value' => $statsQuery->sum(DB::raw('COALESCE(current_value, principal_amount + total_returns)')),
+            'total_returns' => $statsQuery->sum('total_returns'),
+            'active_count' => $statsQuery->where('status', 'ACTIVE')->count(),
+            'matured_count' => $statsQuery->where('status', 'MATURED')->count(),
         ];
 
         $stats['total_roi'] = $stats['total_invested'] > 0 
             ? (($stats['total_current_value'] - $stats['total_invested']) / $stats['total_invested']) * 100 
             : 0;
 
-        return view('admin.investments.index', compact('investments', 'stats'));
+        return view('admin.investments.index', compact('investments', 'stats', 'currentFiscalYear'));
     }
 
     /**
@@ -100,6 +118,7 @@ class InvestmentController extends Controller
         $validated['created_by'] = auth()->id();
         $validated['total_returns'] = 0;
         $validated['current_value'] = $validated['principal_amount'];
+        $validated['fiscal_year_id'] = $this->getCurrentFiscalYear();
 
         DB::beginTransaction();
         try {
@@ -327,6 +346,6 @@ class InvestmentController extends Controller
      */
     private function getCurrentFiscalYear()
     {
-        return \App\Models\FiscalYear::where('status', 'active')->first()?->id;
+        return \App\Services\FiscalYearContext::getCurrent()?->id;
     }
 }

@@ -3,7 +3,7 @@
 @section('title', 'Member Accounts Management')
 
 @section('content')
-<div class="container-fluid" style="margin-left: 10px; padding: 5px; width: 130%;">
+<div class="container-fluid" style="margin-left: 10px; padding: 5px; width: 850px;">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -116,63 +116,63 @@
                         </a>
                     </div>
                 </div>
-                <div class="card-body p-3">
+                <div class="card-body p-2">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover table-sm">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="fw-bold">Member</th>
-                                    <th class="fw-bold">Contact</th>
-                                    <th class="fw-bold">User Account</th>
-                                    <th class="fw-bold">Current Balance</th>
-                                    <th class="fw-bold">Status</th>
-                                    <th class="fw-bold text-end">Actions</th>
+                                    <th class="fw-bold" style="width: 18%">Member</th>
+                                    <th class="fw-bold" style="width: 16%">Contact</th>
+                                    <th class="fw-bold" style="width: 18%">User Account</th>
+                                    <th class="fw-bold" style="width: 10%">Balance</th>
+                                    <th class="fw-bold" style="width: 8%">Status</th>
+                                    <th class="fw-bold text-end" style="width: 30%">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($members as $member)
                                     <tr class="align-middle">
-                                        <td class="py-3">
+                                        <td class="py-2">
                                             <div class="d-flex align-items-center">
                                                 <div class="flex-shrink-0">
-                                                    <div class="bg-light rounded-circle p-3 me-3">
-                                                        <i class="fas fa-user text-muted fs-5"></i>
+                                                    <div class="bg-light rounded-circle p-1 me-1">
+                                                        <i class="fas fa-user text-muted" style="font-size: 0.8rem"></i>
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <h6 class="mb-1 fw-bold">{{ $member->first_name }} {{ $member->last_name }}</h6>
-                                                    <small class="text-muted">ID: {{ $member->id }}</small>
+                                                <div class="min-w-0">
+                                                    <h6 class="mb-0 fw-bold text-truncate" style="font-size: 0.85rem">{{ $member->first_name }} {{ $member->last_name }}</h6>
+                                                    <small class="text-muted" style="font-size: 0.75rem">ID: {{ $member->id }}</small>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-3">
-                                            <div>
+                                        <td class="py-2">
+                                            <div class="small" style="font-size: 0.8rem">
                                                 @if($member->email)
-                                                    <div class="mb-2"><i class="fas fa-envelope text-muted me-2"></i>{{ $member->email }}</div>
+                                                    <div class="mb-1 text-truncate"><i class="fas fa-envelope text-muted me-1"></i>{{ $member->email }}</div>
                                                 @endif
                                                 @if($member->phone)
-                                                    <div><i class="fas fa-phone text-muted me-2"></i>{{ $member->phone }}</div>
+                                                    <div class="text-truncate"><i class="fas fa-phone text-muted me-1"></i>{{ $member->phone }}</div>
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="py-3">
+                                        <td class="py-2">
                                             @if($member->user)
                                                 <div>
-                                                    <span class="badge bg-success mb-2 fs-6">
+                                                    <span class="badge bg-success mb-1" style="font-size: 0.7rem">
                                                         <i class="fas fa-check me-1"></i>Active
                                                     </span>
-                                                    <br><small class="text-muted">{{ $member->user->email }}</small>
+                                                    <br><small class="text-muted text-truncate d-block" style="font-size: 0.7rem">{{ $member->user->email }}</small>
                                                     @if($member->user->deleted_at)
-                                                        <br><span class="badge bg-secondary">Deactivated</span>
+                                                        <br><span class="badge bg-secondary" style="font-size: 0.7rem">Deactivated</span>
                                                     @endif
                                                 </div>
                                             @else
-                                                <span class="badge bg-warning fs-6">
+                                                <span class="badge bg-warning" style="font-size: 0.7rem">
                                                     <i class="fas fa-exclamation-triangle me-1"></i>No Account
                                                 </span>
                                             @endif
                                         </td>
-                                        <td class="py-3">
+                                        <td class="py-2">
                                             @if($member->memberAccounts->isNotEmpty())
                                                 @php
                                                     $currentAccount = null;
@@ -181,46 +181,46 @@
                                                     }
                                                 @endphp
                                                 @if($currentAccount)
-                                                    <h6 class="mb-0">UGX {{ number_format($currentAccount->savings_balance ?: 0, 0) }}</h6>
+                                                    <h6 class="mb-0" style="font-size: 0.8rem">UGX {{ number_format($currentAccount->savings_balance ?: 0, 0) }}</h6>
                                                 @else
-                                                    <span class="text-muted">No account this year</span>
+                                                    <span class="text-muted" style="font-size: 0.75rem">No account this year</span>
                                                 @endif
                                             @else
-                                                <span class="text-muted">No accounts</span>
+                                                <span class="text-muted" style="font-size: 0.75rem">No accounts</span>
                                             @endif
                                         </td>
-                                        <td class="py-3">
+                                        <td class="py-2">
                                             @if($member->deleted_at)
-                                                <span class="badge bg-secondary">Inactive</span>
+                                                <span class="badge bg-secondary" style="font-size: 0.75rem">Inactive</span>
                                             @else
-                                                <span class="badge bg-success">Active</span>
+                                                <span class="badge bg-success" style="font-size: 0.75rem">Active</span>
                                             @endif
                                         </td>
-                                        <td class="text-end py-3">
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ route('admin.accounts.show', $member->id) }}" class="btn btn-outline-primary">
-                                                    <i class="fas fa-eye me-1"></i>View
+                                        <td class="text-end py-2">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{{ route('admin.accounts.show', $member->id) }}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye" style="font-size: 0.75rem"></i>
                                                 </a>
                                                 
                                                 @if($member->user)
                                                     <!-- Password Reset Modal Trigger -->
-                                                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $member->id }}">
-                                                        <i class="fas fa-key me-1"></i>Reset
+                                                    <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ $member->id }}" title="Reset Password">
+                                                        <i class="fas fa-key" style="font-size: 0.75rem"></i>
                                                     </button>
                                                     
                                                     <!-- Toggle Status -->
                                                     <form action="{{ route('admin.accounts.toggle-status', $member->id) }}" method="POST" class="d-inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-{{ $member->user->deleted_at ? 'success' : 'danger' }}" 
+                                                        <button type="submit" class="btn btn-{{ $member->user->deleted_at ? 'success' : 'danger' }} btn-sm" 
                                                                 title="{{ $member->user->deleted_at ? 'Activate Account' : 'Deactivate Account' }}"
                                                                 onclick="return confirm('Are you sure you want to {{ $member->user->deleted_at ? 'activate' : 'deactivate' }} this account?')">
-                                                            <i class="fas fa-{{ $member->user->deleted_at ? 'check' : 'ban' }} me-1"></i>{{ $member->user->deleted_at ? 'Activate' : 'Deactivate' }}
+                                                            <i class="fas fa-{{ $member->user->deleted_at ? 'check' : 'ban' }}" style="font-size: 0.75rem"></i>
                                                         </button>
                                                     </form>
                                                 @else
                                                     <!-- Create User Account Modal Trigger -->
-                                                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createUserModal{{ $member->id }}">
-                                                        <i class="fas fa-user-plus me-1"></i>Create Account
+                                                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createUserModal{{ $member->id }}" title="Create Account">
+                                                        <i class="fas fa-user-plus" style="font-size: 0.75rem"></i>
                                                     </button>
                                                 @endif
                                             </div>

@@ -3,7 +3,115 @@
 @section('title', 'Cash Flow Management')
 
 @push('styles')
+<!-- Chart.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Flatpickr for date range picker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <style>
+/* Enhanced Chart Styles */
+.chart-container {
+    width:550px;
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+    height: 400px;
+    position: relative;
+}
+
+.chart-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-row {
+    height: 60px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+}
+
+/* Enhanced Filter Section */
+.filter-section {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.filter-presets {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e3e6f6;
+    border-radius: 20px;
+    background: white;
+    color: #6c757d;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.preset-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.preset-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
 /* Modern Cash Flow Dashboard Styles */
 .cashflow-dashboard {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -544,28 +652,204 @@
 /* Responsive Design */
 @media (max-width: 768px) {
     .header-title {
-        font-size: 2rem;
+        font-size: 1.5rem;
+    }
+    
+    .header-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .fiscal-year-badge {
+        font-size: 0.8rem;
+        padding: 0.5rem 1rem;
     }
     
     .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .chart-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .chart-container {
+        height: 300px;
+        padding: 1rem;
+    }
+    
+    .filter-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .filter-presets {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .preset-btn {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.8rem;
+        flex: 1;
+        text-align: center;
     }
     
     .filter-form {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
     
     .action-buttons {
         flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+        font-size: 0.9rem;
     }
     
     .modern-table {
         font-size: 0.8rem;
+        border-collapse: separate;
+        border-spacing: 0;
     }
     
     .modern-table th,
     .modern-table td {
         padding: 0.5rem;
+        vertical-align: top;
+    }
+    
+    .modern-table th:nth-child(n+4),
+    .modern-table td:nth-child(n+4) {
+        display: none;
+    }
+    
+    .modern-table th:nth-child(3)::after,
+    .modern-table td:nth-child(3)::after {
+        content: "";
+        display: block;
+        height: 1rem;
+    }
+    
+    /* Mobile transaction cards */
+    @media (max-width: 640px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .modern-table {
+            min-width: 600px;
+        }
+        
+        .mobile-transaction-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .mobile-transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .mobile-transaction-amount {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .mobile-transaction-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .mobile-transaction-detail {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .mobile-transaction-label {
+            color: #6c757d;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+    }
+    
+    /* Touch-friendly interactions */
+    .action-btn,
+    .preset-btn,
+    .dropdown-toggle {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .dropdown-menu {
+        min-width: 200px;
+        max-width: 90vw;
+    }
+    
+    .dropdown-item {
+        padding: 1rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Enhanced touch feedback */
+    .action-btn:active,
+    .preset-btn:active {
+        transform: scale(0.95);
+    }
+    
+    /* Better mobile charts */
+    .chart-container canvas {
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-presets {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .preset-btn {
+        flex: 0 0 calc(50% - 0.25rem);
+        margin-bottom: 0.5rem;
+    }
+    
+    .header-content {
+        text-align: center;
+    }
+    
+    .header-content .d-flex {
+        flex-direction: column;
+        gap: 1rem;
     }
 }
 
@@ -587,6 +871,32 @@
 /* Smooth Transitions */
 * {
     transition: all 0.3s ease;
+}
+
+/* Hide header and sidebar on cashflow page */
+.header {
+    visibility: hidden;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.sidebar {
+    visibility: hidden;
+    width: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.content {
+    width: 100% !important;
+    margin-left: 0 !important;
+}
+
+.cashflow-dashboard {
+    margin-bottom: -900px !important;
 }
 </style>
 @endpush
@@ -623,9 +933,9 @@
                     <i class="fas fa-wallet"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalBalance'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalBalance'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Current Balance</div>
+                <div class="stat-label">Net Cash Position</div>
                 <div class="stat-change {{ $totals['balanceChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['balanceChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['balanceChange'] >= 0 ? '+' : '' }}{{ number_format($totals['balanceChange'], 1) }}% from last month
@@ -637,9 +947,9 @@
                     <i class="fas fa-arrow-down"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalInflows'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalInflows'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Total Inflows</div>
+                <div class="stat-label">External Inflows</div>
                 <div class="stat-change {{ $totals['inflowChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['inflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['inflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['inflowChange'], 1) }}% from last month
@@ -651,26 +961,12 @@
                     <i class="fas fa-arrow-up"></i>
                 </div>
                 <div class="stat-value">
-                    UGX {{ number_format($totals['totalOutflows'] ?? 0, 0) }}
+                    UGX {{ number_format($totals['externalOutflows'] ?? 0, 0) }}
                 </div>
-                <div class="stat-label">Total Outflows</div>
+                <div class="stat-label">External Outflows</div>
                 <div class="stat-change {{ $totals['outflowChange'] >= 0 ? '' : 'negative' }}">
                     <i class="fas fa-arrow-{{ $totals['outflowChange'] >= 0 ? 'up' : 'down' }} me-1"></i>
                     {{ $totals['outflowChange'] >= 0 ? '+' : '' }}{{ number_format($totals['outflowChange'], 1) }}% from last month
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon pending">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-value">
-                    {{ $totals['pendingCount'] ?? 0 }}
-                </div>
-                <div class="stat-label">Pending Transactions</div>
-                <div class="stat-change">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Requires approval
                 </div>
             </div>
         </div>
@@ -684,16 +980,11 @@
                 </div>
             </div>
             <form method="GET" action="{{ route('admin.cashflow.index') }}" class="filter-form">
-                <div class="form-group">
-                    <label class="form-label">Fiscal Year</label>
-                    <select name="fiscal_year_id" class="form-control">
-                        <option value="">All Fiscal Years</option>
-                        @foreach($fiscalYears as $fiscalYear)
-                            <option value="{{ $fiscalYear->id }}" {{ request('fiscal_year_id') == $fiscalYear->id ? 'selected' : '' }}>
-                                {{ $fiscalYear->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="form-group" style="display: none;">
+                    <label class="form-label">Date Range</label>
+                    <input type="text" id="dateRange" name="date_range" class="form-control" placeholder="Select date range" value="{{ request('date_range') }}">
+                    <input type="hidden" id="dateFrom" name="date_from" value="{{ request('date_from') }}">
+                    <input type="hidden" id="dateTo" name="date_to" value="{{ request('date_to') }}">
                 </div>
                 
                 <div class="form-group">
@@ -716,6 +1007,15 @@
                 </div>
                 
                 <div class="form-group">
+                    <label class="form-label">Transaction Scope</label>
+                    <select name="transaction_scope" class="form-control">
+                        <option value="all" {{ request('transaction_scope', 'all') == 'all' ? 'selected' : '' }}>All Transactions</option>
+                        <option value="external" {{ request('transaction_scope') == 'external' ? 'selected' : '' }}>External Only</option>
+                        <option value="reallocation" {{ request('transaction_scope') == 'reallocation' ? 'selected' : '' }}>Reallocation Only</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="display: none;">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-control">
                         <option value="">All Status</option>
@@ -736,55 +1036,46 @@
                         Apply Filters
                     </button>
                 </div>
-            </form>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-section mb-4">
-            <div class="action-header">
-                <i class="fas fa-rocket"></i>
-                Quick Actions
             </div>
-            <div class="action-buttons">
-                <a href="{{ route('admin.cashflow.monthly-statement') }}" class="action-btn primary">
-                    <i class="fas fa-chart-line"></i>
-                    Monthly Statement
-                </a>
-                <a href="{{ route('admin.cashflow.fiscal-year-statement') }}" class="action-btn success">
-                    <i class="fas fa-calendar-alt"></i>
-                    Fiscal Year Statement
-                </a>
-                <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
-                    <i class="fas fa-plus-circle"></i>
-                    Add Transaction
-                </a>
-                <button type="button" class="action-btn warning" onclick="bulkApprovePending()">
-                    <i class="fas fa-check-double"></i>
-                    Bulk Approve Pending
-                </button>
-                <div class="dropdown">
-                    <button class="action-btn secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-download"></i>
-                        Export
-                        <i class="fas fa-chevron-down ms-2"></i>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="{{ route('admin.cashflow.export', request()->query()) }}" class="dropdown-item">
-                                <i class="fas fa-file-excel"></i>
-                                Export Current View to Excel
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
-                                <i class="fas fa-file-excel"></i>
-                                Export Current Month to Excel
-                            </a>
-                        </li>
-                    </ul>
+            
+            <!-- Action Buttons -->
+            <div class="action-section mb-4">
+                <div class="action-header">
+                    <i class="fas fa-rocket"></i>
+                    Quick Actions
+                </div>
+                <div class="action-buttons">
+                    <a href="{{ route('admin.cashflow.create') }}" class="action-btn info">
+                        <i class="fas fa-plus-circle"></i>
+                        Add Transaction
+                    </a>
+                    <div class="dropdown">
+                        <button class="action-btn secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download"></i>
+                            Export
+                            <i class="fas fa-chevron-down ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{{ route('admin.cashflow.export', request()->all()) }}" class="dropdown-item">
+                                    <i class="fas fa-file-excel text-success"></i>
+                                    Export All to Excel
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('admin.cashflow.export.monthly', ['fiscal_year_id' => request('fiscal_year_id', date('Y')), 'month' => date('n')]) }}" class="dropdown-item">
+                                    <i class="fas fa-file-excel"></i>
+                                    Export Current Month to Excel
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('dashboard') }}" class="action-btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
                 </div>
             </div>
-        </div>
 
         <!-- Transactions Table -->
         <div class="table-section">
@@ -794,118 +1085,66 @@
                     Cash Flow Transactions
                 </div>
                 <div class="table-subtitle">
-                    {{ $paginatedTransactions->total() }} transactions found
+                    <span id="transactionCount">{{ $initialTransactions->total() }}</span> transactions found
                 </div>
             </div>
             
-            @if($paginatedTransactions->count() > 0)
-                <div class="table-responsive">
-                    <table class="modern-table">
-                        <thead>
-                            <tr>
-                                <th><i class="fas fa-calendar me-2"></i> Date</th>
-                                <th><i class="fas fa-exchange-alt me-2"></i> Type</th>
-                                <th><i class="fas fa-tag me-2"></i> Category</th>
-                                <th><i class="fas fa-comment me-2"></i> Description</th>
-                                <th><i class="fas fa-coins me-2"></i> Amount</th>
-                                <th><i class="fas fa-credit-card me-2"></i> Method</th>
-                                <th><i class="fas fa-info-circle me-2"></i> Status</th>
-                                <th><i class="fas fa-database me-2"></i> Source</th>
-                                <th><i class="fas fa-cogs me-2"></i> Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($paginatedTransactions as $transaction)
+            <div id="transactionsContainer">
+                @if($initialTransactions->count() > 0)
+                    <div class="table-responsive">
+                        <table class="modern-table" id="transactionsTable">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <span class="date-badge">
-                                            {{ \Carbon\Carbon::parse($transaction->transaction_date)->format('M d, Y') }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="type-badge {{ $transaction->type == 'income' || $transaction->type == 'INFLOW' ? 'inflow' : 'outflow' }}">
-                                            {{ strtoupper($transaction->type) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="category-badge {{ strtolower($transaction->category) }}">
-                                            {{ $transaction->category }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong>{{ $transaction->description }}</strong>
-                                            @if($transaction->reference_number)
-                                                <br><small class="text-muted">Ref: {{ $transaction->reference_number }}</small>
-                                            @endif
-                                            @if(isset($transaction->member_id) && $transaction->member_id)
-                                                <br><small class="text-info">Member ID: {{ $transaction->member_id }}</small>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="amount-display {{ $transaction->type == 'income' || $transaction->type == 'INFLOW' ? 'inflow' : 'outflow' }}">
-                                            UGX {{ number_format($transaction->amount, 0) }}
-                                        </span>
-                                    </td>
-                                    <td>{{ $transaction->payment_method }}</td>
-                                    <td>
-                                        <span class="status-badge {{ strtolower($transaction->status) }}">
-                                            {{ ucfirst($transaction->status) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info">
-                                            {{ $transaction->transaction_source ?? 'Manual Entry' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="fas fa-ellipsis-h"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a href="#" class="dropdown-item" onclick="showTransactionDetails('{{ $transaction->source_model }}', {{ $transaction->id }})">
-                                                        <i class="fas fa-eye"></i>
-                                                        View Details
-                                                    </a>
-                                                </li>
-                                                @if($transaction->status == 'PENDING' && auth()->user()->can('approve-cashflow'))
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <a href="#" class="dropdown-item" onclick="approveTransaction('{{ $transaction->source_model }}', {{ $transaction->id }})">
-                                                            <i class="fas fa-check-circle"></i>
-                                                            Approve Transaction
-                                                        </a>
-                                                    </li>
-                                                @endif
-                                            </ul>
-                                        </div>
-                                    </td>
+                                    <th><i class="fas fa-calendar me-2"></i> Date</th>
+                                    <th><i class="fas fa-exchange-alt me-2"></i> Type</th>
+                                    <th><i class="fas fa-tag me-2"></i> Category</th>
+                                    <th><i class="fas fa-layer-group me-2"></i> Scope</th>
+                                    <th><i class="fas fa-comment me-2"></i> Description</th>
+                                    <th><i class="fas fa-coins me-2"></i> Amount</th>
+                                    <th><i class="fas fa-credit-card me-2"></i> Method</th>
+                                    <th><i class="fas fa-info-circle me-2"></i> Status</th>
+                                    <th><i class="fas fa-database me-2"></i> Source</th>
+                                    <th><i class="fas fa-cogs me-2"></i> Actions</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Pagination -->
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $paginatedTransactions->links() }}
-                </div>
-            @else
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-inbox"></i>
+                            </thead>
+                            <tbody id="transactionsBody">
+                                @foreach($initialTransactions as $transaction)
+                                    @include('admin.cashflow.partials.transaction-row', ['transaction' => $transaction])
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="empty-state-title">No Transactions Found</div>
-                    <div class="empty-state-text">No cashflow transactions match your current filters.</div>
-                    <a href="{{ route('admin.cashflow.create') }}" class="action-btn primary">
-                        <i class="fas fa-plus-circle"></i>
-                        Add First Transaction
-                    </a>
-                </div>
-            @endif
+                    
+                    <!-- Load More Button -->
+                    <div class="text-center mt-4" id="loadMoreContainer">
+                        @if($initialTransactions->hasMorePages())
+                            <button type="button" id="loadMoreBtn" class="action-btn primary" data-page="2">
+                                <i class="fas fa-plus-circle"></i>
+                                Load More Transactions
+                            </button>
+                        @endif
+                    </div>
+                    
+                    <!-- Loading Skeleton -->
+                    <div id="loadingSkeleton" style="display: none;">
+                        @for($i = 0; $i < 5; $i++)
+                            <div class="skeleton-row"></div>
+                        @endfor
+                    </div>
+                @else
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="empty-state-title">Search Results Not Available</div>
+                        <div class="empty-state-text">No transactions found matching your search criteria. Please try different search terms.</div>
+                        <a href="{{ route('admin.cashflow.index') }}" class="action-btn primary">
+                            <i class="fas fa-undo"></i>
+                            Clear Search
+                        </a>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </div>
@@ -915,56 +1154,306 @@
 <script>
 // Enhanced JavaScript for better UX
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize date range picker
+    initializeDateRangePicker();
+    
+    // Initialize filter form
+    initializeFilterForm();
+    
+    // Initialize lazy loading
+    initializeLazyLoading();
+    
+    // Initialize filter presets
+    initializeFilterPresets();
+    
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
     
-    // Add loading states to buttons
+    // Add loading states to buttons (exclude dropdown toggles, load more, and submit buttons)
     document.querySelectorAll('.action-btn').forEach(button => {
         button.addEventListener('click', function(e) {
-            if (!this.classList.contains('dropdown-toggle')) {
-                const originalContent = this.innerHTML;
-                this.innerHTML = '<span class="loading-spinner"></span> Processing...';
-                this.disabled = true;
-                
-                setTimeout(() => {
-                    this.innerHTML = originalContent;
-                    this.disabled = false;
-                }, 2000);
+            // Skip if it's a dropdown toggle, load more button, or form submit button
+            if (this.classList.contains('dropdown-toggle') || 
+                this.id.includes('loadMore') || 
+                this.type === 'submit') {
+                return;
             }
+            
+            const originalContent = this.innerHTML;
+            this.innerHTML = '<span class="loading-spinner"></span> Processing...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.innerHTML = originalContent;
+                this.disabled = false;
+            }, 2000);
         });
     });
     
-    // Enhance table interactions
-    const tableRows = document.querySelectorAll('.modern-table tbody tr');
-    tableRows.forEach(row => {
-        row.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.01)';
-        });
-        
-        row.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1)';
-        });
-    });
+    // Auto-refresh pending transactions every 30 seconds
+    // setInterval(updatePendingCount, 30000);
+});
+
+// Initialize Date Range Picker
+function initializeDateRangePicker() {
+    const dateRangeInput = document.getElementById('dateRange');
+    const dateFromInput = document.getElementById('dateFrom');
+    const dateToInput = document.getElementById('dateTo');
     
-    // Auto-refresh pending transactions
-    setInterval(function() {
-        const pendingCount = document.querySelector('.stat-card:nth-child(4) .stat-value');
-        if (pendingCount) {
-            // Simulate real-time update
-            const currentCount = parseInt(pendingCount.textContent);
-            if (Math.random() > 0.8) {
-                pendingCount.textContent = currentCount + 1;
-                pendingCount.style.color = '#f59e0b';
-                setTimeout(() => {
-                    pendingCount.style.color = '#2c3e50';
-                }, 1000);
+    // Only initialize if input is visible
+    if (!dateRangeInput || dateRangeInput.offsetParent === null) {
+        return;
+    }
+    
+    flatpickr(dateRangeInput, {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+                dateFromInput.value = selectedDates[0].toISOString().split('T')[0];
+                dateToInput.value = selectedDates[1].toISOString().split('T')[0];
             }
         }
-    }, 30000);
-});
+    });
+}
+
+// Initialize Filter Form
+function initializeFilterForm() {
+    const filterForm = document.querySelector('.filter-form');
+    
+    // Handle filter changes for real-time updates (dropdowns only)
+    const filterInputs = filterForm.querySelectorAll('select');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+        });
+    });
+    
+    // Handle search input - submit only on Enter key
+    const searchInput = filterForm.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+            }
+        });
+    }
+}
+
+// Initialize Filter Presets
+function initializeFilterPresets() {
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    
+    presetButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            presetButtons.forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            const preset = this.dataset.preset;
+            const dateRangeInput = document.getElementById('dateRange');
+            const dateFromInput = document.getElementById('dateFrom');
+            const dateToInput = document.getElementById('dateTo');
+            
+            const today = new Date();
+            let fromDate, toDate;
+            
+            switch(preset) {
+                case 'today':
+                    fromDate = toDate = today;
+                    break;
+                case 'week':
+                    fromDate = new Date(today.setDate(today.getDate() - today.getDay()));
+                    toDate = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+                    break;
+                case 'month':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+                case 'quarter':
+                    const quarter = Math.floor(today.getMonth() / 3);
+                    fromDate = new Date(today.getFullYear(), quarter * 3, 1);
+                    toDate = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+                    break;
+                case 'year':
+                    fromDate = new Date(today.getFullYear(), 0, 1);
+                    toDate = new Date(today.getFullYear(), 11, 31);
+                    break;
+            }
+            
+            dateFromInput.value = fromDate.toISOString().split('T')[0];
+            dateToInput.value = toDate.toISOString().split('T')[0];
+            dateRangeInput.value = fromDate.toISOString().split('T')[0] + ' to ' + toDate.toISOString().split('T')[0];
+            
+            // Submit the form after setting the dates
+            const filterForm = document.querySelector('.filter-form');
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            window.location.href = `{{ route('admin.cashflow.index') }}?${params.toString()}`;
+        });
+    });
+}
+
+// Initialize Lazy Loading
+function initializeLazyLoading() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const loadingSkeleton = document.getElementById('loadingSkeleton');
+    const transactionsBody = document.getElementById('transactionsBody');
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            const page = parseInt(this.dataset.page);
+            
+            // Show loading skeleton
+            loadingSkeleton.style.display = 'block';
+            this.style.display = 'none';
+            
+            // Get current filter values
+            const formData = new FormData(document.querySelector('form'));
+            const params = new URLSearchParams(formData);
+            params.set('load_transactions', '1');
+            params.set('page', page);
+            
+            // Load more transactions
+            fetch(`{{ route('admin.cashflow.load') }}?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Append new transactions
+                    data.transactions.forEach(transaction => {
+                        const row = createTransactionRow(transaction);
+                        transactionsBody.appendChild(row);
+                    });
+                    
+                    // Update transaction count
+                    const countElement = document.getElementById('transactionCount');
+                    countElement.textContent = data.pagination.total;
+                    
+                    // Hide loading skeleton
+                    loadingSkeleton.style.display = 'none';
+                    
+                    // Update or hide load more button
+                    if (data.pagination.has_more) {
+                        this.dataset.page = page + 1;
+                        this.style.display = 'inline-block';
+                    } else {
+                        loadMoreContainer.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading transactions:', error);
+                    loadingSkeleton.style.display = 'none';
+                    this.style.display = 'inline-block';
+                });
+        });
+    }
+}
+
+// Create Transaction Row
+function createTransactionRow(transaction) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <span class="date-badge">
+                ${new Date(transaction.transaction_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+        </td>
+        <td>
+            <span class="type-badge ${transaction.type === 'income' || transaction.type === 'INFLOW' ? 'inflow' : 'outflow'}">
+                ${transaction.type.toUpperCase()}
+            </span>
+        </td>
+        <td>
+            <span class="category-badge ${transaction.category.toLowerCase()}">
+                ${transaction.category}
+            </span>
+        </td>
+        <td>
+            ${transaction.is_reallocation ? 
+                `<span class="badge bg-secondary"><i class="fas fa-exchange-alt me-1"></i>Reallocation</span>` : 
+                `<span class="badge bg-primary"><i class="fas fa-globe me-1"></i>External</span>`
+            }
+        </td>
+        <td>
+            <div>
+                <strong>${transaction.description}</strong>
+                ${transaction.reference_number ? `<br><small class="text-muted">Ref: ${transaction.reference_number}</small>` : ''}
+                ${transaction.member_id ? `<br><small class="text-info">Member ID: ${transaction.member_id}</small>` : ''}
+            </div>
+        </td>
+        <td>
+            <span class="amount-display ${transaction.type === 'income' || transaction.type === 'INFLOW' ? 'inflow' : 'outflow'}">
+                UGX ${parseInt(transaction.amount).toLocaleString()}
+            </span>
+        </td>
+        <td>${transaction.payment_method || '-'}</td>
+        <td>
+            <span class="status-badge ${transaction.status.toLowerCase()}">
+                ${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+            </span>
+        </td>
+        <td>
+            <span class="badge bg-info">
+                ${transaction.transaction_source || 'Manual Entry'}
+            </span>
+        </td>
+        <td>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a href="#" class="dropdown-item" onclick="showTransactionDetails('${transaction.source_model}', ${transaction.id})">
+                            <i class="fas fa-eye"></i>
+                            View Details
+                        </a>
+                    </li>
+                    ${transaction.status === 'PENDING' ? `
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a href="#" class="dropdown-item" onclick="approveTransaction('${transaction.source_model}', ${transaction.id})">
+                                <i class="fas fa-check-circle"></i>
+                                Approve Transaction
+                            </a>
+                        </li>
+                    ` : ''}
+                </ul>
+            </div>
+        </td>
+    `;
+    return row;
+}
+
+// Update Pending Count
+function updatePendingCount() {
+    fetch('/admin/cashflow-dashboard/data')
+        .then(response => response.json())
+        .then(data => {
+            const pendingCount = document.querySelector('.stat-card:nth-child(4) .stat-value');
+            if (pendingCount && data.pendingCount !== undefined) {
+                const currentCount = parseInt(pendingCount.textContent);
+                if (data.pendingCount !== currentCount) {
+                    pendingCount.textContent = data.pendingCount;
+                    pendingCount.style.color = '#f59e0b';
+                    setTimeout(() => {
+                        pendingCount.style.color = '#2c3e50';
+                    }, 1000);
+                }
+            }
+        })
+        .catch(error => console.error('Error updating pending count:', error));
+}
 
 function bulkApprovePending() {
     if (confirm('Are you sure you want to approve all pending transactions?')) {

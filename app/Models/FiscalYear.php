@@ -45,27 +45,111 @@ class FiscalYear extends Model
 
     public function getTotalDepositsAttribute()
     {
+        // Count all deposits including virtual deposits to get complete picture
         return $this->deposits()->sum('amount');
     }
 
     public function getTotalSavingsAttribute()
     {
-        return $this->savings()->sum('amount');
+        // Calculate from distributions to get actual savings amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'savings')->sum('amount');
     }
 
     public function getTotalWelfareAttribute()
     {
-        return $this->welfareFunds()->sum('amount');
+        // Calculate from distributions to get actual welfare amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'welfare')->sum('amount');
     }
 
     public function getTotalFinesAttribute()
     {
-        return $this->fines()->sum('amount');
+        // Calculate from distributions to get actual fine payments
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'fines')->sum('amount');
+    }
+
+    public function getTotalOtherAttribute()
+    {
+        // Calculate from distributions to get actual other amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->where('type', 'other')->sum('amount');
+    }
+
+    public function getTotalDistributedAttribute()
+    {
+        // Calculate total distributed funds
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id);
+        })->sum('amount');
     }
 
     public function getPendingMonthsCountAttribute()
     {
         return $this->savings()->where('status', 'pending')->count();
+    }
+
+    public function getCarriedForwardDepositsAttribute()
+    {
+        // Count only carried forward deposits
+        return $this->deposits()->where('is_carried_forward', true)->sum('amount');
+    }
+
+    public function getCarriedForwardSavingsAttribute()
+    {
+        // Calculate only carried forward savings amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'savings')->sum('amount');
+    }
+
+    public function getCarriedForwardWelfareAttribute()
+    {
+        // Calculate only carried forward welfare amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'welfare')->sum('amount');
+    }
+
+    public function getCarriedForwardFinesAttribute()
+    {
+        // Calculate only carried forward fine payments
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'fines')->sum('amount');
+    }
+
+    public function getCarriedForwardOtherAttribute()
+    {
+        // Calculate only carried forward other amounts
+        return Distribution::whereHas('deposit', function($query) {
+            $query->where('fiscal_year_id', $this->id)
+                  ->where('is_carried_forward', true);
+        })->where('type', 'other')->sum('amount');
+    }
+
+    public function hasCarriedForwardItemsAttribute()
+    {
+        // Check if fiscal year has any carried forward items
+        return $this->deposits()->where('is_carried_forward', true)->exists() ||
+               Distribution::whereHas('deposit', function($query) {
+                   $query->where('fiscal_year_id', $this->id)
+                         ->where('is_carried_forward', true);
+               })->exists() ||
+               \App\Models\Loan::where('fiscal_year_id', $this->id)
+                   ->where('is_carried_forward', true)
+                   ->exists() ||
+               \App\Models\Fine::where('fiscal_year_id', $this->id)
+                   ->where('is_carried_forward', true)
+                   ->exists();
     }
 
     public static function getActive()

@@ -12,37 +12,20 @@ use App\Models\WelfareFund;
 use App\Models\Fine;
 use App\Models\MemberAccount;
 use App\Models\Member;
+use App\Services\FiscalYearContext;
 use Carbon\Carbon;
 
 class GroupSavingsController extends Controller
 {
     public function dashboard(Request $request)
     {
-        // Get selected fiscal year from URL or auto-detect current year
-        $selectedYear = $request->get('fiscal_year');
+        // Use global fiscal year context
+        $activeFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         $currentDate = now();
         
-        // Store selected fiscal year in session for monthly view
-        if ($selectedYear) {
-            session(['selected_fiscal_year' => $selectedYear]);
-        }
-        
-        // Auto-detect current fiscal year if none selected
-        if (!$selectedYear) {
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-            // Store auto-detected fiscal year in session
-            if ($activeFiscalYear) {
-                session(['selected_fiscal_year' => $activeFiscalYear->id]);
-            }
-        } else {
-            $activeFiscalYear = FiscalYear::find($selectedYear);
-        }
-        
         // Get all fiscal years for selector, ordered by start date
-        $allFiscalYears = FiscalYear::orderBy('start_date', 'desc')->get();
+        $selectedYear = $activeFiscalYear ? $activeFiscalYear->id : null;
         
         if (!$activeFiscalYear) {
             return view('admin.group-savings.dashboard', [
@@ -67,6 +50,7 @@ class GroupSavingsController extends Controller
 
         return view('admin.group-savings.dashboard', [
             'activeFiscalYear' => $activeFiscalYear,
+            'currentFiscalYear' => $activeFiscalYear,
             'allFiscalYears' => $allFiscalYears,
             'selectedYear' => $selectedYear,
             'currentDate' => $currentDate,
@@ -183,6 +167,18 @@ class GroupSavingsController extends Controller
         $this->applyAutomaticFines($activeFiscalYear);
 
         $fines = Fine::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where(function($q) use ($activeFiscalYear) {
+                // Only show pending/waived fines, or paid fines from current fiscal year
+                $q->whereIn('status', ['pending', 'waived'])
+                  ->orWhere(function($subQ) use ($activeFiscalYear) {
+                      // Paid fines only if they belong to current fiscal year (not carried forward)
+                      $subQ->where('status', 'paid')
+                           ->where(function($fq) use ($activeFiscalYear) {
+                               $fq->whereNull('original_fiscal_year_id')
+                                  ->orWhere('original_fiscal_year_id', $activeFiscalYear->id);
+                           });
+                  });
+            })
             ->with(['member'])
             ->orderBy('status', 'asc')
             ->orderBy('month', 'asc')
@@ -455,52 +451,76 @@ class GroupSavingsController extends Controller
 
     public function monthlyView($month)
     {
-        // Get selected fiscal year from session or auto-detect current
-        $selectedYearId = session('selected_fiscal_year');
-        if ($selectedYearId) {
-            $activeFiscalYear = FiscalYear::find($selectedYearId);
-        } else {
-            // Auto-detect current fiscal year
-            $currentDate = now();
-            $activeFiscalYear = FiscalYear::where('start_date', '<=', $currentDate)
-                ->where('end_date', '>=', $currentDate)
-                ->orderBy('start_date', 'desc')
-                ->first();
-        }
+        // Use global fiscal year context - STRICT MODE
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No fiscal year found');
+            return view('admin.group-savings.monthly', [
+                'activeFiscalYear' => null,
+                'month' => $month,
+                'monthName' => $this->getMonthName($month),
+                'monthlyData' => [],
+                'showOnlyCarriedForward' => false,
+            ]);
         }
 
         // Apply automatic fines first
         $this->applyAutomaticFines($activeFiscalYear);
 
+        // Determine if we should show only carried forward data
+        $showOnlyCarriedForward = $activeFiscalYear->has_carried_forward_items;
+
         // Get all deposits for this month
-        $deposits = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->with(['member', 'distributions'])
-            ->get();
+        $depositsQuery = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $depositsQuery->where('is_carried_forward', true);
+        }
+        
+        $deposits = $depositsQuery->with(['member', 'distributions'])->get();
 
         // Get all members who have activity for this month (deposits, savings, or fines)
-        $depositMemberIds = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $depositQuery = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $depositQuery->where('is_carried_forward', true);
+        }
+        
+        $depositMemberIds = $depositQuery->pluck('member_id')->toArray();
 
-        $savingMemberIds = GroupSaving::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $savingQuery = GroupSaving::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $savingQuery->whereHas('deposit', function($query) {
+                $query->where('is_carried_forward', true);
+            });
+        }
+        
+        $savingMemberIds = $savingQuery->pluck('member_id')->toArray();
 
-        $fineMemberIds = Fine::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('month', $month)
-            ->pluck('member_id')
-            ->toArray();
+        $fineQuery = Fine::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $month);
+        
+        if ($showOnlyCarriedForward) {
+            $fineQuery->where('is_carried_forward', true);
+        }
+        
+        $fineMemberIds = $fineQuery->pluck('member_id')->toArray();
 
         // Get members with available balance but no deposit in current month
-        $balanceOnlyMemberIds = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
-            ->where('current_balance', '>', 0)
+        $balanceQuery = MemberAccount::where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('current_balance', '>', 0);
+        
+        if ($showOnlyCarriedForward) {
+            $balanceQuery->whereHas('deposits', function($query) {
+                $query->where('is_carried_forward', true);
+            });
+        }
+        
+        $balanceOnlyMemberIds = $balanceQuery
             ->whereNotIn('member_id', $depositMemberIds)
             ->pluck('member_id')
             ->toArray();
@@ -548,12 +568,13 @@ class GroupSavingsController extends Controller
             'month' => $month,
             'monthName' => $this->getMonthName($month),
             'monthlyData' => $monthlyData,
+            'showOnlyCarriedForward' => $showOnlyCarriedForward,
         ]);
     }
 
     public function createDeposit()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         $members = Member::all();
 
         $response = view('admin.group-savings.create-deposit', [
@@ -569,13 +590,6 @@ class GroupSavingsController extends Controller
 
     public function storeDeposit(Request $request)
     {
-        // Check for duplicate submission using session token
-        $sessionKey = 'deposit_form_submitted_' . $request->member_id . '_' . $request->month;
-        if (session($sessionKey)) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'Deposit already submitted for this member and month.');
-        }
-
         $request->validate([
             'member_id' => 'required|exists:members,id',
             'month' => 'required|integer|min:1|max:12',
@@ -584,14 +598,24 @@ class GroupSavingsController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No active fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
-        // Mark this form as submitted in session
-        session([$sessionKey => true]);
+        // Check for actual duplicate deposit (same member, month, amount, and date)
+        $existingDeposit = Deposit::where('member_id', $request->member_id)
+            ->where('fiscal_year_id', $activeFiscalYear->id)
+            ->where('month', $request->month)
+            ->where('amount', $request->amount)
+            ->where('deposit_date', $request->deposit_date)
+            ->first();
+
+        if ($existingDeposit) {
+            return redirect()->route('admin.group-savings.dashboard')
+                ->with('error', 'This exact deposit already exists. Deposit ID: ' . $existingDeposit->id);
+        }
 
         $deposit = Deposit::create([
             'member_id' => $request->member_id,
@@ -650,6 +674,11 @@ class GroupSavingsController extends Controller
 
     public function storeDistribution(Request $request, $depositId)
     {
+        // Debug logging
+        \Log::info('=== DISTRIBUTION SUBMISSION START ===');
+        \Log::info('Deposit ID: ' . $depositId);
+        \Log::info('Request data: ' . json_encode($request->all()));
+        
         $request->validate([
             'savings_amount' => 'required|numeric|min:0',
             'welfare_amount' => 'required|numeric|min:0',
@@ -659,28 +688,44 @@ class GroupSavingsController extends Controller
             'distribution_note' => 'nullable|string|max:255',
         ]);
 
+        \Log::info('Validation passed');
+
         $deposit = Deposit::findOrFail($depositId);
+        \Log::info('Deposit found: ' . $deposit->id);
+        
         $totalDistribution = $request->savings_amount + $request->welfare_amount + 
                            $request->fines_amount + $request->other_amount;
 
-        // Check member account balance instead of deposit balance
+        \Log::info('Total distribution: ' . $totalDistribution);
+
+        // Enhanced validation: Check both member account and deposit balance
         $memberAccount = MemberAccount::where('member_id', $deposit->member_id)
             ->where('fiscal_year_id', $deposit->fiscal_year_id)
             ->first();
 
-        if (!$memberAccount || $totalDistribution > $memberAccount->current_balance) {
-            return redirect()->back()->with('error', 'Total distribution exceeds available account balance');
+        if (!$memberAccount) {
+            \Log::error('Member account not found for member ' . $deposit->member_id);
+            return redirect()->back()->with('error', 'Member account not found');
         }
 
-        // Clear the session token to allow future deposits
-        $sessionKey = 'deposit_form_submitted_' . $deposit->member_id . '_' . $deposit->month;
-        session()->forget($sessionKey);
+        \Log::info('Member account found with balance: ' . $memberAccount->current_balance);
+
+        // Validate against member account balance only (single source of truth)
+        if ($totalDistribution > $memberAccount->current_balance) {
+            \Log::error('Insufficient account balance');
+            return redirect()->back()->with('error', 
+                'Insufficient account balance. Available: UGX ' . 
+                number_format($memberAccount->current_balance, 0) . 
+                ', Requested: UGX ' . number_format($totalDistribution, 0));
+        }
 
         // Get the target month for distribution
         $targetMonth = (int) $request->distribution_month;
         $distributionNote = $request->distribution_note ?? 'Distribution from deposit #' . $deposit->id;
 
-        // Distribute from member account
+        \Log::info('Target month: ' . $targetMonth);
+
+        // Distribute from member account (using account balance as single source of truth)
         $memberAccount->distributeFunds(
             $request->savings_amount,
             $request->welfare_amount,
@@ -688,20 +733,26 @@ class GroupSavingsController extends Controller
             $request->other_amount
         );
 
+        \Log::info('Funds distributed from member account');
+
         // Update deposit balance for tracking purposes
-        $totalDistribution = $request->savings_amount + $request->welfare_amount + 
-                           $request->fines_amount + $request->other_amount;
-        
-        // Only update deposit balance if it has sufficient funds
         if ($deposit->balance >= $totalDistribution) {
             $deposit->balance -= $totalDistribution;
             $deposit->status = $deposit->balance == 0 ? 'distributed' : 'partial';
             $deposit->save();
+            \Log::info('Deposit balance updated: ' . $deposit->balance);
+        } else {
+            // Log warning if deposit balance is insufficient but member account had funds
+            \Log::warning('Deposit balance insufficient during distribution', [
+                'deposit_id' => $deposit->id,
+                'deposit_balance' => $deposit->balance,
+                'distribution_amount' => $totalDistribution,
+                'member_account_balance' => $memberAccount->current_balance
+            ]);
         }
 
-        // Create distributions with target month using member account balance
+        // Create distributions with target month
         if ($request->savings_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'savings',
@@ -712,10 +763,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->updateGroupSaving($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->savings_amount);
+            \Log::info('Savings distribution created: ' . $request->savings_amount);
         }
 
         if ($request->welfare_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'welfare',
@@ -726,10 +777,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->updateWelfareFund($deposit->fiscal_year_id, $targetMonth, $request->welfare_amount);
+            \Log::info('Welfare distribution created: ' . $request->welfare_amount);
         }
 
         if ($request->fines_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'fines',
@@ -740,10 +791,10 @@ class GroupSavingsController extends Controller
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
             $this->payFinesFromDistribution($deposit->member_id, $deposit->fiscal_year_id, $targetMonth, $request->fines_amount);
+            \Log::info('Fines distribution created: ' . $request->fines_amount);
         }
 
         if ($request->other_amount > 0) {
-            // Create distribution record directly instead of using deposit->distribute()
             Distribution::create([
                 'deposit_id' => $deposit->id,
                 'type' => 'other',
@@ -753,7 +804,10 @@ class GroupSavingsController extends Controller
                 'month' => $targetMonth,
                 'fiscal_year_id' => $deposit->fiscal_year_id,
             ]);
+            \Log::info('Other distribution created: ' . $request->other_amount);
         }
+
+        \Log::info('=== DISTRIBUTION SUBMISSION SUCCESS ===');
 
         return redirect()->route('admin.group-savings.dashboard')
             ->with('success', 'Deposit distributed successfully to ' . \Carbon\Carbon::create()->month($targetMonth)->format('F'));
@@ -789,11 +843,13 @@ class GroupSavingsController extends Controller
 
     public function pendingMonths()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No active fiscal year found');
+            return view('admin.group-savings.pending', [
+                'activeFiscalYear' => null,
+                'pendingSavings' => collect(),
+            ]);
         }
 
         // Get all pending savings
@@ -819,10 +875,10 @@ class GroupSavingsController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No active fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $fine = Fine::create([
@@ -872,17 +928,16 @@ class GroupSavingsController extends Controller
 
     public function distributeBalance($memberId, $month, $fiscalYearId = null)
     {
-        // Get fiscal year from parameter or session
+        // Get fiscal year from parameter or use global context
         if ($fiscalYearId) {
             $activeFiscalYear = FiscalYear::find($fiscalYearId);
         } else {
-            $selectedYearId = session('selected_fiscal_year');
-            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+            $activeFiscalYear = FiscalYearContext::getCurrent();
         }
 
         if (!$activeFiscalYear) {
             return redirect()->route('admin.group-savings.dashboard')
-                ->with('error', 'No fiscal year found');
+                ->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $member = Member::findOrFail($memberId);
@@ -929,12 +984,11 @@ class GroupSavingsController extends Controller
         if ($fiscalYearId) {
             $activeFiscalYear = FiscalYear::find($fiscalYearId);
         } else {
-            $selectedYearId = session('selected_fiscal_year');
-            $activeFiscalYear = $selectedYearId ? FiscalYear::find($selectedYearId) : FiscalYear::getActive();
+            $activeFiscalYear = FiscalYearContext::getCurrent();
         }
 
         if (!$activeFiscalYear) {
-            return redirect()->back()->with('error', 'No fiscal year found');
+            return redirect()->back()->with('error', 'No fiscal year selected. Please select a fiscal year first.');
         }
 
         $member = Member::findOrFail($memberId);

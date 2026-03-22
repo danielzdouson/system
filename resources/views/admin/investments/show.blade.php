@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', 'Investment Details')
 
 @section('content')
 <div class="container-fluid">
@@ -241,8 +243,8 @@
                                         <td>{{ $transaction->transaction_date->format('M d, Y') }}</td>
                                         <td>{!! $transaction->transaction_type_badge !!}</td>
                                         <td>{{ $transaction->description ?: '-' }}</td>
-                                        <td class="{{ $transaction->is_inflow() ? 'text-success' : 'text-danger' }}">
-                                            {{ $transaction->is_inflow() ? '+' : '-' }}{{ $transaction->formatted_amount }}
+                                        <td class="{{ $transaction->isInflow() ? 'text-success' : 'text-danger' }}">
+                                            {{ $transaction->isInflow() ? '+' : '-' }}{{ $transaction->formatted_amount }}
                                         </td>
                                         <td>{{ $transaction->formatted_running_balance }}</td>
                                         <td class="text-success">{{ $transaction->formatted_accumulated_returns }}</td>

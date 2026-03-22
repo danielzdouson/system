@@ -8,15 +8,6 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('fiscal_years', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 20); // e.g., "2024/2025"
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->enum('status', ['active', 'closed'])->default('active');
-            $table->timestamps();
-        });
-
         Schema::create('deposits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('member_id')->constrained()->onDelete('cascade');
@@ -90,6 +81,5 @@ return new class extends Migration
         Schema::dropIfExists('group_savings');
         Schema::dropIfExists('distributions');
         Schema::dropIfExists('deposits');
-        Schema::dropIfExists('fiscal_years');
     }
 };

@@ -22,12 +22,36 @@
                         <x-nav-link :href="route('admin.group-savings.dashboard')" :active="request()->routeIs('admin.group-savings.*')">
                             {{ __('Monthly Savings') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.group-loans.index')" :active="request()->routeIs('admin.group-loans.*')">
+                            {{ __('Group Loans') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.fines.index')" :active="request()->routeIs('admin.fines.*')">
+                            {{ __('Fines Management') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.cashflow.index')" :active="request()->routeIs('admin.cashflow.*')">
                             {{ __('Cash Flow') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.financials.index')" :active="request()->routeIs('admin.financials.*')">
+                            {{ __('Financials') }}
                         </x-nav-link>
                         <x-nav-link :href="route('admin.accounts.index')" :active="request()->routeIs('admin.accounts.*')">
                             {{ __('Accounts') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.documents.index')" :active="request()->routeIs('admin.documents.*')">
+                            {{ __('Documents') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.investments.index')" :active="request()->routeIs('admin.investments.*')">
+                            {{ __('Investments') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.fiscal-years.index')" :active="request()->routeIs('admin.fiscal-years.*')">
+                            {{ __('Fiscal Years') }}
+                        </x-nav-link>
+                        {{-- <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                            {{ __('Reports') }}
+                        </x-nav-link> --}}
+                        {{-- <x-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
+                            {{ __('Import') }}
+                        </x-nav-link> --}}
                     @endauth
                 </div>
             </div>
@@ -90,12 +114,36 @@
             <x-responsive-nav-link :href="route('admin.group-savings.dashboard')" :active="request()->routeIs('admin.group-savings.*')">
                 {{ __('Monthly Savings') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.group-loans.index')" :active="request()->routeIs('admin.group-loans.*')">
+                {{ __('Group Loans') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.fines.index')" :active="request()->routeIs('admin.fines.*')">
+                {{ __('Fines Management') }}
+            </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.cashflow.index')" :active="request()->routeIs('admin.cashflow.*')">
                 {{ __('Cash Flow') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.financials.index')" :active="request()->routeIs('admin.financials.*')">
+                {{ __('Financials') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.accounts.index')" :active="request()->routeIs('admin.accounts.*')">
                 {{ __('Accounts') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.documents.index')" :active="request()->routeIs('admin.documents.*')">
+                {{ __('Documents') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.investments.index')" :active="request()->routeIs('admin.investments.*')">
+                {{ __('Investments') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.fiscal-years.index')" :active="request()->routeIs('admin.fiscal-years.*')">
+                {{ __('Fiscal Years') }}
+            </x-responsive-nav-link>
+            {{-- <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                {{ __('Reports') }}
+            </x-responsive-nav-link> --}}
+            {{-- <x-responsive-nav-link :href="route('admin.import.index')" :active="request()->routeIs('admin.import.*')">
+                {{ __('Import') }}
+            </x-responsive-nav-link> --}}
         </div>
 
         <!-- Responsive Settings Options -->

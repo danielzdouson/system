@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\MemberAccount;
 use App\Models\FiscalYear;
 use App\Models\Deposit;
+use App\Services\FiscalYearContext;
 use Illuminate\Support\Facades\Hash;
 
 class AccountController extends Controller
@@ -22,7 +23,7 @@ class AccountController extends Controller
             $query->with('fiscalYear')->latest();
         }])->latest()->get();
         
-        $currentFiscalYear = FiscalYear::where('status', 'active')->first();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
         
         return view('admin.accounts.index', compact('members', 'currentFiscalYear'));
     }
@@ -36,7 +37,7 @@ class AccountController extends Controller
         $membersWithAccounts = Member::whereHas('user')->count();
         $membersWithoutAccounts = $totalMembers - $membersWithAccounts;
         
-        $currentFiscalYear = FiscalYear::where('status', 'active')->first();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
         $totalSavings = 0;
         $totalLoans = 0;
         
@@ -68,7 +69,7 @@ class AccountController extends Controller
             $query->with('repaymentSchedules')->latest();
         }])->findOrFail($memberId);
         
-        $currentFiscalYear = FiscalYear::where('status', 'active')->first();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
         
         // Get the member's account for the current fiscal year
         $account = null;

@@ -1,31 +1,99 @@
-@extends('layouts.admin')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Financial Dashboard - SACCO System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-@section('title', 'Financial Dashboard')
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            overflow-x: hidden;
+        }
+        
+        .minimal-container {
+            padding: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .back-button {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .page-header h2 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .page-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
 
-@section('content')
+<div class="minimal-container">
+    <!-- Back to Dashboard Button -->
+    <a href="{{ route('dashboard') }}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+    
+    <!-- Page Header -->
+    <div class="page-header">
+        <h2><i class="fas fa-chart-pie me-2"></i>Financial Dashboard</h2>
+        <p>Comprehensive financial overview and member standings</p>
+    </div>
 @php
-    // Get real financial data
-    $totalMembers = \App\Models\Member::count();
-    
-    // Calculate total savings from monthly savings (sum of all month columns)
-    $monthlySavingsTotal = \App\Models\MonthlySaving::sum('jul_25') + 
-                         \App\Models\MonthlySaving::sum('aug_25') + 
-                         \App\Models\MonthlySaving::sum('sep_25') + 
-                         \App\Models\MonthlySaving::sum('oct_25') + 
-                         \App\Models\MonthlySaving::sum('nov_25') + 
-                         \App\Models\MonthlySaving::sum('dec_25') + 
-                         \App\Models\MonthlySaving::sum('jan_26') + 
-                         \App\Models\MonthlySaving::sum('feb_26') + 
-                         \App\Models\MonthlySaving::sum('mar_26') + 
-                         \App\Models\MonthlySaving::sum('apr_26') + 
-                         \App\Models\MonthlySaving::sum('may_26') + 
-                         \App\Models\MonthlySaving::sum('jun_26');
-    
-    $totalSavings = $monthlySavingsTotal + \App\Models\MemberFinancial::sum('savings');
-    $totalLoans = \App\Models\MemberLoanSummary::sum('total') + \App\Models\MemberFinancial::sum('loan_repayments');
-    $totalWelfare = \App\Models\MemberFinancial::sum('welfare');
-    $cashFlowIncome = \App\Models\CashFlow::where('type', 'income')->sum('amount');
-    $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')->sum('amount');
+    // Stats are now passed from controller, already filtered by fiscal year
+    // Calculate cash flow data - filter by current fiscal year
+    if ($currentFiscalYear) {
+        $cashFlowIncome = \App\Models\CashFlow::where('type', 'income')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('amount');
+        $cashFlowExpenses = \App\Models\CashFlow::where('type', 'expense')
+            ->where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('amount');
+    } else {
+        $cashFlowIncome = 0;
+        $cashFlowExpenses = 0;
+    }
     $netCashFlow = $cashFlowIncome - $cashFlowExpenses;
     
     @endphp
@@ -43,7 +111,7 @@
             <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Member Savings</span>
-                    <span style="color:#059669; font-weight:600;">UGX {{ number_format($monthlySavingsTotal, 2) }}</span>
+                    <span style="color:#059669; font-weight:600;">UGX {{ number_format($stats['total_savings'], 2) }}</span>
                 </div>
             </div>
             <div style="background:#f0fdf4; padding:15px; border-radius:8px; margin-bottom:10px;">
@@ -55,7 +123,7 @@
             <div style="background:#f0fdf4; padding:15px; border-radius:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Total Income</span>
-                    <span style="color:#059669; font-weight:600; font-size:18px;">UGX {{ number_format($monthlySavingsTotal + $cashFlowIncome, 2) }}</span>
+                    <span style="color:#059669; font-weight:600; font-size:18px;">UGX {{ number_format($stats['total_savings'] + $cashFlowIncome, 2) }}</span>
                 </div>
             </div>
         </div>
@@ -66,7 +134,7 @@
             <div style="background:#fef2f2; padding:15px; border-radius:8px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Loan Disbursements</span>
-                    <span style="color:#dc2626; font-weight:600;">UGX {{ number_format($totalLoans, 2) }}</span>
+                    <span style="color:#dc2626; font-weight:600;">UGX {{ number_format($stats['total_loan_balance'], 2) }}</span>
                 </div>
             </div>
             <div style="background:#fef2f2; padding:15px; border-radius:8px; margin-bottom:10px;">
@@ -78,7 +146,7 @@
             <div style="background:#fef2f2; padding:15px; border-radius:8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#6b7280;">Total Expenses</span>
-                    <span style="color:#dc2626; font-weight:600; font-size:18px;">UGX {{ number_format($totalLoans + $cashFlowExpenses, 2) }}</span>
+                    <span style="color:#dc2626; font-weight:600; font-size:18px;">UGX {{ number_format($stats['total_loan_balance'] + $cashFlowExpenses, 2) }}</span>
                 </div>
             </div>
         </div>
@@ -108,25 +176,27 @@
 
     <!-- Members Table -->
     <div class="table-responsive">
-        <table class="table table-hover" id="membersTable">
+        <table class="table table-hover table-striped" id="membersTable" style="font-size: 0.875rem; white-space: nowrap;">
             <thead class="table-dark">
                 <tr>
-                    <th>Member Name</th>
-                    <th>Member Number</th>
-                    <th>Total Deposits</th>
-                    <th>Total Savings</th>
-                    <th>Welfare</th>
-                    <th>Outstanding Fines</th>
-                    <th>Loan Balance</th>
-                    <th>Available Balance</th>
-                    <th>Distributed Funds</th>
-                    <th>Net Worth</th>
-                    <th>Status</th>
+                    <th style="min-width: 140px;">Member Name</th>
+                    <th style="min-width: 120px;">Member Number</th>
+                    <th style="min-width: 120px;">Total Deposits</th>
+                    <th style="min-width: 110px;">Total Savings</th>
+                    <th style="min-width: 80px;">Welfare</th>
+                    <th style="min-width: 130px;">Outstanding Fines</th>
+                    <th style="min-width: 110px;">Loan Balance</th>
+                    <th style="min-width: 130px;">Available Balance</th>
+                    <th style="min-width: 130px;">Distributed Funds</th>
+                    <th style="min-width: 100px;">Shares on Hold</th>
+                    <th style="min-width: 100px;">Total Shares</th>
+                    <th style="min-width: 100px;">Net Worth</th>
+                    <th style="min-width: 80px;">Status</th>
                 </tr>
             </thead>
             <tbody id="membersTableBody">
                 <tr>
-                    <td colspan="11" class="text-center py-4">
+                    <td colspan="13" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -143,7 +213,13 @@
     </div>
 </div>
 
-@endsection
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
 
 <script>
 let currentPage = 1;
@@ -177,7 +253,7 @@ function loadMembersData() {
         .catch(error => {
             console.error('Error loading members data:', error);
             document.getElementById('membersTableBody').innerHTML = 
-                '<tr><td colspan="11" class="text-center text-danger py-4">Error loading data. Please try again.</td></tr>';
+                '<tr><td colspan="12" class="text-center text-danger py-4">Error loading data. Please try again.</td></tr>';
         });
 }
 
@@ -204,6 +280,13 @@ function updateSummaryCards(stats) {
                 <small>Deposits - Distributed</small>
             </div>
         </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #ec4899 0%, #be185d 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">🤝 Total Welfare</h6>
+                <h4 class="mb-1">UGX ${number_format(stats.total_welfare, 0)}</h4>
+                <small>Welfare Fund Balance</small>
+            </div>
+        </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color:white; border:none;">
             <div class="card-body">
                 <h6 class="card-title mb-2">💳 Total Loans</h6>
@@ -213,21 +296,21 @@ function updateSummaryCards(stats) {
         </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color:white; border:none;">
             <div class="card-body">
-                <h6 class="card-title mb-2">🤝 Total Welfare</h6>
-                <h4 class="mb-1">UGX ${number_format(stats.total_welfare, 0)}</h4>
-                <small>Social Fund</small>
-            </div>
-        </div>
-        <div class="card text-center" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color:white; border:none;">
-            <div class="card-body">
-                <h6 class="card-title mb-2">⚠️ Outstanding Fines</h6>
-                <h4 class="mb-1">UGX ${number_format(stats.total_outstanding_fines, 0)}</h4>
-                <small>Unpaid Penalties</small>
+                <h6 class="card-title mb-2">🔒 Shares on Hold</h6>
+                <h4 class="mb-1">${number_format(stats.total_shares_on_hold, 2)}%</h4>
+                <small>Restricted Share Percentage</small>
             </div>
         </div>
         <div class="card text-center" style="background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color:white; border:none;">
             <div class="card-body">
-                <h6 class="card-title mb-2">📊 Total Net Worth</h6>
+                <h6 class="card-title mb-2">📊 Total Shares</h6>
+                <h4 class="mb-1">${number_format(stats.total_shares, 2)}%</h4>
+                <small>Total Share Distribution</small>
+            </div>
+        </div>
+        <div class="card text-center" style="background:linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color:white; border:none;">
+            <div class="card-body">
+                <h6 class="card-title mb-2">� Total Net Worth</h6>
                 <h4 class="mb-1">UGX ${number_format(stats.total_net_worth, 0)}</h4>
                 <small>Assets - Liabilities</small>
             </div>
@@ -261,6 +344,8 @@ function updateMembersTable(members) {
                 <td class="text-danger">UGX ${number_format(member.loan_balance, 0)}</td>
                 <td class="text-primary fw-bold">UGX ${number_format(member.available_balance, 0)}</td>
                 <td class="text-warning">UGX ${number_format(member.distributed_funds, 0)}</td>
+                <td class="text-warning">${number_format(member.shares_on_hold, 2)}%</td>
+                <td class="text-info">${number_format(member.total_shares, 2)}%</td>
                 <td class="${netWorthClass} fw-bold">UGX ${number_format(member.net_worth, 0)}</td>
                 <td>${statusBadge}</td>
             </tr>
@@ -268,7 +353,7 @@ function updateMembersTable(members) {
     });
     
     if (members.data.length === 0) {
-        tbodyHtml = '<tr><td colspan="11" class="text-center py-4">No members found</td></tr>';
+        tbodyHtml = '<tr><td colspan="13" class="text-center py-4">No members found</td></tr>';
     }
     
     document.getElementById('membersTableBody').innerHTML = tbodyHtml;

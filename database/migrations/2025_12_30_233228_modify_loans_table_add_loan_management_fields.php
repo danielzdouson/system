@@ -68,8 +68,11 @@ return new class extends Migration
                 $table->enum('status', ['active', 'completed', 'defaulted', 'suspended'])->default('active');
             }
             
-            // Add indexes only for columns that exist
-            $table->index('loan_number');
+            // Add indexes only for columns that exist and index doesn't exist
+            $indexes = \DB::select("SHOW INDEX FROM loans WHERE Key_name = 'loans_loan_number_index'");
+            if (empty($indexes)) {
+                $table->index('loan_number');
+            }
         });
     }
 

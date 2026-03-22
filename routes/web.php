@@ -60,6 +60,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('fiscal-years/{fiscalYear}/edit', [App\Http\Controllers\Admin\FiscalYearController::class, 'edit'])->name('fiscal-years.edit');
     Route::put('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'update'])->name('fiscal-years.update');
     Route::delete('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'destroy'])->name('fiscal-years.destroy');
+    Route::post('fiscal-years/{fiscalYear}/activate', [App\Http\Controllers\Admin\FiscalYearController::class, 'activate'])->name('fiscal-years.activate');
+    Route::post('fiscal-years/clear-session', [App\Http\Controllers\Admin\FiscalYearController::class, 'clearSession'])->name('fiscal-years.clear-session');
+    
+    // Carry Forward Routes
+    Route::get('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForward'])->name('fiscal-years.carry-forward');
+    Route::post('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}/process', [App\Http\Controllers\Admin\FiscalYearController::class, 'processCarryForward'])->name('fiscal-years.carry-forward.process');
+    Route::get('fiscal-years/carry-forward-history/{fiscalYear?}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForwardHistory'])->name('fiscal-years.carry-forward.history');
 
     // Group Savings Routes
     Route::get('group-savings/dashboard', [App\Http\Controllers\Admin\GroupSavingsController::class, 'dashboard'])->name('group-savings.dashboard');
@@ -67,16 +74,34 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('group-savings/monthly/{month}/{fiscal_year}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'monthlyViewWithFiscalYear'])->name('group-savings.monthly.fiscal');
     Route::get('group-savings/create-deposit', [App\Http\Controllers\Admin\GroupSavingsController::class, 'createDeposit'])->name('group-savings.create-deposit');
     Route::post('group-savings/deposit', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeDeposit'])->name('group-savings.store-deposit');
+    Route::get('group-savings/pending', [App\Http\Controllers\Admin\GroupSavingsController::class, 'pendingMonths'])->name('group-savings.pending');
     Route::get('group-savings/distribute/{depositId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeDeposit'])->name('group-savings.distribute');
     Route::post('group-savings/distribute/{depositId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeDistribution'])->name('group-savings.store-distribution');
     Route::get('group-savings/distribute-balance/{memberId}/{month}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeBalance'])->name('group-savings.distribute-balance');
     Route::get('group-savings/distribute-balance/{memberId}/{month}/{fiscalYearId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'distributeBalance'])->name('group-savings.distribute-balance.fiscal');
     Route::post('group-savings/distribute-balance/{memberId}/{month}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeBalanceDistribution'])->name('group-savings.store-balance-distribution');
     Route::post('group-savings/distribute-balance/{memberId}/{month}/{fiscalYearId}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'storeBalanceDistribution'])->name('group-savings.store-balance-distribution.fiscal');
+    // Enhanced Fines Management Routes (Dedicated System)
+    Route::prefix('fines')->name('fines.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\FineController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\FineController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\FineController::class, 'store'])->name('store');
+        Route::get('/reports', [App\Http\Controllers\Admin\FineController::class, 'reports'])->name('reports');
+        Route::get('/export', [App\Http\Controllers\Admin\FineController::class, 'export'])->name('export');
+        Route::post('/bulk-apply', [App\Http\Controllers\Admin\FineController::class, 'bulkApply'])->name('bulk-apply');
+        Route::post('/auto-apply', [App\Http\Controllers\Admin\FineController::class, 'autoApply'])->name('auto-apply');
+        Route::get('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'show'])->name('show');
+        Route::get('/{fine}/edit', [App\Http\Controllers\Admin\FineController::class, 'edit'])->name('edit');
+        Route::put('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'update'])->name('update');
+        Route::delete('/{fine}', [App\Http\Controllers\Admin\FineController::class, 'destroy'])->name('destroy');
+        Route::post('/{fine}/pay', [App\Http\Controllers\Admin\FineController::class, 'pay'])->name('pay');
+        Route::post('/{fine}/waive', [App\Http\Controllers\Admin\FineController::class, 'waive'])->name('waive');
+    });
+
+    // Legacy Group Savings Fines Routes (Keep for backward compatibility)
     Route::get('group-savings/fines', [App\Http\Controllers\Admin\GroupSavingsController::class, 'finesIndex'])->name('group-savings.fines');
     Route::post('group-savings/fines/{fineId}/pay', [App\Http\Controllers\Admin\GroupSavingsController::class, 'payFine'])->name('group-savings.fines.pay');
     Route::post('group-savings/fines/{fineId}/waive', [App\Http\Controllers\Admin\GroupSavingsController::class, 'waiveFine'])->name('group-savings.fines.waive');
-    Route::get('group-savings/pending', [App\Http\Controllers\Admin\GroupSavingsController::class, 'pendingMonths'])->name('group-savings.pending');
     Route::post('group-savings/apply-fines', [App\Http\Controllers\Admin\GroupSavingsController::class, 'applyFines'])->name('group-savings.apply-fines');
     Route::get('group-savings/export/{fiscalYearId}/{month}', [App\Http\Controllers\Admin\GroupSavingsController::class, 'exportMonthCSV'])->name('group-savings.export.csv');
 
@@ -104,9 +129,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('group-loans/reports', [App\Http\Controllers\Admin\GroupLoanController::class, 'reports'])->name('group-loans.reports');
 
     // Financials Routes
-    Route::get('financials', function() {
-        return view('admin.financials.index');
-    })->name('financials.index');
+    Route::get('financials', [App\Http\Controllers\Admin\FinancialController::class, 'index'])->name('financials.index');
     
     Route::get('financials/create', function() {
         $members = \App\Models\Member::latest()->get();
@@ -121,11 +144,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     
     // Cashflow Routes
     Route::get('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'index'])->name('cashflow.index');
+    Route::get('cashflow/load', [App\Http\Controllers\Admin\CashflowController::class, 'loadTransactionsAjax'])->name('cashflow.load');
     Route::get('cashflow/create', [App\Http\Controllers\Admin\CashflowController::class, 'create'])->name('cashflow.create');
     Route::post('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'store'])->name('cashflow.store');
     Route::get('cashflow/dashboard', [App\Http\Controllers\Admin\CashflowController::class, 'dashboard'])->name('cashflow.dashboard');
     Route::get('cashflow/monthly-statement', [App\Http\Controllers\Admin\CashflowController::class, 'monthlyStatement'])->name('cashflow.monthly-statement');
     Route::get('cashflow/fiscal-year-statement', [App\Http\Controllers\Admin\CashflowController::class, 'fiscalYearStatement'])->name('cashflow.fiscal-year-statement');
+    // Export routes must come BEFORE parameterized routes
+    Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
+    Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
+    Route::get('cashflow/comprehensive-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'comprehensiveMonthlyReport'])->name('cashflow.comprehensive-monthly');
+    // Parameterized routes must come AFTER specific routes
     Route::get('cashflow/{transaction}', [App\Http\Controllers\Admin\CashflowController::class, 'show'])->name('cashflow.show');
     Route::get('cashflow/{transaction}/edit', [App\Http\Controllers\Admin\CashflowController::class, 'edit'])->name('cashflow.edit');
     Route::put('cashflow/{transaction}', [App\Http\Controllers\Admin\CashflowController::class, 'update'])->name('cashflow.update');
@@ -133,9 +162,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('cashflow/{transaction}/approve', [App\Http\Controllers\Admin\CashflowController::class, 'approve'])->name('cashflow.approve');
     Route::post('cashflow/reconcile', [App\Http\Controllers\Admin\CashflowController::class, 'reconcile'])->name('cashflow.reconcile');
     Route::post('cashflow/bulk-approve', [App\Http\Controllers\Admin\CashflowController::class, 'bulkApprove'])->name('cashflow.bulk-approve');
-    Route::get('cashflow/export', [App\Http\Controllers\Admin\CashflowController::class, 'export'])->name('cashflow.export');
-    Route::get('cashflow/export-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatement'])->name('cashflow.export.monthly');
-    Route::get('cashflow/comprehensive-monthly', [App\Http\Controllers\Admin\CashflowController::class, 'comprehensiveMonthlyReport'])->name('cashflow.comprehensive-monthly');
 
     // Cash Flow Dashboard Routes
     Route::get('cashflow-dashboard', [App\Http\Controllers\Admin\CashFlowDashboardController::class, 'index'])->name('admin.cashflow.dashboard');
@@ -176,4 +202,26 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('reports/savings', [App\Http\Controllers\ReportsController::class, 'savingsReports'])->name('reports.savings');
     Route::get('reports/loans', [App\Http\Controllers\ReportsController::class, 'loanReports'])->name('reports.loans');
     Route::get('reports/cashflow', [App\Http\Controllers\ReportsController::class, 'cashflowReports'])->name('reports.cashflow');
+
+    // Document Management Routes
+    Route::prefix('documents')->name('documents.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\DocumentController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\DocumentController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\DocumentController::class, 'store'])->name('store');
+        Route::get('/{document}/edit', [App\Http\Controllers\Admin\DocumentController::class, 'edit'])->name('edit');
+        Route::put('/{document}', [App\Http\Controllers\Admin\DocumentController::class, 'update'])->name('update');
+        Route::delete('/{document}', [App\Http\Controllers\Admin\DocumentController::class, 'destroy'])->name('destroy');
+        
+        // Uploaded Forms Management
+        Route::get('/uploaded-forms', [App\Http\Controllers\Admin\DocumentController::class, 'downloadForms'])->name('uploaded-forms');
+        Route::get('/uploaded-forms/{uploadedForm}/review', [App\Http\Controllers\Admin\DocumentController::class, 'reviewForm'])->name('review-form');
+        Route::post('/uploaded-forms/{uploadedForm}/approve', [App\Http\Controllers\Admin\DocumentController::class, 'approveForm'])->name('approve-form');
+        Route::post('/uploaded-forms/{uploadedForm}/reject', [App\Http\Controllers\Admin\DocumentController::class, 'rejectForm'])->name('reject-form');
+        Route::get('/uploaded-forms/{uploadedForm}/guarantors', [App\Http\Controllers\Admin\DocumentController::class, 'viewGuarantors'])->name('view-guarantors');
+        Route::get('/uploaded-forms/{uploadedForm}/download', [App\Http\Controllers\Admin\DocumentController::class, 'downloadUploadedForm'])->name('download-uploaded-form');
+    });
 });
+
+// Test route directly in web.php
+Route::get('/member/documents/pending-guarantees', [App\Http\Controllers\Member\DocumentController::class, 'pendingGuarantees'])->name('test-pending-guarantees');
+Route::get('/member/documents/guarantor-history', [App\Http\Controllers\Member\DocumentController::class, 'guarantorHistory'])->name('test-guarantor-history');

@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.1
+    container_name: saco_system_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: douglasben
+      MYSQL_DATABASE: saco_db
+    ports:
+      - "3306:3306"       # optional if you want to connect outside Docker
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pdouglasben"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saco_system_php
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=saco_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=douglasben
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      timeout: 10s
+      retries: 5
+      interval: 15s
+      start_period: 30s
+
+volumes:
+  db_data:

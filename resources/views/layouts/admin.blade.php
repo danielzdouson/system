@@ -287,12 +287,62 @@
             color: #1f2937;
             font-weight: 500;
         }
+
+        /* Gradient utilities */
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%) !important;
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+        }
+
+        .bg-gradient-warning {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%) !important;
+        }
+
+        /* Icon box enhancements */
+        .icon-box {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .icon-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Card hover effects */
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        /* Table enhancements */
+        .table-hover tbody tr:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        /* Badge improvements */
+        .badge {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h2><i class="fas fa-university me-2"></i>SACCO Management System</h2>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2><i class="fas fa-university me-2"></i>SACCO Management System</h2>
+    </div>
 </div>
 
 <div class="container">
@@ -308,6 +358,9 @@
         </a>
         <a href="{{ route('admin.group-savings.dashboard') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-piggy-bank"></i></span> Group Savings
+        </a>
+        <a href="{{ route('admin.fines.index') }}" class="nav-link">
+            <span class="nav-icon"><i class="fas fa-gavel"></i></span> Fines Management
         </a>
         <a href="{{ route('admin.fiscal-years.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span> Fiscal Years
@@ -343,18 +396,55 @@
         <a href="{{ route('admin.accounts.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-wallet"></i></span> Accounts
         </a>
+        <div class="nav-dropdown" id="documentsDropdown">
+            <div class="nav-link nav-dropdown-toggle" onclick="toggleDropdown('documentsDropdown')">
+                <div>
+                    <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Documents
+                </div>
+                <span class="nav-dropdown-icon">▼</span>
+            </div>
+            <div class="nav-submenu" id="documentsSubmenu">
+                <a href="{{ route('admin.documents.index') }}" class="nav-sublink">
+                    <span class="nav-icon"><i class="fas fa-upload"></i></span> Upload Documents
+                </a>
+                <a href="{{ route('admin.documents.uploaded-forms') }}" class="nav-sublink">
+                    <span class="nav-icon"><i class="fas fa-file-contract"></i></span> Uploaded Forms
+                </a>
+            </div>
+        </div>
         <a href="{{ route('admin.financials.index') }}" class="nav-link">
             <span class="nav-icon"><i class="fas fa-chart-pie"></i></span> Financials
         </a>
-        <a href="{{ route('admin.reports.index') }}" class="nav-link">
+        <a href="{{ route('admin.reports.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span> Reports
         </a>
-        <a href="{{ route('admin.import.index') }}" class="nav-link">
+        <a href="{{ route('admin.import.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-import"></i></span> Data Import
         </a>
     </div>
 
     <div class="content">
+        {{-- Warning Banner - No Fiscal Year Selected --}}
+        @php
+            $currentFiscalYear = \App\Services\FiscalYearContext::getCurrent();
+        @endphp
+        @if(!$currentFiscalYear)
+            <div class="alert alert-warning alert-dismissible fade show m-3" role="alert" style="border-left: 5px solid #ffc107;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">No Fiscal Year Selected</h5>
+                        <p class="mb-0">
+                            You must select a fiscal year to view data. 
+                            <a href="{{ route('admin.fiscal-years.index') }}" class="alert-link fw-bold">
+                                Click here to select a fiscal year <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+        
         @yield('content')
     </div>
 

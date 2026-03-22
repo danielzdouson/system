@@ -14,21 +14,23 @@
                             <div>
                                 <h1 class="h2 mb-2 text-white">
                                     <i class="fas fa-list me-3"></i>
-                                    All Loans - {{ $activeFiscalYear->name }}
+                                    All Loans @if($currentFiscalYear) - {{ $currentFiscalYear->name }}@endif
                                 </h1>
                                 <p class="text-white fs-5 mb-0 opacity-90">
                                     <i class="fas fa-eye me-2"></i>
                                     Complete overview of all loans in the system
                                 </p>
                             </div>
+                            @if($currentFiscalYear)
                             <div class="text-end">
                                 <div class="month-badge">
                                     <span class="badge bg-white text-success fs-6 px-3 py-2">
                                         <i class="fas fa-calendar me-2"></i>
-                                        {{ $activeFiscalYear->name }}
+                                        {{ $currentFiscalYear->name }}
                                     </span>
                                 </div>
                             </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -325,16 +327,17 @@
 <style>
 /* Enhanced Page Header */
 .container-fluid {
-    padding: 2rem;
-    width: 130%;
+    padding: 1rem;
+    width: 855px;
+  
 }
 .page-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: 15px;
+    padding: 1.5rem;
     color: white;
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .month-badge .badge {
@@ -344,12 +347,12 @@
 
 /* Enhanced Action Cards */
 .action-card {
-    width: 170%;
+    width: 100%;
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .action-card-body {
@@ -358,9 +361,9 @@
 
 .action-title {
     color: #333;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .action-buttons {
@@ -370,14 +373,15 @@
 }
 
 .action-btn {
-    padding: 1rem 2rem;
-    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
     color: white;
+    font-size: 0.9rem;
 }
 
 .action-btn.primary {
@@ -400,45 +404,45 @@
 
 /* Filter Card */
 .filter-card {
-    width: 170%;
+    width: 100%;
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .filter-card-body {
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .filter-title {
     color: #333;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 /* Enhanced Data Card */
 .data-card {
-    width: 170%;
+    width: 100%;
     background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     overflow:hidden;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .data-card-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .data-title {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .data-subtitle {
@@ -447,7 +451,7 @@
 }
 
 .data-card-body {
-    padding: 2rem;
+    padding: 1rem;
 }
 
 /* Enhanced Table */
@@ -459,9 +463,10 @@
 
 .enhanced-table thead th {
     border: none;
-    padding: 1rem;
+    padding: 0.5rem;
     font-weight: 600;
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    font-size: 0.85rem;
 }
 
 .enhanced-table tbody tr {
@@ -474,9 +479,10 @@
 }
 
 .enhanced-table td {
-    padding: 1rem;
+    padding: 0.5rem;
     vertical-align: middle;
     border-bottom: 1px solid #e9ecef;
+    font-size: 0.85rem;
 }
 
 .member-info strong {
@@ -487,16 +493,16 @@
 .loan-number {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.7rem;
     font-weight: 600;
 }
 
 .amount-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.7rem;
     font-weight: 600;
     color: white;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -505,37 +511,37 @@
 .rate-badge {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 15px;
-    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
     font-weight: 600;
 }
 
 .date-badge {
     background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 15px;
-    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
     font-weight: 600;
 }
 
 .balance-badge {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 15px;
-    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
     font-weight: 600;
 }
 
 .progress-container {
-    min-width: 100px;
+    min-width: 80px;
 }
 
 .progress {
-    height: 8px;
-    border-radius: 4px;
+    height: 6px;
+    border-radius: 3px;
     background-color: #e9ecef;
 }
 
@@ -552,11 +558,11 @@
 .btn-action {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.5rem 1rem;
+    gap: 0.2rem;
+    padding: 0.3rem 0.6rem;
     border: none;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    border-radius: 15px;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;

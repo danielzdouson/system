@@ -101,7 +101,7 @@
                             <h6 class="text-muted mb-1">Next Payment</h6>
                             <h4 class="mb-0 text-warning">
                                 @if($activeLoans->isNotEmpty() && $activeLoans->first()->repaymentSchedules->isNotEmpty())
-                                    UGX {{ number_format($activeLoans->first()->repaymentSchedules->where('status', 'pending')->first()->amount ?? 0, 0) }}
+                                    UGX {{ number_format($activeLoans->first()->repaymentSchedules->where('status', 'pending')->first()->total_due ?? 0, 0) }}
                                 @else
                                     -
                                 @endif
@@ -226,9 +226,6 @@
 
                                         <!-- Action Buttons -->
                                         <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-primary btn-sm" onclick="makePayment({{ $loan->id }})">
-                                                <i class="fas fa-money-bill-wave me-2"></i>Make Payment
-                                            </button>
                                             <button type="button" class="btn btn-outline-info btn-sm" onclick="viewLoanDetails({{ $loan->id }})">
                                                 <i class="fas fa-eye me-2"></i>View Details
                                             </button>
@@ -263,7 +260,7 @@
                                                                         <small class="text-muted">{{ $schedule->due_date->format('Y') }}</small>
                                                                     </td>
                                                                     <td class="text-end">
-                                                                        <strong>UGX {{ number_format($schedule->amount, 0) }}</strong>
+                                                                        <strong>UGX {{ number_format($schedule->total_due, 0) }}</strong>
                                                                     </td>
                                                                     <td>
                                                                         <span class="badge bg-{{ getScheduleStatusColor($schedule) }} badge-sm">
@@ -407,43 +404,43 @@
 
 <script>
 function makePayment(loanId) {
-    // Implement payment modal or redirect
-    alert('Initiate payment for loan ID: ' + loanId);
+    // Redirect to payment page or show payment modal
+    window.location.href = '/member/loans/' + loanId + '/payment';
 }
 
 function viewLoanDetails(loanId) {
-    // Implement loan details modal
-    alert('View details for loan ID: ' + loanId);
+    // Redirect to loan details page
+    window.location.href = '/member/loans/' + loanId + '/details';
 }
 
 function downloadStatement(loanId) {
-    // Implement statement download
-    alert('Download statement for loan ID: ' + loanId);
+    // Trigger statement download
+    window.open('/member/loans/' + loanId + '/statement', '_blank');
 }
 
 function downloadCertificate(loanId) {
-    // Implement clearance certificate download
-    alert('Download clearance certificate for loan ID: ' + loanId);
+    // Trigger clearance certificate download
+    window.open('/member/loans/' + loanId + '/certificate', '_blank');
 }
 
 function viewAllSchedules(loanId) {
-    // Implement full schedule view
-    alert('View all repayment schedules for loan ID: ' + loanId);
+    // Redirect to full schedule page
+    window.location.href = '/member/loans/' + loanId + '/schedule';
 }
 
 function exportLoans(type) {
-    // Implement export functionality
-    alert('Export ' + type + ' loans');
+    // Trigger export functionality
+    window.open('/member/loans/export?type=' + type, '_blank');
 }
 
 function applyForLoan() {
-    // Redirect to loan application
-    alert('Redirect to loan application');
+    // Redirect to loan application page
+    window.location.href = '/member/loans/apply';
 }
 
 function learnMore() {
-    // Show loan information
-    alert('Show loan information and requirements');
+    // Show loan information modal or redirect to info page
+    window.location.href = '/member/loans/info';
 }
 
 // Add interactive hover effects

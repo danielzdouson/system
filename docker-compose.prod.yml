@@ -1,0 +1,103 @@
+services:
+  db:
+    image: mysql:8.1
+    container_name: saco_system_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    networks:
+      - saco_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  php:
+    image: php:8.3-apache
+    container_name: saco_system_php
+    restart: always
+    volumes:
+      - ./:/var/www/html
+      - ./php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    networks:
+      - saco_network
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_URL=${APP_URL}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      timeout: 10s
+      retries: 5
+      interval: 15s
+      start_period: 30s
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev zlib1g-dev libmariadb-dev curl &&
+      docker-php-ext-configure gd --with-freetype --with-jpeg &&
+      docker-php-ext-install gd pdo pdo_mysql &&
+      a2enmod rewrite &&
+      sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf &&
+      chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
+      chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
+      apache2-foreground
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: saco_system_redis
+    restart: always
+    networks:
+      - saco_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+      interval: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  saco_network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local

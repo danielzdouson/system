@@ -7,8 +7,10 @@ use App\Models\Deposit;
 use App\Models\Loan;
 use App\Models\LoanRepayment;
 use App\Models\Fine;
+use App\Models\FinePayment;
 use App\Models\Distribution;
 use App\Models\FiscalYear;
+use App\Services\FiscalYearContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -83,7 +85,7 @@ class CashFlowController extends Controller
 
     public function monthlyDashboard(Request $request)
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $activeFiscalYear = FiscalYearContext::getCurrent();
         $currentMonth = $request->get('month', Carbon::now()->month);
         $currentYear = $request->get('year', Carbon::now()->year);
         
@@ -136,10 +138,12 @@ class CashFlowController extends Controller
             })
             ->sum('paid_amount');
 
-        $monthlyFines = Fine::whereMonth('created_at', $month)
-            ->whereYear('created_at', $year)
+        $monthlyFines = FinePayment::whereMonth('payment_date', $month)
+            ->whereYear('payment_date', $year)
             ->when($activeFiscalYear, function($query) use ($activeFiscalYear) {
-                $query->where('fiscal_year_id', $activeFiscalYear->id);
+                $query->whereHas('fine', function($subQuery) use ($activeFiscalYear) {
+                    $subQuery->where('fiscal_year_id', $activeFiscalYear->id);
+                });
             })
             ->sum('amount');
 
@@ -199,9 +203,11 @@ class CashFlowController extends Controller
             })
             ->sum('paid_amount');
 
-        $ytdFines = Fine::whereYear('created_at', $year)
+        $ytdFines = FinePayment::whereYear('payment_date', $year)
             ->when($activeFiscalYear, function($query) use ($activeFiscalYear) {
-                $query->where('fiscal_year_id', $activeFiscalYear->id);
+                $query->whereHas('fine', function($subQuery) use ($activeFiscalYear) {
+                    $subQuery->where('fiscal_year_id', $activeFiscalYear->id);
+                });
             })
             ->sum('amount');
 

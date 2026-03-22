@@ -10,25 +10,26 @@ class LoanRepayment extends Model
 {
     use HasFactory;
 
+    protected $table = 'repayments';
+
     protected $fillable = [
         'loan_id',
-        'payment_amount',
-        'payment_date',
-        'payment_method',
-        'interest_portion',
-        'principal_portion',
-        'balance_after_payment',
-        'receipt_number',
+        'member_id',
+        'amount',
+        'principal_component',
+        'interest_component',
+        'method',
+        'reference',
+        'paid_at',
+        'received_by',
         'notes',
-        'created_by',
     ];
 
     protected $casts = [
-        'payment_amount' => 'decimal:2',
-        'principal_portion' => 'decimal:2',
-        'interest_portion' => 'decimal:2',
-        'balance_after_payment' => 'decimal:2',
-        'payment_date' => 'date',
+        'amount' => 'decimal:2',
+        'principal_component' => 'decimal:2',
+        'interest_component' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     public function loan(): BelongsTo
@@ -49,7 +50,7 @@ class LoanRepayment extends Model
     // Helper methods
     public function getTotalAmount(): float
     {
-        return $this->principal_portion + $this->interest_portion;
+        return $this->principal_component + $this->interest_component;
     }
 
     public function isFullPayment(): bool
@@ -60,7 +61,7 @@ class LoanRepayment extends Model
 
     public function getPaymentMethodBadge(): string
     {
-        return match($this->payment_method) {
+        return match($this->method) {
             'cash' => '<span class="badge bg-success">Cash</span>',
             'bank_transfer' => '<span class="badge bg-info">Bank Transfer</span>',
             'mobile_money' => '<span class="badge bg-primary">Mobile Money</span>',

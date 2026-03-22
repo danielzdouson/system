@@ -68,13 +68,13 @@
                                 <div class="col-md-6">
                                     <div class="detail-item">
                                         <h6>Type</h6>
-                                        <p>{{ $transaction->type_badge }}</p>
+                                        <p>{!! $transaction->type_badge !!}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="detail-item">
                                         <h6>Category</h6>
-                                        <p>{{ $transaction->category_badge }}</p>
+                                        <p>{!! $transaction->category_badge !!}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -94,7 +94,7 @@
                                 <div class="col-md-6">
                                     <div class="detail-item">
                                         <h6>Status</h6>
-                                        <p>{{ $transaction->status_badge }}</p>
+                                        <p>{!! $transaction->status_badge !!}</p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">

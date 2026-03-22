@@ -9,100 +9,95 @@ use App\Models\Deposit;
 use App\Models\LoanRequest;
 use App\Models\Fine;
 use App\Models\FiscalYear;
+use App\Services\FiscalYearContext;
 
 class DashboardController
 {
     public function index()
     {
-        $activeFiscalYear = FiscalYear::getActive();
+        $currentFiscalYear = FiscalYearContext::getCurrent();
+        $allFiscalYears = FiscalYearContext::getAllForSelector();
         
         // Get dashboard statistics
         $stats = [
             'total_members' => Member::count(),
-            'total_savings' => $this->getTotalSavings($activeFiscalYear),
-            'active_loans' => $this->getActiveLoans($activeFiscalYear),
-            'pending_loan_requests' => $this->getPendingLoanRequests($activeFiscalYear),
-            'total_loans_amount' => $this->getTotalLoansAmount($activeFiscalYear),
-            'total_fines' => $this->getTotalFines($activeFiscalYear),
-            'monthly_deposits' => $this->getMonthlyDeposits($activeFiscalYear),
-            'recent_activities' => $this->getRecentActivities($activeFiscalYear),
+            'total_savings' => $this->getTotalSavings($currentFiscalYear),
+            'active_loans' => $this->getActiveLoans($currentFiscalYear),
+            'pending_loan_requests' => $this->getPendingLoanRequests($currentFiscalYear),
+            'total_loans_amount' => $this->getTotalLoansAmount($currentFiscalYear),
+            'total_fines' => $this->getTotalFines($currentFiscalYear),
+            'monthly_deposits' => $this->getMonthlyDeposits($currentFiscalYear),
+            'recent_activities' => $this->getRecentActivities($currentFiscalYear),
         ];
 
-        return view('dashboard', compact('stats', 'activeFiscalYear'));
+        return view('dashboard', compact('stats', 'currentFiscalYear', 'allFiscalYears'));
     }
 
-    private function getTotalSavings($activeFiscalYear)
+    private function getTotalSavings($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return 0;
+        if (!$currentFiscalYear) return 0;
         
-        return GroupSaving::where('fiscal_year_id', $activeFiscalYear->id)
-            ->sum('amount') + 
-            Deposit::where('fiscal_year_id', $activeFiscalYear->id)
-                ->whereHas('distributions', function($query) {
-                    $query->where('type', 'savings');
-                })
-                ->with('distributions')
-                ->get()
-                ->sum(function($deposit) {
-                    return $deposit->distributions->where('type', 'savings')->sum('amount');
-                });
+        // Use MemberAccount savings_balance as the single source of truth
+        // This represents the actual current savings for each member in this fiscal year
+        return \App\Models\MemberAccount::where('fiscal_year_id', $currentFiscalYear->id)
+            ->sum('savings_balance');
     }
 
-    private function getActiveLoans($activeFiscalYear)
+    private function getActiveLoans($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return 0;
+        if (!$currentFiscalYear) return 0;
         
-        return Loan::where('fiscal_year_id', $activeFiscalYear->id)
-            ->whereIn('loan_status', ['disbursed', 'active'])
+        return Loan::where('fiscal_year_id', $currentFiscalYear->id)
+            ->where('status', 'active')
             ->count();
     }
 
-    private function getPendingLoanRequests($activeFiscalYear)
+    private function getPendingLoanRequests($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return 0;
+        if (!$currentFiscalYear) return 0;
         
-        return LoanRequest::where('fiscal_year_id', $activeFiscalYear->id)
+        return LoanRequest::where('fiscal_year_id', $currentFiscalYear->id)
             ->where('status', 'pending')
             ->count();
     }
 
-    private function getTotalLoansAmount($activeFiscalYear)
+    private function getTotalLoansAmount($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return 0;
+        if (!$currentFiscalYear) return 0;
         
-        return Loan::where('fiscal_year_id', $activeFiscalYear->id)
-            ->whereIn('loan_status', ['disbursed', 'active'])
-            ->sum('loan_amount');
+        return Loan::where('fiscal_year_id', $currentFiscalYear->id)
+            ->where('status', 'active')
+            ->sum('principal_amount');
     }
 
-    private function getTotalFines($activeFiscalYear)
+    private function getTotalFines($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return 0;
+        if (!$currentFiscalYear) return 0;
         
-        return Fine::where('fiscal_year_id', $activeFiscalYear->id)
+        return Fine::where('fiscal_year_id', $currentFiscalYear->id)
             ->where('status', 'pending')
             ->sum('amount');
     }
 
-    private function getMonthlyDeposits($activeFiscalYear)
+    private function getMonthlyDeposits($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return collect([]);
+        if (!$currentFiscalYear) return collect([]);
         
-        return Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+        return Deposit::where('fiscal_year_id', $currentFiscalYear->id)
             ->with(['member'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
     }
 
-    private function getRecentActivities($activeFiscalYear)
+    private function getRecentActivities($currentFiscalYear)
     {
-        if (!$activeFiscalYear) return collect([]);
+        if (!$currentFiscalYear) return collect([]);
         
         $activities = collect();
         
         // Recent loans
-        $recentLoans = Loan::where('fiscal_year_id', $activeFiscalYear->id)
+        $recentLoans = Loan::where('fiscal_year_id', $currentFiscalYear->id)
             ->with(['member'])
             ->orderBy('created_at', 'desc')
             ->take(3)
@@ -116,14 +111,14 @@ class DashboardController
                 return [
                     'type' => 'loan',
                     'description' => 'Loan issued to ' . $memberName,
-                    'amount' => $loan->loan_amount,
+                    'amount' => $loan->principal_amount,
                     'date' => $loan->created_at,
                     'icon' => '💳'
                 ];
             });
         
         // Recent deposits
-        $recentDeposits = Deposit::where('fiscal_year_id', $activeFiscalYear->id)
+        $recentDeposits = Deposit::where('fiscal_year_id', $currentFiscalYear->id)
             ->with(['member'])
             ->orderBy('created_at', 'desc')
             ->take(3)
