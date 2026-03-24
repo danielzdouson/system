@@ -424,13 +424,26 @@
 
 <!-- JavaScript -->
 <script>
-// Store original values for reset functionality
-const originalValues = {
-    name: document.getElementById('name').value,
-    start_date: document.getElementById('start_date').value,
-    end_date: document.getElementById('end_date').value,
-    status: document.querySelector('input[name="status"]:checked').value
-};
+// Store original values for reset functionality - wait for DOM to be ready
+let originalValues = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const statusRadio = document.querySelector('input[name="status"]:checked');
+    originalValues = {
+        name: document.getElementById('name').value,
+        start_date: document.getElementById('start_date').value,
+        end_date: document.getElementById('end_date').value,
+        status: statusRadio ? statusRadio.value : 'inactive'
+    };
+    
+    // Initialize warning display
+    const currentStatusRadio = document.querySelector('input[name="status"]:checked');
+    const currentStatus = currentStatusRadio ? currentStatusRadio.value : 'inactive';
+    const warningDiv = document.querySelector('.alert-warning');
+    if (warningDiv) {
+        warningDiv.style.display = (currentStatus === 'active' && originalValues.status !== 'active') ? 'block' : 'none';
+    }
+});
 
 function resetForm() {
     document.getElementById('name').value = originalValues.name;
@@ -484,15 +497,6 @@ document.querySelectorAll('input[name="status"]').forEach(radio => {
             warningDiv.style.display = 'none';
         }
     });
-});
-
-// Initialize warning display
-document.addEventListener('DOMContentLoaded', function() {
-    const currentStatus = document.querySelector('input[name="status"]:checked').value;
-    const warningDiv = document.querySelector('.alert-warning');
-    if (warningDiv) {
-        warningDiv.style.display = (currentStatus === 'active' && originalValues.status !== 'active') ? 'block' : 'none';
-    }
 });
 </script>
 @endsection

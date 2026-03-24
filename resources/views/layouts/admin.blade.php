@@ -13,6 +13,11 @@
     <meta name="description" content="Complete SACCO management system for members, loans, savings, and financial operations">
     <meta name="theme-color" content="#3b82f6">
     
+    <!-- Cache Control - Prevent caching issues -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
     
