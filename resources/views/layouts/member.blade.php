@@ -295,8 +295,28 @@
             }
         </style>
 
-        <!-- Scripts -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- PWA Meta Tags -->
+        <meta name="application-name" content="SACCO Management System">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="SACCO">
+        <meta name="theme-color" content="#4f46e5">
+        
+        <!-- PWA Manifest -->
+        <link rel="manifest" href="/manifest.json">
+        
+        <!-- Apple Touch Icons -->
+        <link rel="apple-touch-icon" sizes="72x72" href="/images/icons/icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="96x96" href="/images/icons/icon-96x96.png">
+        <link rel="apple-touch-icon" sizes="128x128" href="/images/icons/icon-128x128.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="/images/icons/icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/images/icons/icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="192x192" href="/images/icons/icon-192x192.png">
+        <link rel="apple-touch-icon" sizes="384x384" href="/images/icons/icon-384x384.png">
+        <link rel="apple-touch-icon" sizes="512x512" href="/images/icons/icon-512x512.png">
+        
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/icon-72x72.png">
     </head>
         <div class="min-h-screen">
             <!-- Member Navigation -->
@@ -589,5 +609,143 @@
                 }
             }
         </style>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registered:', registration);
+                
+                // Check for updates periodically
+                setInterval(() => {
+                    registration.update();
+                }, 60000); // Check every minute
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed:', err);
+            });
+    });
+}
+
+// PWA Install Prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Show install button/banner
+    showInstallPromotion();
+});
+
+function showInstallPromotion() {
+    // Create install banner if it doesn't exist
+    if (!document.getElementById('pwa-install-banner')) {
+        const banner = document.createElement('div');
+        banner.id = 'pwa-install-banner';
+        banner.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4f46e5 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            max-width: 350px;
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        banner.innerHTML = `
+            <i class="fas fa-download fa-2x"></i>
+            <div style="flex: 1;">
+                <strong style="display: block; margin-bottom: 5px;">Install SACCO App</strong>
+                <small>Get quick access from your desktop or home screen</small>
+            </div>
+            <button id="pwa-install-btn" style="
+                background: white;
+                color: #4f46e5;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: bold;
+            ">Install</button>
+            <button id="pwa-dismiss-btn" style="
+                background: transparent;
+                color: white;
+                border: none;
+                cursor: pointer;
+                font-size: 20px;
+                padding: 0 5px;
+            ">&times;</button>
+        `;
+        
+        document.body.appendChild(banner);
+        
+        // Install button click
+        document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+                banner.remove();
+            }
+        });
+        
+        // Dismiss button click
+        document.getElementById('pwa-dismiss-btn').addEventListener('click', () => {
+            banner.remove();
+            localStorage.setItem('pwa-install-dismissed', Date.now());
+        });
+        
+        // Auto-dismiss after 30 seconds
+        setTimeout(() => {
+            if (banner.parentElement) {
+                banner.remove();
+            }
+        }, 30000);
+    }
+}
+
+// Check if already dismissed recently (within 7 days)
+const dismissed = localStorage.getItem('pwa-install-dismissed');
+if (dismissed && (Date.now() - parseInt(dismissed)) < 7 * 24 * 60 * 60 * 1000) {
+    // Don't show install prompt if dismissed within last 7 days
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+    });
+}
+
+// Handle successful installation
+window.addEventListener('appinstalled', () => {
+    console.log('PWA installed successfully');
+    deferredPrompt = null;
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.remove();
+});
+
+// Add slide-in animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
     </body>
 </html>
