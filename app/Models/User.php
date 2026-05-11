@@ -18,6 +18,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'profile_photo',
         'password',
         'member_id',
         'role', // admin, loans_officer, treasurer, member, super_admin

@@ -454,6 +454,15 @@
         <a href="{{ route('admin.import.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-import"></i></span> Data Import
         </a>
+
+        <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+            <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
+                @csrf
+                <button type="submit" class="nav-link" style="background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: #ef4444;">
+                    <span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span> Logout
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="content">

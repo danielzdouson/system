@@ -378,19 +378,27 @@
                         <div class="d-flex align-items-center">
                             <!-- Profile Dropdown -->
                             <div class="dropdown me-3">
-                                <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center" 
+                                <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center"
                                         type="button" id="profileDropdown" data-bs-toggle="dropdown">
-                                    <div class="user-avatar me-2">
-                                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                                    </div>
+                                    @if(Auth::user()->profile_photo)
+                                        <img src="/storage/{{ Auth::user()->profile_photo }}"
+                                             alt="Profile"
+                                             class="rounded-circle me-2"
+                                             style="width: 40px; height: 40px; object-fit: cover; border: 2px solid #4f46e5;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="user-avatar me-2" style="display: none;">
+                                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                        </div>
+                                    @else
+                                        <div class="user-avatar me-2">
+                                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                        </div>
+                                    @endif
                                     <span class="d-none d-md-inline text-muted">{{ Auth::user()->name ?? 'Profile' }}</span>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="{{ route('profile.edit') }}">
                                         <i class="fas fa-user me-2"></i>Edit Profile
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="#">
-                                        <i class="fas fa-cog me-2"></i>Settings
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
@@ -432,6 +440,9 @@
                 </div>
             </footer>
         </div>
+
+        <!-- Bootstrap JS Bundle -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
             // Add smooth scrolling and animations

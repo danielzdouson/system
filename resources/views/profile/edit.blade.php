@@ -2,6 +2,13 @@
 
 @section('content')
 <div class="container-fluid p-4">
+    <!-- Success Message -->
+    @if (session('status') === 'avatar-updated')
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>Profile photo updated successfully!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -40,16 +47,53 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="#" id="profileForm">
+                    <!-- Avatar Upload Form -->
+                    <form method="POST" action="{{ route('profile.avatar.update') }}" enctype="multipart/form-data" id="avatarForm">
                         @csrf
                         <div class="text-center mb-4">
-                            <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                            <!-- Display Validation Errors -->
+                            @if($errors->any())
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    @foreach($errors->all() as $error)
+                                        <div><i class="fas fa-exclamation-circle me-1"></i>{{ $error }}</div>
+                                    @endforeach
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+                            
+                            <div class="position-relative d-inline-block">
+                                @php
+                                    $avatarUrl = Auth::user()->profile_photo ? '/storage/' . Auth::user()->profile_photo : null;
+                                @endphp
+
+                                @if($avatarUrl)
+                                    <img src="{{ $avatarUrl }}?t={{ time() }}"
+                                         alt="Profile Photo"
+                                         class="rounded-circle mb-3"
+                                         id="profileImage"
+                                         style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #4f46e5;"
+                                         onerror="showFallbackAvatar(this)">
+                                @endif
+                                
+                                <div id="fallbackAvatar" class="user-avatar mx-auto mb-3 {{ $avatarUrl ? 'd-none' : '' }}" 
+                                     style="width: 100px; height: 100px; font-size: 2.5rem;">
+                                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                                </div>
+                                <label for="avatar" class="position-absolute bottom-0 end-0 btn btn-primary btn-sm rounded-circle" 
+                                       style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                    <i class="fas fa-camera"></i>
+                                </label>
+                                <input type="file" id="avatar" name="avatar" class="d-none" accept="image/jpeg,image/png,image/jpg,image/gif" onchange="previewAndSubmitAvatar(this)">
                             </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="changeAvatar()">
-                                <i class="fas fa-camera me-2"></i>Change Avatar
-                            </button>
+                            <p class="text-muted small mb-0">Click the camera icon to change photo</p>
+                            <p class="text-muted small">JPG, PNG, GIF (max 2MB)</p>
                         </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <form method="POST" action="#" id="profileForm">
+                        @csrf
                         
                         <div class="mb-3">
                             <label for="name" class="form-label">Full Name</label>
@@ -363,8 +407,59 @@ document.getElementById('notificationForm')?.addEventListener('submit', function
     }, 1000);
 });
 
+function showFallbackAvatar(img) {
+    img.style.display = 'none';
+    const fallback = document.getElementById('fallbackAvatar');
+    if (fallback) {
+        fallback.classList.remove('d-none');
+    }
+}
+
+function previewAndSubmitAvatar(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            return;
+        }
+        
+        // Preview the image before upload
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            let img = document.getElementById('profileImage');
+            const fallback = document.getElementById('fallbackAvatar');
+            
+            if (img) {
+                // Update existing image
+                img.src = e.target.result;
+                img.style.display = 'block';
+            } else {
+                // Create new image if doesn't exist
+                img = document.createElement('img');
+                img.id = 'profileImage';
+                img.src = e.target.result;
+                img.className = 'rounded-circle mb-3';
+                img.style.cssText = 'width: 100px; height: 100px; object-fit: cover; border: 3px solid #4f46e5;';
+                img.onerror = function() { showFallbackAvatar(this); };
+                fallback.parentNode.insertBefore(img, fallback);
+            }
+            
+            // Hide fallback
+            if (fallback) {
+                fallback.classList.add('d-none');
+            }
+        };
+        reader.readAsDataURL(file);
+        
+        // Submit the form
+        document.getElementById('avatarForm').submit();
+    }
+}
+
 function changeAvatar() {
-    alert('Avatar upload functionality would be implemented here');
+    document.getElementById('avatar').click();
 }
 
 function confirmDeactivate() {
