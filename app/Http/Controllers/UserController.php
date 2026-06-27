@@ -16,16 +16,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users',
-            'phone'    => 'required',
-            'role'     => 'required',
-            'password' => 'required|min:6'
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'phone' => 'required',
+            'role' => 'required|in:admin,super_admin,loans_officer,treasurer,member',
+            'password' => 'required|min:6',
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+        $user->role = $validated['role'];
+        $user->save();
 
-        return User::create($validated);
+        return $user;
     }
 
     public function show($id)
@@ -44,6 +50,15 @@ class UserController extends Controller
         }
 
         $user->update($data);
+
+        // `role` is not mass-assignable; set it explicitly when provided.
+        if ($request->filled('role')) {
+            $request->validate([
+                'role' => 'in:admin,super_admin,loans_officer,treasurer,member',
+            ]);
+            $user->role = $request->input('role');
+            $user->save();
+        }
 
         return $user;
     }
