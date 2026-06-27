@@ -6,10 +6,10 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class MemberMiddleware
+class AdminMiddleware
 {
     /**
-     * Handle an incoming request.
+     * Allow only staff roles into the admin back office.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -17,14 +17,10 @@ class MemberMiddleware
     {
         $user = auth()->user();
 
-        // Check if user is authenticated and has member role
-        if (! $user || ! $user->isMember()) {
-            abort(403, 'Access denied. Member access required.');
-        }
+        $staffRoles = ['admin', 'super_admin', 'loans_officer', 'treasurer'];
 
-        // Check if user has a linked member account
-        if (! $user->member) {
-            abort(403, 'No member account linked to your user account.');
+        if (! $user || ! in_array($user->role, $staffRoles, true)) {
+            abort(403, 'Access denied. Staff access required.');
         }
 
         return $next($request);

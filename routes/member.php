@@ -3,57 +3,23 @@
 use App\Http\Controllers\Member\MemberDashboardController;
 use Illuminate\Support\Facades\Route;
 
-// Simple test route without member middleware
-Route::get('/simple-test', function () {
-    return [
-        'app_env' => config('app.env'),
-        'auth_check' => auth()->check(),
-        'user_id' => auth()->id(),
-        'user_name' => auth()->user() ? auth()->user()->name : 'No user',
-        'user_role' => auth()->user() ? auth()->user()->role : 'No role'
-    ];
-});
+// Member routes - require authentication and member role
+Route::middleware(['auth', 'member'])->name('member.')->group(function () {
 
-// Root level test route
-Route::get('/root-test', function () {
-    return 'Member root route is working!';
-});
-
-// Member routes - require authentication only
-Route::middleware(['auth'])->name('member.')->group(function () {
-    
-    // Test route for debugging
-    Route::get('/test', function () {
-        $user = auth()->user();
-        $member = $user ? $user->member : null;
-        return [
-            'user_logged_in' => $user ? true : false,
-            'user_name' => $user ? $user->name : 'No user',
-            'member_exists' => $member ? true : false,
-            'member_id' => $member ? $member->id : 'No member',
-            'user_role' => $user ? $user->role : 'No role'
-        ];
-    })->name('test');
-
-    // Simple test route
-    Route::get('/simple', function () {
-        return 'Member routes are working!';
-    })->name('simple');
-    
     // Dashboard
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('dashboard');
-    
+
     // Default redirect to dashboard
     Route::get('/', function () {
         return redirect()->route('member.dashboard');
     });
-    
+
     // Transaction History
     Route::get('/transactions', [MemberDashboardController::class, 'transactions'])->name('transactions');
-    
+
     // Statement Download
     Route::post('/statement/download', [MemberDashboardController::class, 'downloadStatement'])->name('statement.download');
-    
+
     // Loans
     Route::get('/loans', [MemberDashboardController::class, 'loans'])->name('loans');
     Route::get('/loans/{id}/payment', [App\Http\Controllers\Member\MemberLoanController::class, 'payment'])->name('loans.payment');
@@ -64,9 +30,9 @@ Route::middleware(['auth'])->name('member.')->group(function () {
     Route::get('/loans/export', [App\Http\Controllers\Member\MemberLoanController::class, 'export'])->name('loans.export');
     Route::get('/loans/apply', [App\Http\Controllers\Member\MemberLoanController::class, 'apply'])->name('loans.apply');
     Route::get('/loans/info', [App\Http\Controllers\Member\MemberLoanController::class, 'info'])->name('loans.info');
-    
+
     // Profile route
-    Route::get('/profile', function() {
+    Route::get('/profile', function () {
         return redirect()->route('member.dashboard');
     })->name('profile.edit');
 
@@ -78,17 +44,12 @@ Route::middleware(['auth'])->name('member.')->group(function () {
         Route::get('/{document}/upload-form', [App\Http\Controllers\Member\DocumentController::class, 'uploadForm'])->name('upload-form');
         Route::post('/{document}/upload-form', [App\Http\Controllers\Member\DocumentController::class, 'storeUpload'])->name('store-upload');
         Route::get('/my-uploads', [App\Http\Controllers\Member\DocumentController::class, 'myUploads'])->name('my-uploads');
-        
+
         // Guarantor Routes
         Route::get('/pending-guarantees', [App\Http\Controllers\Member\DocumentController::class, 'pendingGuarantees'])->name('pending-guarantees');
         Route::get('/guarantee-details/{uploadedForm}', [App\Http\Controllers\Member\DocumentController::class, 'guaranteeDetails'])->name('guarantee-details');
         Route::post('/guarantee-details/{uploadedForm}/confirm', [App\Http\Controllers\Member\DocumentController::class, 'confirmGuarantee'])->name('confirm-guarantee');
         Route::post('/withdraw-guarantee/{loanGuarantor}', [App\Http\Controllers\Member\DocumentController::class, 'withdrawGuarantee'])->name('withdraw-guarantee');
         Route::get('/guarantor-history', [App\Http\Controllers\Member\DocumentController::class, 'guarantorHistory'])->name('guarantor-history');
-        
-        // Test route for guarantor history
-        Route::get('/guarantor-history-test', function () {
-            return 'Guarantor history route is working!';
-        })->name('guarantor-history-test');
     });
 });

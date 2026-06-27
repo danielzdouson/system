@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
@@ -20,8 +19,13 @@ class User extends Authenticatable
         'email',
         'password',
         'member_id',
-        'role', // admin, loans_officer, treasurer, member, super_admin
     ];
+
+    /**
+     * Valid user roles: admin, loans_officer, treasurer, member, super_admin.
+     * `role` is intentionally NOT mass-assignable and must be set explicitly
+     * server-side to prevent privilege escalation.
+     */
 
     /**
      * Attributes that should be hidden (not returned in JSON).

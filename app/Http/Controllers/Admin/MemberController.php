@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Member;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class MemberController extends Controller
@@ -16,6 +16,7 @@ class MemberController extends Controller
     public function index()
     {
         $members = Member::latest()->get();
+
         return view('admin.members.index', compact('members'));
     }
 
@@ -60,11 +61,12 @@ class MemberController extends Controller
         // Create user account if requested
         if ($request->boolean('create_user_account')) {
             $user = User::create([
-                'name' => $member->first_name . ' ' . $member->last_name,
+                'name' => $member->first_name.' '.$member->last_name,
                 'email' => $request->user_email,
                 'password' => Hash::make($request->user_password),
-                'role' => 'member',
             ]);
+            $user->role = 'member';
+            $user->save();
 
             // Link the user to the member
             $member->user_id = $user->id;
@@ -84,9 +86,10 @@ class MemberController extends Controller
     public function edit(Member $member)
     {
         $members = Member::latest()->get(); // to show list
+
         return view('admin.members.index', [
             'members' => $members,
-            'memberToEdit' => $member
+            'memberToEdit' => $member,
         ]);
     }
 
