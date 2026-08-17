@@ -70,6 +70,15 @@ Route::middleware(['auth'])->name('member.')->group(function () {
         return redirect()->route('member.dashboard');
     })->name('profile.edit');
 
+    // Payment Routes
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Member\PaymentController::class, 'index'])->name('index');
+        Route::get('/history', [App\Http\Controllers\Member\PaymentController::class, 'history'])->name('history');
+        Route::get('/loan/{id}', [App\Http\Controllers\Member\PaymentController::class, 'loanPayment'])->name('loan-payment');
+        Route::post('/initiate', [App\Http\Controllers\Member\PaymentController::class, 'initiate'])->name('initiate');
+        Route::get('/callback', [App\Http\Controllers\Member\PaymentController::class, 'callback'])->name('callback');
+    });
+
     // Document Management Routes
     Route::prefix('documents')->name('documents.')->group(function () {
         Route::get('/', [App\Http\Controllers\Member\DocumentController::class, 'index'])->name('index');

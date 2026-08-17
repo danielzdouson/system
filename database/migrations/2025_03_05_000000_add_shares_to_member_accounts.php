@@ -11,10 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('member_accounts', function (Blueprint $table) {
-            $table->decimal('shares_on_hold', 15, 2)->default(0)->after('other_balance');
-            $table->decimal('total_shares', 15, 2)->default(0)->after('shares_on_hold');
-        });
+        // Skip this migration - it's been replaced by 2026_03_05_061512_add_shares_on_hold_to_member_accounts_table.php
     }
 
     /**
@@ -22,8 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('member_accounts', function (Blueprint $table) {
-            $table->dropColumn(['shares_on_hold', 'total_shares']);
-        });
+        // Skip this migration
     }
 };

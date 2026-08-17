@@ -146,13 +146,13 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-lg-3 col-md-6 mb-3" style="display: none;">
-                            <a href="#" onclick="showLoanApplicationModal()" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none hover-scale">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="{{ route('member.payments.index') }}" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none hover-scale">
                                 <div class="bg-primary bg-opacity-10 rounded-circle p-3 mb-3">
-                                    <i class="fas fa-plus-circle fa-2x text-primary"></i>
+                                    <i class="fas fa-credit-card fa-2x text-primary"></i>
                                 </div>
-                                <strong>Apply for Loan</strong>
-                                <small class="text-muted">Check eligibility</small>
+                                <strong>Make Payment</strong>
+                                <small class="text-muted">Pay loans, fines, savings</small>
                             </a>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">

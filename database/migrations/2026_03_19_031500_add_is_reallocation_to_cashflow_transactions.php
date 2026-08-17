@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('cashflow_transactions', function (Blueprint $table) {
-            $table->boolean('is_reallocation')->default(false)->after('status');
-            $table->index('is_reallocation');
+            if (!Schema::hasColumn('cashflow_transactions', 'is_reallocation')) {
+                $table->boolean('is_reallocation')->default(false)->after('status');
+                $table->index('is_reallocation');
+            }
         });
     }
 

@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('member_accounts', function (Blueprint $table) {
-            $table->decimal('shares_on_hold', 15, 2)->default(0)->after('other_balance');
-            $table->decimal('total_shares', 15, 2)->default(0)->after('shares_on_hold');
+            if (!Schema::hasColumn('member_accounts', 'shares_on_hold')) {
+                $table->decimal('shares_on_hold', 15, 2)->default(0)->after('other_balance');
+            }
+            if (!Schema::hasColumn('member_accounts', 'total_shares')) {
+                $table->decimal('total_shares', 15, 2)->default(0)->after('shares_on_hold');
+            }
         });
     }
 

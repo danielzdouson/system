@@ -231,8 +231,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::delete('/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('delete');
         Route::post('/restore/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('restore');
     });
+
+    // Payment Management Routes
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('index');
+        Route::get('/{payment}', [App\Http\Controllers\Admin\PaymentController::class, 'show'])->name('show');
+        Route::post('/{payment}/refresh-status', [App\Http\Controllers\Admin\PaymentController::class, 'refreshStatus'])->name('refresh-status');
+        Route::get('/export', [App\Http\Controllers\Admin\PaymentController::class, 'export'])->name('export');
+        Route::get('/bank-details', [App\Http\Controllers\Admin\PaymentController::class, 'bankDetails'])->name('bank-details');
+        Route::post('/bank-details', [App\Http\Controllers\Admin\PaymentController::class, 'storeBankDetails'])->name('store-bank-details');
+        Route::get('/bank-details/{id}/edit', [App\Http\Controllers\Admin\PaymentController::class, 'editBankDetails'])->name('edit-bank-details');
+        Route::put('/bank-details/{id}', [App\Http\Controllers\Admin\PaymentController::class, 'updateBankDetails'])->name('update-bank-details');
+        Route::delete('/bank-details/{id}', [App\Http\Controllers\Admin\PaymentController::class, 'deleteBankDetails'])->name('delete-bank-details');
+    });
 });
 
 // Test route directly in web.php
 Route::get('/member/documents/pending-guarantees', [App\Http\Controllers\Member\DocumentController::class, 'pendingGuarantees'])->name('test-pending-guarantees');
 Route::get('/member/documents/guarantor-history', [App\Http\Controllers\Member\DocumentController::class, 'guarantorHistory'])->name('test-guarantor-history');
+
+// Pesapal IPN Webhook (no authentication required - Pesapal calls this directly)
+Route::post('/payments/ipn', [App\Http\Controllers\Admin\PaymentController::class, 'handleIpn'])->name('payments.ipn');
