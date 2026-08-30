@@ -38,6 +38,7 @@ services:
       - DB_DATABASE=saco_db
       - DB_USERNAME=root
       - DB_PASSWORD=douglasben
+    command: sh -c "php artisan migrate --force && apache2-foreground"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       timeout: 10s
