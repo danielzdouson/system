@@ -7,15 +7,17 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     zlib1g-dev \
     libmariadb-dev \
+    libicu-dev \
     curl \
     libzip-dev \
     unzip \
     git \
+    default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip
+    && docker-php-ext-install -j$(nproc) gd intl pdo pdo_mysql zip
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite

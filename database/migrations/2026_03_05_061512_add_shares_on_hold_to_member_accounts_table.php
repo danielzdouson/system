@@ -11,9 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('member_accounts')) {
+            return;
+        }
+
         Schema::table('member_accounts', function (Blueprint $table) {
-            $table->decimal('shares_on_hold', 15, 2)->default(0)->after('other_balance');
-            $table->decimal('total_shares', 15, 2)->default(0)->after('shares_on_hold');
+            if (!Schema::hasColumn('member_accounts', 'shares_on_hold')) {
+                $table->decimal('shares_on_hold', 15, 2)->default(0)->after('other_balance');
+            }
+
+            if (!Schema::hasColumn('member_accounts', 'total_shares')) {
+                $table->decimal('total_shares', 15, 2)->default(0)->after('shares_on_hold');
+            }
         });
     }
 
@@ -22,8 +31,24 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('member_accounts')) {
+            return;
+        }
+
         Schema::table('member_accounts', function (Blueprint $table) {
-            $table->dropColumn(['shares_on_hold', 'total_shares']);
+            $columns = [];
+
+            if (Schema::hasColumn('member_accounts', 'shares_on_hold')) {
+                $columns[] = 'shares_on_hold';
+            }
+
+            if (Schema::hasColumn('member_accounts', 'total_shares')) {
+                $columns[] = 'total_shares';
+            }
+
+            if ($columns !== []) {
+                $table->dropColumn($columns);
+            }
         });
     }
 };

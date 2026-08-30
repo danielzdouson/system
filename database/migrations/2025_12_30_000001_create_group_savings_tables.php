@@ -20,6 +20,11 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
+
+            $table->unique(
+                ['member_id', 'fiscal_year_id', 'deposit_date', 'amount'],
+                'unique_deposit_per_member_date_amount'
+            );
         });
 
         Schema::create('distributions', function (Blueprint $table) {
@@ -30,6 +35,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
+
         });
 
         Schema::create('group_savings', function (Blueprint $table) {

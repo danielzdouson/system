@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::table('distributions', function (Blueprint $table) {
             $table->integer('month')->nullable()->after('description');
             $table->foreignId('fiscal_year_id')->nullable()->after('month')->constrained()->onDelete('cascade');
+            $table->unique(
+                ['deposit_id', 'type', 'amount', 'fiscal_year_id'],
+                'unique_distribution_per_deposit_type_amount'
+            );
         });
     }
 
