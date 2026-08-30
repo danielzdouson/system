@@ -138,6 +138,11 @@
             left: 100%;
         }
 
+        .logout-button {
+            background: transparent;
+            cursor: pointer;
+        }
+
         .nav-icon {
             margin-right: 12px;
             font-size: 18px;
@@ -421,6 +426,12 @@
         <a href="{{ route('admin.import.index') }}" class="nav-link" style="display: none;">
             <span class="nav-icon"><i class="fas fa-file-import"></i></span> Data Import
         </a>
+        <form method="POST" action="{{ route('logout') }}" class="mt-3">
+            @csrf
+            <button type="submit" class="nav-link logout-button w-100 text-start">
+                <span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span> Log Out
+            </button>
+        </form>
     </div>
 
     <div class="content">
