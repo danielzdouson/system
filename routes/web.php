@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Route;
 
 // Home Route
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : view('auth.login');
 });
 
 // Dashboard route - redirect based on user role
@@ -24,15 +26,17 @@ Route::get('/dashboard', function () {
     if ($user && $user->isMember()) {
         return redirect()->route('member.dashboard');
     }
+
     return app(App\Http\Controllers\Admin\DashboardController::class)->index();
 })->middleware('auth')->name('dashboard')->middleware('auth');
 
 // Debug route - check member layout
 Route::get('/debug-member', function () {
     $user = auth()->user();
-    return 'User: ' . ($user ? $user->name : 'Not logged in') . 
-           ', Role: ' . ($user ? $user->role : 'No role') . 
-           ', Is Member: ' . ($user ? ($user->isMember() ? 'YES' : 'NO') : 'No user');
+
+    return 'User: '.($user ? $user->name : 'Not logged in').
+           ', Role: '.($user ? $user->role : 'No role').
+           ', Is Member: '.($user ? ($user->isMember() ? 'YES' : 'NO') : 'No user');
 })->middleware('auth');
 
 // Temporarily change user to member for testing
@@ -41,8 +45,10 @@ Route::get('/make-member', function () {
     if ($user) {
         $user->role = 'member';
         $user->save();
+
         return 'Changed role to member. Please refresh the page.';
     }
+
     return 'No user logged in.';
 })->middleware('auth');
 
@@ -62,7 +68,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::delete('fiscal-years/{fiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'destroy'])->name('fiscal-years.destroy');
     Route::post('fiscal-years/{fiscalYear}/activate', [App\Http\Controllers\Admin\FiscalYearController::class, 'activate'])->name('fiscal-years.activate');
     Route::post('fiscal-years/clear-session', [App\Http\Controllers\Admin\FiscalYearController::class, 'clearSession'])->name('fiscal-years.clear-session');
-    
+
     // Carry Forward Routes
     Route::get('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}', [App\Http\Controllers\Admin\FiscalYearController::class, 'carryForward'])->name('fiscal-years.carry-forward');
     Route::post('fiscal-years/{fromFiscalYear}/carry-forward/{toFiscalYear}/process', [App\Http\Controllers\Admin\FiscalYearController::class, 'processCarryForward'])->name('fiscal-years.carry-forward.process');
@@ -130,18 +136,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 
     // Financials Routes
     Route::get('financials', [App\Http\Controllers\Admin\FinancialController::class, 'index'])->name('financials.index');
-    
-    Route::get('financials/create', function() {
+
+    Route::get('financials/create', function () {
         $members = \App\Models\Member::latest()->get();
+
         return view('admin.financials.create', compact('members'));
     })->name('financials.create');
-    
-    Route::post('financials', function() {
+
+    Route::post('financials', function () {
         return redirect()->route('admin.financials.index')->with('success', 'Financial saved successfully.');
     })->name('financials.store');
-    
+
     Route::get('financials/members-sector', [App\Http\Controllers\Admin\MemberFinancialController::class, 'membersSector'])->name('financials.members-sector');
-    
+
     // Cashflow Routes
     Route::get('cashflow', [App\Http\Controllers\Admin\CashflowController::class, 'index'])->name('cashflow.index');
     Route::get('cashflow/load', [App\Http\Controllers\Admin\CashflowController::class, 'loadTransactionsAjax'])->name('cashflow.load');
@@ -170,7 +177,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::get('cashflow/export-monthly-pdf', [App\Http\Controllers\Admin\CashflowController::class, 'exportMonthlyStatementPDF'])->name('cashflow.export.monthly.pdf');
     Route::get('cashflow/export-fiscal-year', [App\Http\Controllers\Admin\CashflowController::class, 'exportFiscalYearStatement'])->name('cashflow.export.fiscal-year');
     Route::get('cashflow/position', [App\Http\Controllers\Admin\CashflowController::class, 'getCashPosition'])->name('cashflow.position');
-    
+
     // Investment Management Routes
     Route::get('/investments', [App\Http\Controllers\Admin\InvestmentController::class, 'index'])->name('investments.index');
     Route::get('/investments/create', [App\Http\Controllers\Admin\InvestmentController::class, 'create'])->name('investments.create');
@@ -182,20 +189,20 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
     Route::post('/investments/{investment}/add-transaction', [App\Http\Controllers\Admin\InvestmentController::class, 'addTransaction'])->name('investments.add-transaction');
     Route::post('/investments/{investment}/mark-matured', [App\Http\Controllers\Admin\InvestmentController::class, 'markAsMatured'])->name('investments.mark-matured');
     Route::post('/investments/{investment}/close', [App\Http\Controllers\Admin\InvestmentController::class, 'close'])->name('investments.close');
-    
+
     // Import Routes
-    Route::get('import', function() {
+    Route::get('import', function () {
         return view('admin.import.index');
     })->name('import.index');
-    
-    Route::post('import/loans', function(\Illuminate\Http\Request $request) {
+
+    Route::post('import/loans', function (\Illuminate\Http\Request $request) {
         return app(\App\Http\Controllers\ImportController::class)->importLoans($request);
     })->name('import.loans');
-    
-    Route::post('import/cashflow', function(\Illuminate\Http\Request $request) {
+
+    Route::post('import/cashflow', function (\Illuminate\Http\Request $request) {
         return app(\App\Http\Controllers\ImportController::class)->importCashflow($request);
     })->name('import.cashflow');
-    
+
     // Reports Routes
     Route::get('reports/index', [App\Http\Controllers\ReportsController::class, 'index'])->name('reports.index');
     Route::get('reports/members', [App\Http\Controllers\ReportsController::class, 'memberReports'])->name('reports.members');
@@ -211,7 +218,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
         Route::get('/{document}/edit', [App\Http\Controllers\Admin\DocumentController::class, 'edit'])->name('edit');
         Route::put('/{document}', [App\Http\Controllers\Admin\DocumentController::class, 'update'])->name('update');
         Route::delete('/{document}', [App\Http\Controllers\Admin\DocumentController::class, 'destroy'])->name('destroy');
-        
+
         // Uploaded Forms Management
         Route::get('/uploaded-forms', [App\Http\Controllers\Admin\DocumentController::class, 'downloadForms'])->name('uploaded-forms');
         Route::get('/uploaded-forms/{uploadedForm}/review', [App\Http\Controllers\Admin\DocumentController::class, 'reviewForm'])->name('review-form');
