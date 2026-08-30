@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -14,32 +13,28 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create admin user
-        User::create([
+        User::updateOrCreate(['email' => 'admin@sacco.com'], [
             'name' => 'Admin User',
             'email' => 'admin@sacco.com',
             'password' => Hash::make('password'),
             'role' => 'super_admin',
         ]);
 
-        // Create loans officer
-        User::create([
+        User::updateOrCreate(['email' => 'loans@saco.com'], [
             'name' => 'Loans Officer',
             'email' => 'loans@saco.com',
             'password' => Hash::make('password'),
             'role' => 'loans_officer',
         ]);
 
-        // Create treasurer
-        User::create([
+        User::updateOrCreate(['email' => 'treasurer@saco.com'], [
             'name' => 'Treasurer',
             'email' => 'treasurer@saco.com',
             'password' => Hash::make('password'),
             'role' => 'treasurer',
         ]);
 
-        // Create regular member
-        User::create([
+        User::updateOrCreate(['email' => 'member@saco.com'], [
             'name' => 'Test Member',
             'email' => 'member@saco.com',
             'password' => Hash::make('password'),
