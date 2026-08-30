@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     libmariadb-dev \
     libicu-dev \
+    libsqlite3-dev \
     curl \
     libzip-dev \
     unzip \
@@ -17,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd intl pdo pdo_mysql zip
+    && docker-php-ext-install -j$(nproc) gd intl pdo pdo_mysql pdo_sqlite zip
 
 # Enable Apache rewrite module
 RUN a2enmod rewrite
