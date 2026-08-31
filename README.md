@@ -135,6 +135,16 @@ Run the test suite:
 composer run test
 ```
 
+## Portable Windows Demo Package
+
+To create a ZIP that runs without Docker, PHP, Node.js, Composer, Git, or a database server on the presentation PC:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\package-demo.ps1
+```
+
+Run this on the development PC with Docker Desktop and Node.js available. The script builds the frontend, creates a fresh SQLite demo database with synthetic presentation data, bundles the Composer runtime dependencies and portable Windows PHP, and writes `dist\SACCO-Demo.zip`. The recipient extracts the ZIP and double-clicks `Start-SACCO.bat`; `Stop-SACCO.bat` shuts the demo down.
+
 ## 📁 Project Structure
 
 ```
