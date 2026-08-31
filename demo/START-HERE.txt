@@ -1,0 +1,26 @@
+SACCO MANAGEMENT SYSTEM - PRESENTATION DEMO
+============================================
+
+1. Extract the complete SACCO-Demo folder.
+2. Double-click Start-SACCO.bat.
+3. Your browser opens automatically when the application is ready.
+4. Use the demo login shown below.
+5. Double-click Stop-SACCO.bat when the presentation is finished.
+
+Demo login
+----------
+Administrator: admin@sacco.com
+Password:      password
+
+Member login
+------------
+Email:         member@saco.com
+Password:      password
+
+Notes
+-----
+- This is an offline demo package with synthetic/demo data.
+- Do not use this package for production or real member information.
+- If port 8080 is busy, the launcher automatically tries ports 8081 through 8090.
+- If startup fails, review storage\logs\demo-server.log.
+- Windows may show a security prompt the first time the bundled PHP runtime runs.

@@ -69,9 +69,11 @@ return new class extends Migration
             }
             
             // Add indexes only for columns that exist and index doesn't exist
-            $indexes = \DB::select("SHOW INDEX FROM loans WHERE Key_name = 'loans_loan_number_index'");
-            if (empty($indexes)) {
-                $table->index('loan_number');
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $indexes = \DB::select("SHOW INDEX FROM loans WHERE Key_name = 'loans_loan_number_index'");
+                if (empty($indexes)) {
+                    $table->index('loan_number');
+                }
             }
         });
     }
